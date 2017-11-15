@@ -3,17 +3,17 @@
 \begin{document}
 \begin{tikzpicture}
   [
-  node1/.style={radius=0.5,draw=black,fill=black!50,line width=4},
-  node2/.style={radius=0.25,draw=black,fill=black!50,line width=3},
-  node3/.style={radius=0.125,draw=black,fill=black!50,line width=2},
+  node1/.style={radius=0.5,draw=black,fill=black!50,line width=8},
+  node2/.style={radius=0.25,draw=black,fill=black!50,line width=6},
+  node3/.style={radius=0.125,draw=black,fill=black!50,line width=4},
   ]
 
   % Grid
-  \draw[line width=4] (0,0) -- (10,0) -- (10,10) -- (0,10) -- (0,0);
-  \draw[line width=3] (0,5) -- (10,5);
-  \draw[line width=3] (5,0) -- (5,10);
-  \draw[line width=1] (2.5,0) -- (2.5,5);
-  \draw[line width=1] (0,2.5) -- (5,2.5);
+  \draw[line width=8] (0,0) -- (10,0) -- (10,10) -- (0,10) -- (0,0);
+  \draw[line width=6] (0,5) -- (10,5);
+  \draw[line width=6] (5,0) -- (5,10);
+  \draw[line width=2] (2.5,0) -- (2.5,5);
+  \draw[line width=2] (0,2.5) -- (5,2.5);
 
   % Grid Nodes
   %\node at (0,0) [node1]{};
@@ -33,13 +33,10 @@
   \draw[node3] (2.5,5)   circle;
 
   % Triangle
-  \draw[line width=4,fill=black!25] (12,0) -- (12,10) -- (20.866,5) -- (12,0);
+  \draw[line width=8,fill=black!25] (12,0) -- (12,10) -- (20.866,5) -- (12,0);
 
   % Circle
-  \draw[line width=4,fill=black!50] (27,5) circle [radius=5];
-
-  % Text
-  \node at (34,0) {\Huge\textsc{StagBL}};
+  \draw[line width=8,fill=black!50] (27,5) circle [radius=5];
 
 \end{tikzpicture}
 \end{document}
