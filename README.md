@@ -1,6 +1,6 @@
 # StagBL
 
-This repository will be under heavy development.
+Development: See the Trello Board on the BitBucket repository.
 
 During the experimental phase, we will maintain a list of self-contained experiments here:
 
@@ -10,6 +10,6 @@ During the experimental phase, we will maintain a list of self-contained experim
 
 `toys/` : relevant demonstrations/benchmarks/tests
 
-`DMStag` : a PETSc plugin DM 
+`DMStag/` : a PETSc plugin DM 
 
 `docs/` : documentation
