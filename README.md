@@ -1,4 +1,4 @@
-![Logo](docs/logo/logo_resized.png)
+![Logo](docs/logo/logo.pdf)
 # StagBL
 
 Development: See the Trello Board on the BitBucket repository.
