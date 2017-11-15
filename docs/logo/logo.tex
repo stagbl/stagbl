@@ -3,35 +3,34 @@
 \begin{document}
 \begin{tikzpicture}
   [
-  node1/.style={circle,draw=black,fill=black!50,line width=4,minimum size=10mm},
-  node2/.style={circle,draw=black,fill=black!50,line width=3,minimum size=6mm},
-  node3/.style={circle,draw=black,fill=black!50,line width=2,minimum size=4mm},
-  grid1./style={line width=2},
+  node1/.style={radius=0.5,draw=black,fill=black!50,line width=4},
+  node2/.style={radius=0.25,draw=black,fill=black!50,line width=3},
+  node3/.style={radius=0.125,draw=black,fill=black!50,line width=2},
   ]
 
   % Grid
   \draw[line width=4] (0,0) -- (10,0) -- (10,10) -- (0,10) -- (0,0);
-  \draw[line width=2] (0,5) -- (10,5);
-  \draw[line width=2] (5,0) -- (5,10);
+  \draw[line width=3] (0,5) -- (10,5);
+  \draw[line width=3] (5,0) -- (5,10);
   \draw[line width=1] (2.5,0) -- (2.5,5);
   \draw[line width=1] (0,2.5) -- (5,2.5);
 
   % Grid Nodes
-  \node at (0,0) [node1]{};
-  \node at (10,0) [node1]{};
-  \node at (10,10) [node1]{};
-  \node at (0,10) [node1]{};
-  \node at (0,5) [node2]{};
-  \node at (5,5) [node2]{};
-  \node at (10,5) [node2]{};
-  \node at (5,10) [node2]{};
-  \node at (5,10) [node2]{};
-  \node at (5,0) [node2]{};
-  \node at (0,2.5) [node3]{};
-  \node at (2.5,0) [node3]{};
-  \node at (2.5,5) [node3]{};
-  \node at (5,2.5) [node3]{};
-  \node at (2.5,2.5) [node3]{};
+  %\node at (0,0) [node1]{};
+  \draw[node1] (0,0)     circle;
+  \draw[node1] (10,0)    circle;
+  \draw[node1] (10,10)   circle;
+  \draw[node1] (0,10)    circle;
+  \draw[node2] (5,0)     circle;
+  \draw[node2] (5,5)     circle;
+  \draw[node2] (0,5)     circle;
+  \draw[node2] (5,10)    circle;
+  \draw[node2] (10,5)    circle;
+  \draw[node3] (0,2.5)   circle;
+  \draw[node3] (2.5,0)   circle;
+  \draw[node3] (2.5,2.5) circle;
+  \draw[node3] (5,2.5)   circle;
+  \draw[node3] (2.5,5)   circle;
 
   % Triangle
   \draw[line width=4,fill=black!25] (12,0) -- (12,10) -- (20.866,5) -- (12,0);
@@ -40,7 +39,7 @@
   \draw[line width=4,fill=black!50] (27,5) circle [radius=5];
 
   % Text
-  \node at (34,0) {\Huge\textsc{StagBL}}
+  \node at (34,0) {\Huge\textsc{StagBL}};
 
 \end{tikzpicture}
 \end{document}
