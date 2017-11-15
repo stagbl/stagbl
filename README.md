@@ -11,3 +11,5 @@ During the experimental phase, we will maintain a list of self-contained experim
 `toys/` : relevant demonstrations/benchmarks/tests
 
 `DMStag` : a PETSc plugin DM 
+
+`docs/` : documentation
