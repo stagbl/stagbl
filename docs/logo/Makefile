@@ -1,4 +1,4 @@
-PDFS = standalone.pdf
+PDFS = logo.pdf
 
 PDFLATEX=pdflatex --halt-on-error
 
