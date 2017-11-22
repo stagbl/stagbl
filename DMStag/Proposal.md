@@ -20,7 +20,7 @@ It is intended to be intermediate between `DMDA` an `DMPlex`; it represents a st
 - Stratum : set of all k-cells for a given k
 
 ### Working Definition of DM
-We think of a DM as a combination of up to four other concepts:
+We think of a DM as a combination of up to three other concepts:
 
 1. Topology (required), including parallel decomposition
 2. An embedding/immersion of this topology (coordinates)
