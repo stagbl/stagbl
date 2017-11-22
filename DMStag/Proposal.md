@@ -113,7 +113,7 @@ the domain on Sections need not include all of these).
 For instance, our standard Stokes solve might use two `DMStag` objects, one for velocity and pressure fields,
 and one to hold density and viscosity fields.
 
-1. Unknowns (pressure and velocity)
+Unknowns (pressure and velocity)
 
 ```
     +--- 14 --+--- 15 --+
@@ -128,7 +128,7 @@ and one to hold density and viscosity fields.
 ```
 
 
-2. Vertex- and Cell-based material parameters
+Vertex- and Cell-based material parameters
 ```
     10 ------ 11 ------ 12
     |         |         |
