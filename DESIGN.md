@@ -11,6 +11,6 @@ PETSc : [PETSc Developer's Manual](http://www.mcs.anl.gov/petsc/petsc-current/do
 
 ## Grids
 
-grid sizes are specified in terms of cells. [The discretization is based on these control volumes. It is arguably easier to reason about. It might make more sense with ghost points].
+Grid sizes are specified in terms of cells. [The discretization is based on these control volumes. It is arguably easier to reason about. It might make more sense with ghost points].
 
 
