@@ -196,6 +196,8 @@ We define stencil types, which may apply to point in one, some, or all strata.
 
 As with `DMPlex`, `DMLabel` objects will be used to defined subset of points.
 
+All ghosting is done on an element-wise basis. Con: this means more ghost points that are actually required. More storage. Pros: simpler design and implementation (only specify how many ghost elements you will need, which is 1 until we get to higher order FVM). Allows for a lazy first implementation where everything from elements is sent during halo exchanges. Also allows for a nice iteration pattern on the local arrays. Define a struct which has the correct number of dof, properly labelled (using the canonical "-" in the names!), and then used this to iterate through the local array. 
+
 ## Creation
 
 Creation Routines mirror those for `DMDA`.
