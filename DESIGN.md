@@ -3,7 +3,9 @@ Each point should include a rationale [in brackets].
 
 # Code style
 
-See bitbucket.org/psanan/pdsstyle
+General : [Patrick's (in progress) style guide](bitbucket.org/psanan/pdsstyle)
+
+PETSc : [PETSc Developer's Manual](http://www.mcs.anl.gov/petsc/petsc-current/docs/developers.pdf)
 
 # Conventions 
 
