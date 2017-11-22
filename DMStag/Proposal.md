@@ -115,7 +115,7 @@ and one to hold density and viscosity fields.
 
 1. Unknowns (pressure and velocity)
 
-    ```
+```
     +--- 14 --+--- 15 --+
     |         |         |
     8    9    11   12   13
@@ -125,11 +125,11 @@ and one to hold density and viscosity fields.
     1    2    4    5    6
     |         |         |
     +--- 0 ---+--- 3 ---+
-    ```
+```
 
 
 2. Vertex- and Cell-based material parameters
-    ```
+```
     10 ------ 11 ------ 12
     |         |         |
     |    6    |    8    |
@@ -139,7 +139,7 @@ and one to hold density and viscosity fields.
     |    1    |    3    |
     |         |         |
     0 --------2 ------- 4
-    ```
+```
 
 ### Parallel Decomposition
 In parallel, partitioning is always done by cell. As with `DMDA`, the decomposition must be 
