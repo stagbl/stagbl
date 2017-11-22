@@ -235,18 +235,16 @@ As with `DMDA`, we keep extra, perhaps-unused, fields corresponding to the maxim
 dimensionality of the grid (likely to remain at 3).
 
 ```
-#define MAX_GRID_DIM 3
-#define MAX_STRATA MAX_GRID_DIM+1
+#define DMSTAG_MAX_GRID_DIM 3
+#define DMSTAG_MAX_STRATA MAX_GRID_DIM+1
 typedef struct {
-  PetscInt N[MAX_GRID_DIM];            /* Global dimensions              */
-  PetscInt n[MAX_GRID_DIM];            /* Local dimensions               */
-  PetscInt dof[MAX_STRATA];            /* dof per point for each stratum */
-  PetscBool stratumActive[MAX_STRATA]; /* which strata are active        */
-  DMStagStencilType[MAX_STRATA];       /* Stencil type for each stratum  */
+  PetscInt N[DMSTAG_MAX_GRID_DIM];              /* Global dimensions              */
+  PetscInt n[DMSTAG_MAX_GRID_DIM];              /* Local dimensions               */
+  PetscInt dof[DMSTAG_MAX_STRATA];              /* dof per point for each stratum */
+  PetscBool stratumActive[DMSTAG_MAX_STRATA];   /* which strata are active        */
+  DMStagStencilType stencil[DMSTAG_MAX_STRATA]; /* Stencil type for each stratum  */
   ...
-} DMStag;
-#undef MAX_GRID_DIM
-#undef MAX_STRATA
+} DM_Stag;
 
 ```
 
