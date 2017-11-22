@@ -39,18 +39,22 @@ though might naturally considered as part of the topology specification, if the 
 ## Design Considerations
 
 ### PETSc design
+
 - Maintain parallels to `DMDA` and `DMPlex`
 - Obeys the working definition above
 - Provide interfaces that "make MPI invisible" as much as possible.
 
 ### Scope and generality/optimization
+
 - Allow for highly-efficient operations for the applications of primary interest (narrow-stencil Stokes operators)
 - Reduce code duplication where possible, but focus on 1-,2, and 3-dimensional cases.
 
 ### Ease of use
+
 - Provide interfaces that minimize the number of indexing errors possible from the user
 
 ### Extensibility
+
 - Allow for a pathway to intelligent cache-blocking. (Determinining the size of the blocks is out of scope here, but maybe we can provide some of the index-twiddling to make this easy enough for people to use.)
 - Allow for future extension using as a base `DM` for `DMForest`
 - Allow for future custom stencil types (higher-order FVM schemes?)
@@ -148,6 +152,7 @@ a "product decomposition". Fictious extra cells are associated with the last ran
 ## Compatibility
 
 We deem two (or more) `DMStag` objects "compatible" if 
+
 1. they are different "views" of the same abstract staggered grid (the same grid dimension and sizes).
 2. they have identical parallel decompositions of the underlying cells
 
