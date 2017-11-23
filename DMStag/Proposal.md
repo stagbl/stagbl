@@ -189,7 +189,7 @@ We define stencil types, which may apply to point in one, some, or all strata.
 - `DMSTAG_STENCIL_SELF_BOX` (box in the same stratum)
 - `DMSTAG_STENCIL_BOUNDARY` (neighbors in the next lower-dimensional stratum)
 - `DMDSTAG_STENCIL_EXTERIOR` (neighbors in the next higher-dimensional stratum)
-- `DMSTAG_STENCIL_MOMENTUM`  (9-point simple Stokes FV momentum stencil, bad name)
+- `DMSTAG_STENCIL_MOMENTUM`  (11-point simple Stokes FV momentum stencil, bad name)
 - `DMDSTAG_STENCIL_MOMENTUM_COEFFICIENT` (stencil required for simple Stokes FV coefficients on an edge, bad name)
 
 ## Ghosts and Boundaries
