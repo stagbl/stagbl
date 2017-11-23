@@ -26,7 +26,6 @@ We think of a DM as a combination of up to three other concepts:
 2. An embedding/immersion of this topology (coordinates)
 3. A default "Section" - what the primary fields living on the DM are. 
 
-
 The fields in 3. are assumed to be strongly interacting, implying that it's natural to store them interleaved. 
 `DM` object themselves are lightweight - heavy data are pointed to by references. Thus, if non-interleaved fields are desired,
 it is natural to use a `DMComposite` object comprised of several `DM`s which may refer to the same topology and coordinates, with different sections/fields.
@@ -75,10 +74,10 @@ cell intersected).
          +-----B-----C-----------+  D: (i+1,j+1|+,0), or (i+2,j+1|-,0)
          |           |           |
          |           |           |
- x       |  i,j|0,0  |           |
+ y       |  i,j|0,0  |           |
  ^       |           |           |
  |       |           |           |
- +--> y  +-----------+-----------+
+ +--> x  +-----------+-----------+
 ```
 
 ## DOF ordering
@@ -158,7 +157,7 @@ We deem two (or more) `DMStag` objects "compatible" if
 
 This amounts to checking that the dimensions on each rank are identical.
 ```
-PetscErrorCode DMStagCheckCompatibility(dm dmstag,dm dmstag2,...); /* varargs won't work in Fortran */
+PetscErrorCode DMStagCheckCompatibility(dm dmstag,PetscInt ndms,DM dm[],PetscBool *isCompatible);
 ```
 We might also consider introducing a function for this into the general `DM` API.
 
