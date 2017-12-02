@@ -80,7 +80,8 @@ static PetscErrorCode AssembleStokesOperator(Mat A,Ctx ctx)
         PetscScalar vals[4];
 
         row = i + MC*j + offsetC;
-        /* We impose 4 pressure symmetry BCs, at the corners, 
+        /* We impose 4 pressure BCs, at the corners, since our boundary conditions
+           leave the corner nodes out of any momentum equation,
            and a fixed node, as implied by Exercise 7.1.
            Using an implied ghost velocity node (as also described in the text)
            seems cleaner, though */
