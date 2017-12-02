@@ -8,6 +8,8 @@
 static PetscErrorCode AssembleStokesOperator(Mat,Ctx);
 static PetscErrorCode AssembleRHS(Vec,Ctx);
 
+// TODO : here, and probably elsewhere, many loops are ordered backwards (should be j, then i)
+
 /* =========================================================================== */
 PetscErrorCode CreateSystem(Mat *pA,Vec *pb, Ctx ctx)
 {
@@ -354,9 +356,9 @@ PetscErrorCode AssembleRHS(Vec b,Ctx ctx)
     ierr = DMDAVecGetArray(ctx->daY,bY,&vArr);CHKERRQ(ierr);
     ierr = DMDAVecGetArrayRead(ctx->daCor,ctx->rho,&rhoArr);CHKERRQ(ierr);
     ierr = DMDAGetCorners(ctx->daY,&si,&sj,NULL,&ni,&nj,NULL);CHKERRQ(ierr);
-    for (i=PetscMax(si,1); i<PetscMin(si+ni,ctx->MY-1);++i){
-      for (j=PetscMax(sj,1); j<PetscMin(sj+nj,ctx->NY-1);++j){
-        vArr[j][i] = -ctx->gy * 0.5 * (rhoArr[j][i] + rhoArr[j][i+1]);
+    for (j=PetscMax(sj,1); j<PetscMin(sj+nj,ctx->NY-1);++j){
+      for (i=PetscMax(si,1); i<PetscMin(si+ni,ctx->MY-1);++i){
+        vArr[j][i] = -ctx->gy * 0.5 * (rhoArr[j][i] + rhoArr[j+1][i]);
       }
     }
     ierr = DMDAVecRestoreArrayRead(ctx->daCor,ctx->rho,&rhoArr);CHKERRQ(ierr);
