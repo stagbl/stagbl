@@ -45,6 +45,8 @@ PetscErrorCode CreateSystem(Mat *pA,Vec *pb, Ctx ctx)
 // Assemble a monolithic Stokes operator
 // This routine shamefully does index arithmetic instead of trying to use the PETSc API for everything
 // it does not work in parallel because the equations are numbered differently.
+// We use "natural" ordering  here, which only coincides with "PETSc" ordering on 1 rank.
+
 static PetscErrorCode AssembleStokesOperator(Mat A,Ctx ctx)
 {
   PetscErrorCode         ierr;
@@ -211,6 +213,11 @@ static PetscErrorCode AssembleStokesOperator(Mat A,Ctx ctx)
       ierr = MatSetValues(A,1,&row,1,&row,&val,INSERT_VALUES);CHKERRQ(ierr);
     }
     // Zero gradient functions on the top and bottom
+    /*
+      Note that this is less accurate than using modified stencils on the boundaries
+      with implied pressure nodes. See:
+      Duretz, T., May, D. A., Gerya, T. V., & Tackley, P. J. (2011). Discretization errors and free surface stabilization in the finite difference and marker‐in‐cell method for applied geodynamics: A numerical study. Geochemistry, Geophysics, Geosystems, 12(7).
+    */
     // TODO - this is doing redundant work if you have several procs..
     for (i=PetscMax(si,1);i<PetscMin(si+ni,MX-1);++i) {
         PetscInt row,cols[2];
