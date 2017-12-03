@@ -1,4 +1,4 @@
-This document records design choices an guidelines for StagBL.
+This document records design choices and guidelines for StagBL.
 Each point should include a rationale [in brackets].
 
 # Code style
