@@ -28,10 +28,10 @@ typedef struct {
   DMStagGhostStencilType ghostStencil;                     /* element-wise ghost stencil      */
   PetscInt               ghostStencilWidth;                /* elementwise ghost width         */
   DMBoundaryType         boundaryType[DMSTAG_MAX_DIM];
-  VecScatter             gton;                             /* Global --> Natural Mapping      */
-  VecScatter             gtol;                             /* Global --> Local Mapping        */
-  VecScatter             lton;                             /* Local (ghosted) --> Natural     */
-  VecScatter             ntol;                             /* Natural --> local (redundant)   */
+  VecScatter             gton;                             /* Global  --> Natural             */
+  VecScatter             gtol;                             /* Global  --> Local               */
+  VecScatter             ntol;                             /* Natural --> Local               */
+  VecScatter             lton;                             /* Local   --> Natural (redundant) */
   PetscInt entriesPerElement,entriesPerEdge,entriesPerCorner,entriesPerElementRow,
            entries,entriesGhost,entriesPerElementRowGhost,entriesPerElementRowGlobal;
 } DM_Stag;
