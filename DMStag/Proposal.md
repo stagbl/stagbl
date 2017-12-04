@@ -1,13 +1,12 @@
 DMStag - Component Proposal
 ---------------------------
 
-`DMStag` is an implementation of PETSc's `DM` abstract class.
+`DMStag` is a proposed implementation of PETSc's `DM` abstract class.
 
-It represents a topologically Cartesian cell complex based on a grid of line segments, quadrilaterals, or hexahedra.
-It provides routines to manipulate interacting fields on these cells and all lower-dimensional cells in the complex.
+It represents a topologically Cartesian cell complex based on a rectangular grid of line segments, quadrilaterals, or hexahedra.
+It provides routines to manipulate interacting fields these top-level element ands lower-dimensional cells in the complex.
 
 The intended use is for finite volume or DEC schemes, on regular grids.
-
 It is intended to be intermediate between `DMDA` an `DMPlex`; it represents a structured grid like `DMDA`, but supports different strata like `DMPlex`.
 
 ## Terminology
@@ -16,24 +15,28 @@ It is intended to be intermediate between `DMDA` an `DMPlex`; it represents a st
 - Face    : 2-cell
 - Edge    : 1-cell
 - Vertex  : 0-cell
-- Element : 3-cell in 3D, 2-cell in 2D
+- Element : 3-cell in 3D, 2-cell in 2D, 1-cell in 1D
 - Stratum : set of all k-cells for a given k
+- Entry   : a single entry in a vector representing one or more fields on the complex
+- Ghost   : describes an extra point or degree of freedom corresponding to one stored on a neighboring rank (which may be defined by periodicity) in the global decomposition
+- Dummy   : describes an extra point or degree of freedom in the local representation, used on the top/right/front of the domain, to give a representation with an eequal number of points of each type
 
 ### Working Definition of DM
-We think of a DM as a combination of up to three other concepts:
+We think of a `DM` as a combination of up to three other concepts:
 
 1. Topology (required), including parallel decomposition
 2. An embedding/immersion of this topology (coordinates)
 3. A default "Section" - what the primary fields living on the DM are. 
 
+Point 1. includes both "local" and "global" topology and the maps between them. Thus, in the case of `DMDA`, we consider the stencil description to be part of the topology, as it is used to define the local spaces.
+
 The fields in 3. are assumed to be strongly interacting, implying that it's natural to store them interleaved. 
 `DM` object themselves are lightweight - heavy data are pointed to by references. Thus, if non-interleaved fields are desired,
 it is natural to use a `DMComposite` object comprised of several `DM`s which may refer to the same topology and coordinates, with different sections/fields.
 
-In the case of `DMPlex`, 1. (topology) is in 1-1 correspondence with the `DMPlex`-specific information in `DM_Plex` (pointed to by the `data` field in `_p_DM`). This data in turn contains pointers to heavy topology data and a reference count. This means that two `DMPlex` objects with the same topology can both simply point to the same `DM_Plex` object.
+In the case of `DMPlex`, 1. (topology) is the only thing defined by the `DMPlex`-specific information in `DM_Plex` (pointed to by the `data` field in `_p_DM`). This data in turn contains a refernce count and pointers to heavy topology data. This means that two `DMPlex` objects with the same topology can share a pointer to the same `DM_Plex` object.
 
-This is not the case for `DMDA`: while all of the topology (the grid sizes) are indeed captured by `DM_DA`, additional information is also included, in particular the DOF specifications. The DOF specification would more naturally be included with the section information (3.). The stencil information might be associated with a particular operator, 
-though might naturally considered as part of the topology specification, if the concept of topology is extended to include a parallel decomposition.
+This is not the case for `DMDA`: while all of the topology (the grid sizes) are indeed captured by `DM_DA`, additional information is also included, in particular the DOF specifications. The DOF specification would more naturally be included with the section information (3.). 
 
 ## Design Considerations
 
@@ -42,11 +45,12 @@ though might naturally considered as part of the topology specification, if the 
 - Maintain parallels to `DMDA` and `DMPlex`
 - Obeys the working definition above
 - Provide interfaces that "make MPI invisible" as much as possible.
+- Prioritize simple, efficient, easily-debuggable implementation
 
 ### Scope and generality/optimization
 
 - Allow for highly-efficient operations for the applications of primary interest (narrow-stencil Stokes operators)
-- Reduce code duplication where possible, but focus on 1-,2, and 3-dimensional cases.
+- Reduce code duplication where possible, but focus on 1-,2, and 3-dimensional cases within a single object. Prioritize efficiency in the 3D case.
 
 ### Ease of use
 
@@ -56,13 +60,15 @@ though might naturally considered as part of the topology specification, if the 
 
 - Allow for a pathway to intelligent cache-blocking. (Determinining the size of the blocks is out of scope here, but maybe we can provide some of the index-twiddling to make this easy enough for people to use.)
 - Allow for future extension using as a base `DM` for `DMForest`
-- Allow for future custom stencil types (higher-order FVM schemes?)
+- Allow for future custom stencil types (in particular, higher-order FVM schemes)
+- Allow for interaction with `DMSwarm` or other PIC/MIC schemes
+- Allow for the introduction of `PetscSection`/`PetscSF` to define fields, as in `DMPlex` (and, undocumented it seems, in `DMDA`).
 
 ## Indexing Convention
 
 We refer to all points by the x,y[,z] indices of an element, and "half index" offsets in each of the three dimensions.
 These offsets can be positive or negative, giving non-unique representations of non-primal cells (one for each primal
-cell intersected).
+cell ("element") intersected).
 
 ```
          +-----------+-----------+
@@ -81,7 +87,7 @@ cell intersected).
 ```
 
 ## DOF ordering
-Each point is associated with a cell by choosing it's "-" representation. 
+Each point is associated with an element by choosing it's "-" representation. 
 Global "Natural" ordering within each element is then done in "x fast" ordering, with - < 0.
 ```
 0: (0,0|-,-)
@@ -91,7 +97,7 @@ Global "Natural" ordering within each element is then done in "x fast" ordering,
 ...
 ```
 
-Note that on the right/top/back boundaries, numbering is respect to a fictitious cell.
+Note that on the right/top/back boundaries, numbering is respect to a fictitious element.
 This ordering is used in an extension to `MatStencil`. This allows the user to simply
 think in terms of which element (in global numbering) and which boundary, as opposed to having to remember
 a convention for index numbering of face/edge/vertex degrees of freedom.
@@ -131,7 +137,7 @@ Unknowns (pressure and velocity)
 ```
 
 
-Vertex- and Cell-based material parameters
+Vertex- and Element-based material parameters
 ```
     10 ------ 11 ------ 12
     |         |         |
@@ -145,17 +151,76 @@ Vertex- and Cell-based material parameters
 ```
 
 ### Parallel Decomposition
-In parallel, partitioning is always done by cell. As with `DMDA`, the decomposition must be 
-a "product decomposition". Fictious extra cells are associated with the last rank in each direction.
+In parallel, partitioning is always done by element, associating each lower-dimensional cell with the element it is below/left of/behind. As with `DMDA`, the decomposition must be a "product decomposition". Partial elements with extra dummy points are associated with the last rank in each direction.
+Global ("PETSc") ordering of degrees of freedom is defined by ordering ranks in "x-fast" order starting from the bottom back left,
+ordering points locally by the same scheme as above, ordering dof sequentially within each point. For example, consider a 2D 3x3 grid, with 1 dof on each vertex and two dof on each element, decomposed on 4 ranks in a 2x2 grid.
+
+Global numbering of dof:
+```
+ [rank 2]                           :  [rank 3]
+                                    :
+    26 ------ 27 ------             :     32 ------ 33
+    |         |                     :     |         | 
+    |  21,22  |  24,25              :     |  29,30  | 
+    |         |                     :     |         | 
+    20------- 23-------             :     28------- 31
+                                    :
+....................................:..............................
+                                    :
+ [rank 0]                           :   [rank 1]
+                                    :
+    |         |                     :     |         |
+    |  7,8    |  10,11              :     |  17,18  |
+    |         |                     :     |         |
+    6 ------- 9 -------             :     16------- 19
+    |         |                     :     |         |
+    |  1,2    |  4,5                :     |  13,14  |
+    |         |                     :     |         |
+    0 ------- 3 -------             :     12 ------ 15
+```
+
+Local numbering of dof:
+```
+
+ [rank 2]                           :  [rank 3]
+                                    :
+    |         |         |           :     |         |        
+    |  10,11  |  13,14  |  16,17    :     |  7,8    |  10,11 
+    |         |         |           :     |         |        
+    9 ------- 12 ------ 15 -----    :     6 ------- 9 -------
+    |         |         |           :     |         |        
+    |  1,2    |  4,5    |  7,8      :     |  1,2    |  4,5   
+    |         |         |           :     |         |        
+    0 ------- 3 ------- 6 ------    :     0 ------- 3 -------
+                                    :
+....................................:..............................
+                                    :
+  [rank 0]                          :  [rank 1]
+                                    :
+    |         |         |           :     |         |        
+    |  19,20  |  22,23  |  25,26    :     |  13,14  |  16,17 
+    |         |         |           :     |         |        
+    18 ------ 21 ------ 24 -----    :     12 ------ 15 ------
+    |         |         |           :     |         |        
+    |  10,11  |  13,14  |  16,17    :     |  7,8    |  10,11 
+    |         |         |           :     |         |        
+    9 ------- 12 ------ 15 -----    :     6 ------- 9 -------
+    |         |         |           :     |         |        
+    |  1,2    |  4,5    |  7,8      :     |  1,2    |  4,5   
+    |         |         |           :     |         |        
+    0 ------- 3 ------- 6 ------    :     0 ------- 3 -------
+
+```
+
+As with `DMDA`, "natural" ordering is defined as the global ordering in the 1-rank case.
 
 ## Compatibility
 
 We deem two (or more) `DMStag` objects "compatible" if 
 
 1. they are different "views" of the same abstract staggered grid (the same grid dimension and sizes).
-2. they have identical parallel decompositions of the underlying cells
+2. they have identical local representations (the same parallel decomposition and ghost region sizes).
 
-This amounts to checking that the dimensions on each rank are identical.
 ```
 PetscErrorCode DMStagCheckCompatibility(dm dmstag,PetscInt ndms,DM dm[],PetscBool *isCompatible);
 ```
@@ -167,20 +232,24 @@ PetscErrorCode DMStagGetCornersCompatible(DM dmstag0,PetscInt *x,PetscInt *y,...
 PetscErrorCode DMStagVecGetArraysCompatible(DM dmstag0,**PetscScalar arr0,PetscBool readonly0,DM dmstag1,...);
 ```
 
-Note that we don't inlude anything about the coordinates in the above definition of compatibility.
-In most cases, one would only consider two `DMStag` objects to be compatible if their coordinates
-aligned on the overlapping strata.
+Note that we don't include anything about the coordinates or section in the above definition of compatibility.
 
 ## Stencil and Points Description
 
 `DMStag` has a flag for each stratum to determine if its points are included.
 
 `DMStag` accepts a number of degrees of freedom associated with points in each stratum.
-This may be 0, but typically one would rather clone the DM and turn the flag
-off for that stratum entirely. Thus, in our creation routines below we
-simply set these flags by checking if the corresponding DOF count is zero.
+There might be some argument for allowing this to be zero, but as in most cases one would 
+simply create a new `DMStag` object.
+Thus, in our creation routines below we
+simply set these flags by checking if the corresponding dof count is zero.
 The user could turn them back on with the `DMStag` API before SetUp.
 
+The creation routines below accept a single element-wise stencil argument
+which determines the sizes of the ghost regions in the local representations.
+
+Operations should eventually be expanded to add more specific stencil information which can be used
+to create operators and perhaps to reduce halo exchange information.
 We define stencil types, which may apply to point in one, some, or all strata.
 
 - `DMSTAG_STENCIL_NONE` (placeholder when stratum is not active, or dof is 0)
@@ -192,12 +261,6 @@ We define stencil types, which may apply to point in one, some, or all strata.
 - `DMSTAG_STENCIL_MOMENTUM`  (11-point simple Stokes FV momentum stencil, bad name)
 - `DMDSTAG_STENCIL_MOMENTUM_COEFFICIENT` (stencil required for simple Stokes FV coefficients on an edge, bad name)
 
-## Ghosts and Boundaries
-
-As with `DMPlex`, `DMLabel` objects will be used to defined subset of points.
-
-All ghosting is done on an element-wise basis. Con: this means more ghost points that are actually required. More storage. Pros: simpler design and implementation (only specify how many ghost elements you will need, which is 1 until we get to higher order FVM). Allows for a lazy first implementation where everything from elements is sent during halo exchanges. Also allows for a nice iteration pattern on the local arrays. Define a struct which has the correct number of dof, properly labelled (using the canonical "-" in the names!), and then used this to iterate through the local array. 
-
 ## Creation
 
 Creation Routines mirror those for `DMDA`.
@@ -205,12 +268,11 @@ Creation Routines mirror those for `DMDA`.
 ```
 PetscErrorCode DMStagCreate2d(
   MPI_Comm comm,
-  DMBoundaryType bx, DMBoundaryType by,                   // boundary types
-  DMStagStencilType stencilCell,                          // Stencil information
-  DMStagStencilType stencilEdge,                          
-  DMStagStencilType stencilVertex,                        
-  PetscInt M,PetscInt N,                                  // global sizes
-  PetscInt m,PetscInt n,                                  // local sizes
+  DMBoundaryType bx, DMBoundaryType by,                      // boundary types
+  DMStagGhostStencilType stencil,                            // element-wise stencil type
+  PetscInt stencilWidth,                                     // element-wise stencil width
+  PetscInt M,PetscInt N,                                     // global sizes
+  PetscInt m,PetscInt n,                                     // local sizes
   PetscInt dofVertex, PetscInt dofEdge, PetscInt dofElement, // DOF information (0 turns off a point type)
   DM *dm
 )
@@ -219,32 +281,36 @@ PetscErrorCode DMStagCreate2d(
 ## Conversion
 
 Creating derivative `DMStag` objects will be done with the Clone/Set/SetUp paradigm,
-or with `DMGetSubDM()`.
-
-Useful potential conversion routines include
-
-- Conversion from `DMStag` to `DMPlex`
-- Extraction of a single-point-type subgrid as a `DMDA`
-
-## Helpers
-
-It might be useful to provide a function to interpolate values of field from one stratum to another (even though this is typically not the best thing to do). This could be useful for quickly propagating fields to a collocated grid for plotting, or for moving available parameter fields around.
+or with `DMCreateSubDM()`.
 
 ## Members
 
 As with `DMDA`, we keep extra, perhaps-unused, fields corresponding to the maximum
 dimensionality of the grid (likely to remain at 3).
 
+Member for a current prototype include the following:
 ```
-#define DMSTAG_MAX_GRID_DIM 3
-#define DMSTAG_MAX_STRATA MAX_GRID_DIM+1
+#define DMSTAG_MAX_DIM 3
+#define DMSTAG_MAX_STRATA MAX_DIM+1
 typedef struct {
-  PetscInt N[DMSTAG_MAX_GRID_DIM];              /* Global dimensions              */
-  PetscInt n[DMSTAG_MAX_GRID_DIM];              /* Local dimensions               */
-  PetscInt dof[DMSTAG_MAX_STRATA];              /* dof per point for each stratum */
-  PetscBool stratumActive[DMSTAG_MAX_STRATA];   /* which strata are active        */
-  DMStagStencilType stencil[DMSTAG_MAX_STRATA]; /* Stencil type for each stratum  */
-  ...
+  PetscInt               dim;
+  PetscInt               N[DMSTAG_MAX_DIM];                /* Global dimensions (elements)    */
+  PetscInt               n[DMSTAG_MAX_DIM];                /* Local dimensions (elements)     */
+  PetscInt               nghost[DMSTAG_MAX_DIM];           /* Local dimensions (with ghosts)  */
+  PetscInt               start[DMSTAG_MAX_DIM];            /* First element number            */
+  PetscInt               startGhost[DMSTAG_MAX_DIM];       /* First element number (ghosted)  */
+  PetscMPIInt            proc[DMSTAG_MAX_DIM];             /* Location in processor grid      */
+  PetscBool              lastproc[DMSTAG_MAX_DIM];         /* Last proc in this dim?          */ 
+  PetscBool              firstproc[DMSTAG_MAX_DIM];        /* First proc in this dim?         */ 
+  PetscMPIInt            nprocs[DMSTAG_MAX_DIM];           /* Procs in each direction         */
+  PetscInt               dof[DMSTAG_MAX_STRATA];           /* dof per point for each stratum  */
+  PetscBool              stratumActive[DMSTAG_MAX_STRATA]; 
+  DMStagGhostStencilType ghostStencil;                     /* element-wise ghost stencil      */
+  PetscInt               ghostStencilWidth;                /* elementwise ghost width         */
+  DMBoundaryType         boundaryType[DMSTAG_MAX_DIM];
+  VecScatter             gton;                             /* Global  --> Natural             */
+  VecScatter             gtol;                             /* Global  --> Local               */
+  // Potential : additional, more-specific stencil information
 } DM_Stag;
 
 ```
