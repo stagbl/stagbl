@@ -44,8 +44,6 @@ static PetscErrorCode DMDestroy_Stag(DM dm)
   if (stag->gtol) {
     ierr = VecScatterDestroy(&stag->gtol);CHKERRQ(ierr);
   }
-  ierr = PetscFree(stag->neighbors);CHKERRQ(ierr);
-  ierr = PetscFree(stag->globalOffsets);CHKERRQ(ierr);
 
   ierr = PetscFree(stag);CHKERRQ(ierr);
   PetscFunctionReturn(0);
@@ -285,8 +283,10 @@ PetscErrorCode DMSetUp_Stag(DM dm)
   DM_Stag        *stag = (DM_Stag *) dm->data;
   PetscMPIInt    size,rank;
   PetscInt       i,j,m,n,M,N;
-  PetscInt       *l[DMSTAG_MAX_GRID_DIM]; /* Arrays of number of elements/proc in each dimension (could accept as args like DMDA creation routines do)*/
+  PetscInt       *l[DMSTAG_MAX_DIM]; /* Arrays of number of elements/proc in each dimension (could accept as args like DMDA creation routines do)*/
   MPI_Comm       comm;
+  PetscMPIInt    *neighbors;
+  PetscInt       *globalOffsets;
 
   PetscFunctionBegin;
   ierr = PetscObjectGetComm((PetscObject)dm,&comm);CHKERRQ(ierr);
@@ -391,16 +391,16 @@ PetscErrorCode DMSetUp_Stag(DM dm)
   for (i=0; i<stag->dim; ++i) {
     if (stag->boundaryType[i] != DM_BOUNDARY_NONE) SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_SUP,"Neighbor determination assumes boundary_none");
   }
-  ierr = PetscMalloc1(9,&stag->neighbors);CHKERRQ(ierr);
-  stag->neighbors[0] = stag->firstproc[0] || stag->firstproc[1] ? -1 : rank - 1 - stag->nprocs[0]; // down left
-  stag->neighbors[1] =                       stag->firstproc[1] ? -1 : rank     - stag->nprocs[0]; // down
-  stag->neighbors[2] = stag->lastproc[0]  || stag->firstproc[1] ? -1 : rank + 1 - stag->nprocs[0]; // down right
-  stag->neighbors[3] = stag->firstproc[0]                       ? -1 : rank - 1                  ; // left
-  stag->neighbors[4] =                                                 rank                      ; // here
-  stag->neighbors[5] = stag->lastproc[0]                        ? -1 : rank + 1                  ; // right
-  stag->neighbors[6] = stag->firstproc[0] || stag->lastproc[1]  ? -1 : rank - 1 + stag->nprocs[0]; // up left 
-  stag->neighbors[7] =                       stag->lastproc[1]  ? -1 : rank     + stag->nprocs[0]; // up
-  stag->neighbors[8] = stag->lastproc[0]  || stag->lastproc[1]  ? -1 : rank + 1 + stag->nprocs[0]; // up right
+  ierr = PetscMalloc1(9,&neighbors);CHKERRQ(ierr);
+  neighbors[0] = stag->firstproc[0] || stag->firstproc[1] ? -1 : rank - 1 - stag->nprocs[0]; // down left
+  neighbors[1] =                       stag->firstproc[1] ? -1 : rank     - stag->nprocs[0]; // down
+  neighbors[2] = stag->lastproc[0]  || stag->firstproc[1] ? -1 : rank + 1 - stag->nprocs[0]; // down right
+  neighbors[3] = stag->firstproc[0]                       ? -1 : rank - 1                  ; // left
+  neighbors[4] =                                                 rank                      ; // here
+  neighbors[5] = stag->lastproc[0]                        ? -1 : rank + 1                  ; // right
+  neighbors[6] = stag->firstproc[0] || stag->lastproc[1]  ? -1 : rank - 1 + stag->nprocs[0]; // up left 
+  neighbors[7] =                       stag->lastproc[1]  ? -1 : rank     + stag->nprocs[0]; // up
+  neighbors[8] = stag->lastproc[0]  || stag->lastproc[1]  ? -1 : rank + 1 + stag->nprocs[0]; // up right
 
   /* Define useful sizes */
   if (stag->dim == 2){
@@ -418,20 +418,20 @@ PetscErrorCode DMSetUp_Stag(DM dm)
   // Note that it get a bit silly computing som many different twiddly things, but in the next impl we will at least know ahed of time what we need,
   // and be able to assemble a smaller set of things, and during this setup organize them better.
   {
-    ierr = PetscMalloc1(size,&stag->globalOffsets);CHKERRQ(ierr);
-    stag->globalOffsets[0] = 0;
+    ierr = PetscMalloc1(size,&globalOffsets);CHKERRQ(ierr);
+    globalOffsets[0] = 0;
     PetscInt count = 1; // note the count is offset by 1 here. We add the size of the previous rank
     for (j=0; j<stag->nprocs[1]-1; ++j) {
       const PetscInt nnj = l[1][j];
       for (i=0; i<stag->nprocs[0]-1; ++i) {
         const PetscInt nni = l[0][i];
-        stag->globalOffsets[count] = stag->globalOffsets[count-1] + nnj*nni*stag->entriesPerElement; // No right/top/front boundaries
+        globalOffsets[count] = globalOffsets[count-1] + nnj*nni*stag->entriesPerElement; // No right/top/front boundaries
         ++count;
       }
       {
         i = stag->nprocs[0]-1;
         const PetscInt nni = l[0][i];
-        stag->globalOffsets[count] = stag->globalOffsets[count-1] + nnj*(nni*stag->entriesPerElement + stag->entriesPerEdge); // extra vert/edge per row, on the right
+        globalOffsets[count] = globalOffsets[count-1] + nnj*(nni*stag->entriesPerElement + stag->entriesPerEdge); // extra vert/edge per row, on the right
         ++count;
       }
     }
@@ -440,7 +440,7 @@ PetscErrorCode DMSetUp_Stag(DM dm)
       const PetscInt nnj = l[1][j];
       for (i=0; i<stag->nprocs[0]-1; ++i) {
         const PetscInt nni = l[0][i];
-        stag->globalOffsets[count] = stag->globalOffsets[count-1] + (nnj*stag->entriesPerElement + stag->entriesPerEdge)*nni; // extra vert/edge per column, on the top
+        globalOffsets[count] = globalOffsets[count-1] + (nnj*stag->entriesPerElement + stag->entriesPerEdge)*nni; // extra vert/edge per column, on the top
         ++count;
       }
       {
@@ -486,7 +486,7 @@ PetscErrorCode DMSetUp_Stag(DM dm)
     stag->entriesPerElementRowGhost = stag->nghost[0]*stag->entriesPerElement; // local/ghost rep is missing the top/right/front edges/verts
   }
 
-  ierr = PetscPrintf(PETSC_COMM_SELF,"[%d] Local dimensions %d x %d (%d x %d ghosted), start %d,%d (%d,%d ghosted), global offset %d\n",rank,stag->n[0],stag->n[1],stag->nghost[0],stag->nghost[1],stag->start[0],stag->start[1],stag->startGhost[0],stag->startGhost[1],stag->globalOffsets[rank]);CHKERRQ(ierr);
+  ierr = PetscPrintf(PETSC_COMM_SELF,"[%d] Local dimensions %d x %d (%d x %d ghosted), start %d,%d (%d,%d ghosted), global offset %d\n",rank,stag->n[0],stag->n[1],stag->nghost[0],stag->nghost[1],stag->start[0],stag->start[1],stag->startGhost[0],stag->startGhost[1],globalOffsets[rank]);CHKERRQ(ierr);
 
   /* Create the default section (note this uses local sizes) 
      We don't use this for now, but keep this for future reference. 
@@ -691,7 +691,7 @@ PetscErrorCode DMSetUp_Stag(DM dm)
     // Neighbor 0 (down left)
     if (!stag->firstproc[0] && !stag->firstproc[1]) {
     // We may be a ghosted boundary in x, but the neighbor never is
-      const PetscInt neighborRank = stag->neighbors[0];
+      const PetscInt neighborRank = neighbors[0];
       nNeighbor[0] = l[0][neighborRank % stag->nprocs[0]];
       nNeighbor[1] = l[1][(neighborRank/stag->nprocs[0])];
       const PetscInt entriesPerElementRowNeighbor = stag->entriesPerElement * l[0][stag->proc[0]-1]; // no possibility of a down left neighbor being a right/top boundary!
@@ -700,8 +700,8 @@ PetscErrorCode DMSetUp_Stag(DM dm)
         for (ighost = 0; ighost<ighostoffset; ++ighost) {
           const PetscInt i = nNeighbor[0] - ighostoffset + ighost;
           for (d=0; d<stag->entriesPerElement; ++d) {
-            idxGlobal[count ] = stag->globalOffsets[neighborRank] + j     *entriesPerElementRowNeighbor    + i     *stag->entriesPerElement + d;
-            idxLocal[count++] =                                     jghost*stag->entriesPerElementRowGhost + ighost*stag->entriesPerElement + d;
+            idxGlobal[count ] = globalOffsets[neighborRank] + j     *entriesPerElementRowNeighbor    + i     *stag->entriesPerElement + d;
+            idxLocal[count++] =                               jghost*stag->entriesPerElementRowGhost + ighost*stag->entriesPerElement + d;
           }
         }
       }
@@ -710,7 +710,7 @@ PetscErrorCode DMSetUp_Stag(DM dm)
     // Neighbor 1 (down)
     if (!stag->firstproc[1]) {
     // We may be a ghosted boundary in x, in which case the nieghbor is also
-      const PetscInt neighborRank = stag->neighbors[1];
+      const PetscInt neighborRank = neighbors[1];
       nNeighbor[0] = l[0][neighborRank % stag->nprocs[0]];
       nNeighbor[1] = l[1][(neighborRank/stag->nprocs[0])];
       const PetscInt entriesPerElementRowNeighbor = stag->entriesPerElementRow; // rank below has same width and boundary status!
@@ -719,8 +719,8 @@ PetscErrorCode DMSetUp_Stag(DM dm)
         for (ighost = ighostoffset; ighost<stag->nghost[0]-ighostoffsetright; ++ighost) {
           const PetscInt i = ighost - ighostoffset;
           for (d=0; d<stag->entriesPerElement; ++d) {
-            idxGlobal[count ] = stag->globalOffsets[neighborRank] + j     *entriesPerElementRowNeighbor    + i     *stag->entriesPerElement + d;
-            idxLocal[count++] =                                     jghost*stag->entriesPerElementRowGhost + ighost*stag->entriesPerElement + d;
+            idxGlobal[count ] = globalOffsets[neighborRank] + j     *entriesPerElementRowNeighbor    + i     *stag->entriesPerElement + d;
+            idxLocal[count++] =                               jghost*stag->entriesPerElementRowGhost + ighost*stag->entriesPerElement + d;
           }
         }
         if (stag->lastproc[0]) {
@@ -729,13 +729,13 @@ PetscErrorCode DMSetUp_Stag(DM dm)
           const PetscInt i = stag->n[0]; // or nNeighbor[0]
           // vertex
           for (d=0; d<stag->dof[0]; ++d) {
-            idxGlobal[count ] = stag->globalOffsets[neighborRank] + j     *entriesPerElementRowNeighbor    + i     *stag->entriesPerElement + d;
-            idxLocal[count++] =                                     jghost*stag->entriesPerElementRowGhost + ighost*stag->entriesPerElement + d;
+            idxGlobal[count ] = globalOffsets[neighborRank] + j     *entriesPerElementRowNeighbor    + i     *stag->entriesPerElement + d;
+            idxLocal[count++] =                               jghost*stag->entriesPerElementRowGhost + ighost*stag->entriesPerElement + d;
           }
           // edge
           for (d=0; d<stag->dof[1]; ++d) {
-            idxGlobal[count ] = stag->globalOffsets[neighborRank] + j     *entriesPerElementRowNeighbor    + i     *stag->entriesPerElement + stag->dof[0]                + d;
-            idxLocal[count++] =                                     jghost*stag->entriesPerElementRowGhost + ighost*stag->entriesPerElement + stag->dof[0] + stag->dof[1] + d;
+            idxGlobal[count ] = globalOffsets[neighborRank] + j     *entriesPerElementRowNeighbor    + i     *stag->entriesPerElement + stag->dof[0]                + d;
+            idxLocal[count++] =                               jghost*stag->entriesPerElementRowGhost + ighost*stag->entriesPerElement + stag->dof[0] + stag->dof[1] + d;
           }
         }
       }
@@ -746,7 +746,7 @@ PetscErrorCode DMSetUp_Stag(DM dm)
     // We are never a ghosted boundary in x, but the neighbor may be
     // Note that here we assume that none of the boudnary points on the neighboring rank are involved (only normal elements are in the ghost region)
     if (!stag->lastproc[0] && !stag->firstproc[1]) {
-      const PetscInt neighborRank = stag->neighbors[2];
+      const PetscInt neighborRank = neighbors[2];
       nNeighbor[0] = l[0][neighborRank % stag->nprocs[0]];
       nNeighbor[1] = l[1][(neighborRank/stag->nprocs[0])];
       const PetscInt entriesPerElementRowNeighbor = stag->proc[0] == stag->nprocs[0]-2 ?  nNeighbor[0]*stag->entriesPerElement + stag->entriesPerEdge : nNeighbor[0]*stag->entriesPerElement; // are we second-to-last in x?
@@ -755,8 +755,8 @@ PetscErrorCode DMSetUp_Stag(DM dm)
         for (i=0; i<ighostoffsetright; ++i) {
           const PetscInt ighost = stag->nghost[0] - ighostoffsetright + i;
           for (d=0; d<stag->entriesPerElement; ++d) {
-            idxGlobal[count ] = stag->globalOffsets[neighborRank] + j     *entriesPerElementRowNeighbor    + i     *stag->entriesPerElement + d;
-            idxLocal[count++] =                                     jghost*stag->entriesPerElementRowGhost + ighost*stag->entriesPerElement + d;
+            idxGlobal[count ] = globalOffsets[neighborRank] + j     *entriesPerElementRowNeighbor    + i     *stag->entriesPerElement + d;
+            idxLocal[count++] =                               jghost*stag->entriesPerElementRowGhost + ighost*stag->entriesPerElement + d;
           }
         }
       }
@@ -767,7 +767,7 @@ PetscErrorCode DMSetUp_Stag(DM dm)
     if (!stag->firstproc[0]) {
     // Our neighbor is never a ghosted boundary in x, but we may be
     // Here, we may be a ghosted boundary in y and thus so will our neighbor be
-      const PetscInt neighborRank = stag->neighbors[3];
+      const PetscInt neighborRank = neighbors[3];
       nNeighbor[0] = l[0][neighborRank % stag->nprocs[0]];
       nNeighbor[1] = l[1][(neighborRank/stag->nprocs[0])];
       const PetscInt entriesPerElementRowNeighbor = nNeighbor[0]*stag->entriesPerElement;
@@ -776,8 +776,8 @@ PetscErrorCode DMSetUp_Stag(DM dm)
         for (ighost = 0; ighost<ighostoffset; ++ighost) {
           const PetscInt i = nNeighbor[0] - ighostoffset + ighost;
           for (d=0; d<stag->entriesPerElement; ++d) {
-            idxGlobal[count ] = stag->globalOffsets[neighborRank] + j     *entriesPerElementRowNeighbor    + i     *stag->entriesPerElement + d;
-            idxLocal[count++] =                                     jghost*stag->entriesPerElementRowGhost + ighost*stag->entriesPerElement + d;
+            idxGlobal[count ] = globalOffsets[neighborRank] + j     *entriesPerElementRowNeighbor    + i     *stag->entriesPerElement + d;
+            idxLocal[count++] =                               jghost*stag->entriesPerElementRowGhost + ighost*stag->entriesPerElement + d;
           }
         }
       }
@@ -788,8 +788,8 @@ PetscErrorCode DMSetUp_Stag(DM dm)
         for (ighost = 0; ighost<ighostoffset; ++ighost) {
           const PetscInt i = nNeighbor[1] - ighostoffset + ighost;
           for (d=0; d<stag->entriesPerEdge; ++d) { // only vertices and horizontal edge (which are the first dof)
-            idxGlobal[count ] = stag->globalOffsets[neighborRank] + j     *entriesPerElementRowNeighbor    + i     *stag->entriesPerEdge    + d; // i moves by edge here
-            idxLocal[count++] =                                     jghost*stag->entriesPerElementRowGhost + ighost*stag->entriesPerElement + d;
+            idxGlobal[count ] = globalOffsets[neighborRank] + j     *entriesPerElementRowNeighbor    + i     *stag->entriesPerEdge    + d; // i moves by edge here
+            idxLocal[count++] =                               jghost*stag->entriesPerElementRowGhost + ighost*stag->entriesPerElement + d;
           }
         }
       }
@@ -802,21 +802,21 @@ PetscErrorCode DMSetUp_Stag(DM dm)
       for (i=0; i<stag->n[0]; ++i) {
         const PetscInt ighost = i + ighostoffset;
         for (d=0; d<stag->entriesPerElement; ++d) {
-          idxGlobal[count ] = stag->globalOffsets[stag->neighbors[4]] + j     *stag->entriesPerElementRow       + i     *stag->entriesPerElement + d;
-          idxLocal[count++] =                                           jghost*stag->entriesPerElementRowGhost  + ighost*stag->entriesPerElement + d;
+          idxGlobal[count ] = globalOffsets[neighbors[4]] + j     *stag->entriesPerElementRow       + i     *stag->entriesPerElement + d;
+          idxLocal[count++] =                                     jghost*stag->entriesPerElementRowGhost  + ighost*stag->entriesPerElement + d;
         }
       }
       if (stag->lastproc[0]) {
         i = stag->n[0];
         const PetscInt ighost = i + ighostoffset;
         for (d=0; d<stag->dof[0]; ++d) { // vertex first
-          idxGlobal[count ] = stag->globalOffsets[stag->neighbors[4]] // here
+          idxGlobal[count ] = globalOffsets[neighbors[4]] // here
             + j     *stag->entriesPerElementRow       + i     *stag->entriesPerElement + d;
           idxLocal[count++] = jghost*stag->entriesPerElementRowGhost  + ighost*stag->entriesPerElement + d;
         }
         for (d=0; d<stag->dof[1]; ++d) { // then left ege (skipping bottom edge)
-          idxGlobal[count ] = stag->globalOffsets[stag->neighbors[4]] + j     *stag->entriesPerElementRow       + i     *stag->entriesPerElement + stag->dof[0]                + d; // global doesn't have bottom edge
-          idxLocal[count++] =                                           jghost*stag->entriesPerElementRowGhost  + ighost*stag->entriesPerElement + stag->dof[0] + stag->dof[1] + d; // local does have bottom edge (unused)
+          idxGlobal[count ] = globalOffsets[neighbors[4]] + j     *stag->entriesPerElementRow       + i     *stag->entriesPerElement + stag->dof[0]                + d; // global doesn't have bottom edge
+          idxLocal[count++] =                                     jghost*stag->entriesPerElementRowGhost  + ighost*stag->entriesPerElement + stag->dof[0] + stag->dof[1] + d; // local does have bottom edge (unused)
         }
       }
     }
@@ -826,8 +826,8 @@ PetscErrorCode DMSetUp_Stag(DM dm)
       for (i=0; i<stag->n[0]; ++i) {
         const PetscInt ighost = i + ighostoffset;
         for (d=0; d<stag->entriesPerEdge; ++d) { // vertex and bottom edge (which are the first entries)
-          idxGlobal[count ] = stag->globalOffsets[stag->neighbors[4]] + j     *stag->entriesPerElementRow       + i     *stag->entriesPerEdge    + d; // note i increment by entriesPerEdge
-          idxLocal[count++] =                                           jghost*stag->entriesPerElementRowGhost  + ighost*stag->entriesPerElement + d; // note i increment by entriesPerElement, still
+          idxGlobal[count ] = globalOffsets[neighbors[4]] + j     *stag->entriesPerElementRow       + i     *stag->entriesPerEdge    + d; // note i increment by entriesPerEdge
+          idxLocal[count++] =                                     jghost*stag->entriesPerElementRowGhost  + ighost*stag->entriesPerElement + d; // note i increment by entriesPerElement, still
         }
 
       }
@@ -835,7 +835,7 @@ PetscErrorCode DMSetUp_Stag(DM dm)
         i = stag->n[0];
         const PetscInt ighost = i + ighostoffset;
         for (d=0; d<stag->entriesPerCorner; ++d) { // vertex only
-          idxGlobal[count ] = stag->globalOffsets[stag->neighbors[4]] + j     *stag->entriesPerElementRow       + i     *stag->entriesPerEdge    + d; // note i increment by entriesPerEdge
+          idxGlobal[count ] = globalOffsets[neighbors[4]] + j     *stag->entriesPerElementRow       + i     *stag->entriesPerEdge    + d; // note i increment by entriesPerEdge
           idxLocal[count++] =                                           jghost*stag->entriesPerElementRowGhost  + ighost*stag->entriesPerElement + d; // note i increment by entriesPerElement, still
         }
       }
@@ -845,7 +845,7 @@ PetscErrorCode DMSetUp_Stag(DM dm)
     if (!stag->lastproc[0]) {
     // We can never be right boundary, but the right neighbor may be
     // we may be a top boundary, along with the right neighbor
-      const PetscInt neighborRank = stag->neighbors[5];
+      const PetscInt neighborRank = neighbors[5];
       nNeighbor[0] = l[0][neighborRank % stag->nprocs[0]];
       nNeighbor[1] = l[1][(neighborRank/stag->nprocs[0])];
       const PetscInt entriesPerElementRowNeighbor = stag->proc[0] == stag->nprocs[0]-2 ?  nNeighbor[0]*stag->entriesPerElement + stag->entriesPerEdge : nNeighbor[0]*stag->entriesPerElement; // are we second-to-last in x?
@@ -854,8 +854,8 @@ PetscErrorCode DMSetUp_Stag(DM dm)
         for (i=0; i<ighostoffsetright; ++i) {
           const PetscInt ighost = stag->nghost[0] - ighostoffsetright + i;
           for (d=0; d<stag->entriesPerElement; ++d) {
-            idxGlobal[count ] = stag->globalOffsets[neighborRank] + j     *entriesPerElementRowNeighbor    + i     *stag->entriesPerElement + d;
-            idxLocal[count++] =                                     jghost*stag->entriesPerElementRowGhost + ighost*stag->entriesPerElement + d;
+            idxGlobal[count ] = globalOffsets[neighborRank] + j     *entriesPerElementRowNeighbor    + i     *stag->entriesPerElement + d;
+            idxLocal[count++] =                               jghost*stag->entriesPerElementRowGhost + ighost*stag->entriesPerElement + d;
           }
         }
       }
@@ -866,7 +866,7 @@ PetscErrorCode DMSetUp_Stag(DM dm)
         for (i=0; i<ighostoffsetright; ++i) { // as everywhere around here, we assume that this width is small enough that we don't hit the boundary (hence stencil width greater than 1 not supported, though it might work if you have at least that many elements per rank)
           const PetscInt ighost = stag->nghost[0] - ighostoffsetright + i;
           for (d=0; d<stag->entriesPerEdge; ++d) { // only vertices and horizontal edge (which are the first dof)
-            idxGlobal[count ] = stag->globalOffsets[neighborRank] + j     *entriesPerElementRowNeighbor    + i     *stag->entriesPerEdge    + d; // i moves by edge here
+            idxGlobal[count ] = globalOffsets[neighborRank] + j     *entriesPerElementRowNeighbor    + i     *stag->entriesPerEdge    + d; // i moves by edge here
             idxLocal[count++] =                                     jghost*stag->entriesPerElementRowGhost + ighost*stag->entriesPerElement + d;
           }
         }
@@ -877,7 +877,7 @@ PetscErrorCode DMSetUp_Stag(DM dm)
     if (!stag->firstproc[0] && !stag->lastproc[1]) {
       // We can never be a top boundary, but our neighbor may be
       // We may be a right boundary, but our neighbor cannot be
-      const PetscInt neighborRank = stag->neighbors[6];
+      const PetscInt neighborRank = neighbors[6];
       nNeighbor[0] = l[0][neighborRank % stag->nprocs[0]];
       nNeighbor[1] = l[1][(neighborRank/stag->nprocs[0])];
       const PetscInt entriesPerElementRowNeighbor =  nNeighbor[0]*stag->entriesPerElement; // the neighbor cannot be a right boundary
@@ -886,8 +886,8 @@ PetscErrorCode DMSetUp_Stag(DM dm)
         for (ighost = 0; ighost<ighostoffset; ++ighost) {
           const PetscInt i = nNeighbor[0] - ighostoffset + ighost;
           for (d=0; d<stag->entriesPerElement; ++d) {
-            idxGlobal[count ] = stag->globalOffsets[neighborRank] + j     *entriesPerElementRowNeighbor    + i     *stag->entriesPerElement + d;
-            idxLocal[count++] =                                     jghost*stag->entriesPerElementRowGhost + ighost*stag->entriesPerElement + d;
+            idxGlobal[count ] = globalOffsets[neighborRank] + j     *entriesPerElementRowNeighbor    + i     *stag->entriesPerElement + d;
+            idxLocal[count++] =                               jghost*stag->entriesPerElementRowGhost + ighost*stag->entriesPerElement + d;
           }
         }
       }
@@ -897,7 +897,7 @@ PetscErrorCode DMSetUp_Stag(DM dm)
     if (!stag->lastproc[1]) {
       // We cannot be the last proc in y, though our neighbor may be
       // We may be the last proc in x, in which case our neighbor is also
-      const PetscInt neighborRank = stag->neighbors[7];
+      const PetscInt neighborRank = neighbors[7];
       nNeighbor[0] = l[0][neighborRank % stag->nprocs[0]];
       nNeighbor[1] = l[1][(neighborRank/stag->nprocs[0])];
       const PetscInt entriesPerElementRowNeighbor = stag->entriesPerElementRow; // rank above has same width and boundary status!
@@ -906,7 +906,7 @@ PetscErrorCode DMSetUp_Stag(DM dm)
         for (ighost = ighostoffset; ighost<stag->nghost[0]-ighostoffsetright; ++ighost) {
           const PetscInt i = ighost - ighostoffset;
           for (d=0; d<stag->entriesPerElement; ++d) {
-            idxGlobal[count ] = stag->globalOffsets[neighborRank] + j     *entriesPerElementRowNeighbor    + i     *stag->entriesPerElement + d;
+            idxGlobal[count ] = globalOffsets[neighborRank] + j     *entriesPerElementRowNeighbor    + i     *stag->entriesPerElement + d;
             idxLocal[count++] =                                     jghost*stag->entriesPerElementRowGhost + ighost*stag->entriesPerElement + d;
           }
         }
@@ -916,12 +916,12 @@ PetscErrorCode DMSetUp_Stag(DM dm)
           const PetscInt i = stag->n[0]; // or nNeighbor[0]
           // vertex
           for (d=0; d<stag->dof[0]; ++d) {
-            idxGlobal[count ] = stag->globalOffsets[neighborRank] + j     *entriesPerElementRowNeighbor    + i     *stag->entriesPerElement + d;
-            idxLocal[count++] =                                     jghost*stag->entriesPerElementRowGhost + ighost*stag->entriesPerElement + d;
+            idxGlobal[count ] = globalOffsets[neighborRank] + j     *entriesPerElementRowNeighbor    + i     *stag->entriesPerElement + d;
+            idxLocal[count++] =                               jghost*stag->entriesPerElementRowGhost + ighost*stag->entriesPerElement + d;
           }
           // edge
           for (d=0; d<stag->dof[1]; ++d) {
-            idxGlobal[count ] = stag->globalOffsets[neighborRank] + j     *entriesPerElementRowNeighbor    + i     *stag->entriesPerElement + stag->dof[0]                + d;
+            idxGlobal[count ] = globalOffsets[neighborRank] + j     *entriesPerElementRowNeighbor    + i     *stag->entriesPerElement + stag->dof[0]                + d;
             idxLocal[count++] =                                     jghost*stag->entriesPerElementRowGhost + ighost*stag->entriesPerElement + stag->dof[0] + stag->dof[1] + d;
           }
         }
@@ -932,7 +932,7 @@ PetscErrorCode DMSetUp_Stag(DM dm)
     if (!stag->lastproc[0] && !stag->lastproc[1]) {
       // We can never be a ghosted boundary
       // Our neighbor may be a top boundary, a right boundary, or both, but we assume here that the stencil width isn't greater than the rank size, so this doesn't complicate things too much.
-      const PetscInt neighborRank = stag->neighbors[8];
+      const PetscInt neighborRank = neighbors[8];
       nNeighbor[0] = l[0][neighborRank % stag->nprocs[0]];
       nNeighbor[1] = l[1][(neighborRank/stag->nprocs[0])];
       const PetscInt entriesPerElementRowNeighbor = stag->proc[0] == stag->nprocs[0]-2 ?  nNeighbor[0]*stag->entriesPerElement + stag->entriesPerEdge : nNeighbor[0]*stag->entriesPerElement; // are we second-to-last in x?
@@ -941,8 +941,8 @@ PetscErrorCode DMSetUp_Stag(DM dm)
         for (i=0; i<ighostoffsetright; ++i) {
           const PetscInt ighost = stag->nghost[0] - ighostoffsetright + i;
           for (d=0; d<stag->entriesPerElement; ++d) {
-            idxGlobal[count ] = stag->globalOffsets[neighborRank] + j     *entriesPerElementRowNeighbor    + i     *stag->entriesPerElement + d;
-            idxLocal[count++] =                                     jghost*stag->entriesPerElementRowGhost + ighost*stag->entriesPerElement + d;
+            idxGlobal[count ] = globalOffsets[neighborRank] + j     *entriesPerElementRowNeighbor    + i     *stag->entriesPerElement + d;
+            idxLocal[count++] =                               jghost*stag->entriesPerElementRowGhost + ighost*stag->entriesPerElement + d;
           }
         }
       }
