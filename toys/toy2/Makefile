@@ -14,6 +14,11 @@ include ${PETSC_DIR}/lib/petsc/conf/rules
 ${EXNAME}: ${SRC_O}
 	-${CLINKER} -o $@ $^ ${PETSC_KSP_LIB}
 
+# test run
+run :
+	${PETSC_DIR}/${PETSC_ARCH}/bin/mpiexec -np 4 ./runme
+.PHONY : run
+
 # Aggressive clean
 clean :: 
 	${RM} ${EXNAME} ${SRC_O} ${SRC_D} *.xmf *.petscbin *.petscbin.info *.h5 *.bin *.bin.info *.vts octave-workspace
