@@ -19,7 +19,7 @@ It is intended to be intermediate between `DMDA` an `DMPlex`; it represents a st
 - Stratum : set of all k-cells for a given k
 - Entry   : a single entry in a vector representing one or more fields on the complex
 - Ghost   : describes an extra point or degree of freedom corresponding to one stored on a neighboring rank (which may be defined by periodicity) in the global decomposition
-- Dummy   : describes an extra point or degree of freedom in the local representation, used on the top/right/front of the domain, to give a representation with an eequal number of points of each type
+- Dummy   : describes an extra point or degree of freedom in the local representation, used on the top/right/front of the domain, to give a representation with an equal number of points of each type
 
 ### Working Definition of DM
 We think of a `DM` as a combination of up to three other concepts:
@@ -28,15 +28,14 @@ We think of a `DM` as a combination of up to three other concepts:
 2. An embedding/immersion of this topology (coordinates)
 3. A default "Section" - what the primary fields living on the DM are. 
 
-Point 1. includes both "local" and "global" topology and the maps between them. Thus, in the case of `DMDA`, we consider the stencil description to be part of the topology, as it is used to define the local spaces.
+"Topology" includes both "local" and "global" topology and the maps between them. In the case of `DMDA`, we consider the stencil description to be part of the topology, as it is used to define the local spaces.
 
-The fields in 3. are assumed to be strongly interacting, implying that it's natural to store them interleaved. 
-`DM` object themselves are lightweight - heavy data are pointed to by references. Thus, if non-interleaved fields are desired,
-it is natural to use a `DMComposite` object comprised of several `DM`s which may refer to the same topology and coordinates, with different sections/fields.
+The fields in the default section are assumed to be strongly interacting, implying that it's natural to store them interleaved. 
+`DM` objects are lightweight - heavy data are pointed to by references. Thus, if non-interleaved fields are desired,
+one may use a `DMComposite` object comprised of several `DM`s which may refer to the same topology and coordinates, with different sections/fields.
 
-In the case of `DMPlex`, 1. (topology) is the only thing defined by the `DMPlex`-specific information in `DM_Plex` (pointed to by the `data` field in `_p_DM`). This data in turn contains a refernce count and pointers to heavy topology data. This means that two `DMPlex` objects with the same topology can share a pointer to the same `DM_Plex` object.
-
-This is not the case for `DMDA`: while all of the topology (the grid sizes) are indeed captured by `DM_DA`, additional information is also included, in particular the DOF specifications. The DOF specification would more naturally be included with the section information (3.). 
+In the case of `DMPlex`, Topology is the only thing defined by the `DMPlex`-specific information in `DM_Plex` (pointed to by the `data` field in `_p_DM`). This data in turn contains a reference count and pointers to heavy topology data. This means that two `DMPlex` objects with the same topology can share a pointer to the same `DM_Plex` object.
+This is not the case for `DMDA`: while all of the topology (the grid sizes) are indeed captured by `DM_DA`, additional information is also included, in particular the DOF specifications. The DOF specification would more naturally be included with the default section information.  
 
 ## Design Considerations
 
@@ -54,11 +53,11 @@ This is not the case for `DMDA`: while all of the topology (the grid sizes) are 
 
 ### Ease of use
 
-- Provide interfaces that minimize the number of indexing errors possible from the user
+- Provide interfaces that reduce the number of indexing errors possible from the user
 
 ### Extensibility
 
-- Allow for a pathway to intelligent cache-blocking. (Determinining the size of the blocks is out of scope here, but maybe we can provide some of the index-twiddling to make this easy enough for people to use.)
+- Allow for a pathway to intelligent cache-blocking. (Determining the size of the blocks is out of scope here, but maybe we can provide some of the index-twiddling to make this easy enough for people to use.)
 - Allow for future extension using as a base `DM` for `DMForest`
 - Allow for future custom stencil types (in particular, higher-order FVM schemes)
 - Allow for interaction with `DMSwarm` or other PIC/MIC schemes
@@ -68,7 +67,7 @@ This is not the case for `DMDA`: while all of the topology (the grid sizes) are 
 
 We refer to all points by the x,y[,z] indices of an element, and "half index" offsets in each of the three dimensions.
 These offsets can be positive or negative, giving non-unique representations of non-primal cells (one for each primal
-cell ("element") intersected).
+cell (element) intersected).
 
 ```
          +-----------+-----------+
@@ -97,7 +96,7 @@ Global "Natural" ordering within each element is then done in "x fast" ordering,
 ...
 ```
 
-Note that on the right/top/back boundaries, numbering is respect to a fictitious element.
+Note that on the right/top/front boundaries, numbering is respect to a fictitious element.
 This ordering is used in an extension to `MatStencil`. This allows the user to simply
 think in terms of which element (in global numbering) and which boundary, as opposed to having to remember
 a convention for index numbering of face/edge/vertex degrees of freedom.
@@ -288,7 +287,7 @@ or with `DMCreateSubDM()`.
 As with `DMDA`, we keep extra, perhaps-unused, fields corresponding to the maximum
 dimensionality of the grid (likely to remain at 3).
 
-Member for a current prototype include the following:
+Members for a current prototype include the following:
 ```
 #define DMSTAG_MAX_DIM 3
 #define DMSTAG_MAX_STRATA MAX_DIM+1
@@ -314,4 +313,3 @@ typedef struct {
 } DM_Stag;
 
 ```
-
