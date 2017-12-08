@@ -233,6 +233,22 @@ PetscErrorCode DMStagVecGetArraysCompatible(DM dmstag0,**PetscScalar arr0,PetscB
 
 Note that we don't include anything about the coordinates or section in the above definition of compatibility.
 
+## Compressed coordinate description for orthogonal grids
+
+**TODO**: further formalize:
+Inspired by LaMEM, introduce an optional, compressed way to represent coordinates for an
+orthogonal grid. In each dimension, coordinates may be declared as uniform between a given minimum and maximum, 
+or by a 1D array. 
+
+## Intuitive indexing
+
+**TODO** further formalize
+An extension to `MatStencil` and `MatSetValuesStencil` should be introduced,
+to allow a natural way to work values corresponding to lower-dimensional cells.
+For getting and setting vector entries, this may entail introducing a second,
+perhaps less-efficient method to index with the help of an intermediate array
+of stencil values.
+
 ## Stencil and Points Description
 
 `DMStag` has a flag for each stratum to determine if its points are included.
