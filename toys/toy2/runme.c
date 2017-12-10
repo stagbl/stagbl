@@ -125,7 +125,7 @@ int main(int argc, char **argv)
   ierr = DMStagSetUniformCoordinates(vertexOnlyGrid,ctx->xmin,ctx->xmax,ctx->ymin,ctx->ymax,0.0,0.0);CHKERRQ(ierr); 
 
   // Create single dof element- or vertex-only vectors to dump with our xdmf
-  // Also do some simple diagonostics
+  // Also do some simple diagnostics
   {
     typedef struct {PetscScalar etaCorner,etaElement,rho;} ParamData; // Design question: What's the best way to have users to do this? Provide these beforehand somehow?
     typedef struct {PetscScalar vy,vx,p;} StokesData; 
