@@ -213,6 +213,8 @@ Local numbering of dof:
 
 As with `DMDA`, "natural" ordering is defined as the global ordering in the 1-rank case.
 
+*TODO* support for "ghosted vectors" to allow no-copy local<->global 
+
 ## Compatibility
 
 We deem two (or more) `DMStag` objects "compatible" if 
