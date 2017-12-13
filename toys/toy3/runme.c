@@ -124,8 +124,15 @@ int main(int argc, char **argv)
   } else {
     ierr = PCFactorSetMatSolverPackage(pc,MATSOLVERMUMPS);CHKERRQ(ierr); 
   }
+  ierr = PetscOptionsSetValue(NULL,"-ksp_converged_reason","");CHKERRQ(ierr); // To get info on direct solve success
   ierr = KSPSetFromOptions(ksp);CHKERRQ(ierr);
   ierr = KSPSolve(ksp,b,x);CHKERRQ(ierr);
+  {
+    KSPConvergedReason reason;
+    ierr = KSPGetConvergedReason(ksp,&reason);CHKERRQ(ierr);
+    if (reason < 0) SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_CONV_FAILED,"Linear solve failed");CHKERRQ(ierr);
+  }
+
 
   /* --- Push Particles and Dump Xdmf ---------------------------------------- */
   // A naive forward Euler step 
