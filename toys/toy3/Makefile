@@ -20,8 +20,12 @@ run :
 .PHONY : run
 
 # Aggressive clean
-clean :: 
-	${RM} ${EXNAME} ${SRC_O} ${SRC_D} *.xmf *.pbin *.pbin.info *.h5 *.bin *.bin.info *.vts octave-workspace
+clean :: cleanOutput
+	${RM} ${EXNAME} ${SRC_O} ${SRC_D} 
+
+cleanOutput :
+	${RM} *.xmf *.pbin *.pbin.info *.h5 *.bin *.bin.info *.vts octave-workspace
+.PHONY: cleanOutput
 
 # Indicate that SRC_D is all up to date. This apparently prevents the include
 #   from having quadratic complexity. 
