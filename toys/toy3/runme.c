@@ -3,6 +3,7 @@ static char help[] = " Extension of toy2, which relies on a branch of PETSc incl
                       -nx,-ny : number of cells in x and y direction\n\
                       -xmax,-ymax : domain sizes (m) \n\
                       -p : particles per cell per dimension\n\
+                      -jiggle 0 : don't randomly displace initial particle positions\n\
                       -dt : timestep for simple advection\n\
                       -isoviscous : don't use variable viscosity\n";
 
@@ -53,7 +54,7 @@ int main(int argc, char **argv)
 
   /* --- Create a DMSwarm (particle system) object --------------------------- */
   {
-    PetscInt particlesPerElementPerDim = 4;
+    PetscInt particlesPerElementPerDim = 10;
     PetscInt n[2];
 
     ierr = PetscOptionsGetInt(NULL,NULL,"-p",&particlesPerElementPerDim,NULL);CHKERRQ(ierr);
@@ -62,11 +63,18 @@ int main(int argc, char **argv)
     ierr = DMSetDimension(swarm,2);CHKERRQ(ierr);
     ierr = DMSwarmSetType(swarm,DMSWARM_PIC);CHKERRQ(ierr);
     ierr = DMSwarmSetCellDM(swarm,paramGrid);CHKERRQ(ierr);
-    ierr = DMSwarmRegisterPetscDatatypeField(swarm,"dummy",1,PETSC_INT);CHKERRQ(ierr);
+    ierr = DMSwarmRegisterPetscDatatypeField(swarm,"materialID",1,PETSC_INT);CHKERRQ(ierr);
     ierr = DMSwarmFinalizeFieldRegister(swarm);CHKERRQ(ierr); 
     ierr = DMStagGetLocalSizes(paramGrid,&n[0],&n[1],NULL);CHKERRQ(ierr);
     ierr = DMSwarmSetLocalSizes(swarm,n[0]*n[1]*particlesPerElementPerDim,100);CHKERRQ(ierr);
     ierr = DMSwarmInsertPointsUsingCellDM(swarm,DMSWARMPIC_LAYOUT_REGULAR,particlesPerElementPerDim);CHKERRQ(ierr);
+
+    // Displace particles randomly using -jiggle setting
+    // ..
+
+    // Set material points for particles
+    // ...
+
 
     // View DMSwarm object
     ierr = DMView(swarm,PETSC_VIEWER_STDOUT_WORLD);CHKERRQ(ierr);
@@ -113,6 +121,8 @@ int main(int argc, char **argv)
   }
 
   /* --- Create and Solve Linear System -------------------------------------- */
+
+  // TODO put this inside the time loop
   ierr = CreateSystem(ctx,&A,&b);CHKERRQ(ierr);
   ierr = VecDuplicate(b,&x);CHKERRQ(ierr);
   ierr = KSPCreate(PETSC_COMM_WORLD,&ksp);CHKERRQ(ierr);
@@ -168,6 +178,8 @@ int main(int argc, char **argv)
     // Here we are using local element numbering, so we reinterpret the local vector ourselves
     arrxLocal = (StokesData*) arrxLocalRaw; // TODO this is not good enough for a user interface - think of a better way to do this, say with a DMCreateSubDM and field ISs
 
+    // TODO pick a timestep based on max grid velocity
+
       // Advect
       ierr = DMSwarmGetLocalSize(swarm, &Np);CHKERRQ(ierr);
       ierr = DMSwarmGetField(swarm,DMSwarmPICField_coor,  NULL,NULL,(void**)&coords );CHKERRQ(ierr);
@@ -183,6 +195,7 @@ int main(int argc, char **argv)
       ierr = PetscOptionsGetReal(NULL,NULL,"-dt",&dt,NULL);CHKERRQ(ierr);
       for (p = 0; p<Np; ++p) {
         // We apply a simple averaged velocity to all points in each element. 
+        // TODO use proper interpolation scheme to get velocity (8.19 seems odd, since we don't have velocities at the corner nodes, but rather at the boundaries..)
         const PetscReal velx = 0.5* (arrxLocal[element[p]].vx + arrxLocal[element[p]+1].vx);
         const PetscReal vely = 0.5 *(arrxLocal[element[p]].vy + arrxLocal[element[p] + nGhost[0]].vy);
         coords[p*dim+0] += dt * velx;
@@ -197,6 +210,10 @@ int main(int argc, char **argv)
        could modify things to be more complex and directly send points to the 
        correct rank only */
       ierr = DMSwarmMigrate(swarm,PETSC_TRUE);CHKERRQ(ierr);
+
+      // TODO allow for points outside of the domain as in 8.4 p. 121?
+
+      // TODO update grid
 
       // Output
       ierr = PetscSNPrintf(filename,PETSC_MAX_PATH_LEN-1,"swarm_%.4D.xmf",step);CHKERRQ(ierr);
