@@ -18,7 +18,7 @@ int main(int argc, char **argv)
 {
   PetscErrorCode ierr;
   Ctx            ctx;
-  DM             stokesGrid,paramGrid,elementOnlyGrid,swarm;
+  DM             stokesGrid,paramGrid,elementOnlyGrid,vertexOnlyGrid,swarm;
   Vec            paramLocal;
   Mat            A;
   Vec            b;
@@ -33,11 +33,11 @@ int main(int argc, char **argv)
   ierr = MPI_Comm_size(PETSC_COMM_WORLD,&size);CHKERRQ(ierr);
   ierr = CreateCtx(&ctx);CHKERRQ(ierr);
 
-  /* --- Create DMStag Objects ----------------------------------------------- */
+  /* --- Create Main DMStag Objects ------------------------------------------ */
   // A DMStag to hold the unknowns to solve the Stokes problem
   ierr = DMStagCreate2d(PETSC_COMM_WORLD, 
       DM_BOUNDARY_NONE,DM_BOUNDARY_NONE,       // no special boundary support yet
-      ctx->M,ctx->N,PETSC_DECIDE,PETSC_DECIDE, // sizes provided as DMDA
+      ctx->M,ctx->N,PETSC_DECIDE,PETSC_DECIDE, // sizes provided as DMDA (global x, global y, local x, local y)
       0,1,1,                                   // no dof per vertex: 0 per vertex, 1 per edge, 1 per face/element
       DMSTAG_GHOST_STENCIL_BOX,                // elementwise stencil pattern
       1,                                       // elementwise stencil width
@@ -146,7 +146,7 @@ int main(int argc, char **argv)
 
   /* --- Push Particles and Dump Xdmf ---------------------------------------- */
   // A naive forward Euler step 
-  // Note: open these in Paraview 5.3.0 with "Xdmf Reader", not "Xdmf 3.0 reader"
+  // Note: open these in Paraview 5.3.0 on OS X with "Xdmf Reader", not "Xdmf 3.0 reader"
   {
     typedef struct {PetscScalar vy,vx,p;} StokesData; 
     PetscInt          step,Np,p;
@@ -169,16 +169,16 @@ int main(int argc, char **argv)
     for (step=1; step<=nSteps; ++step) {
       ierr = PetscPrintf(PETSC_COMM_WORLD,"Step %D of %D\n",step,nSteps);CHKERRQ(ierr); // carriage return, clear line before printing
 
-    ierr = DMCreateLocalVector(stokesGrid,&xLocal);CHKERRQ(ierr);
-    ierr = DMGlobalToLocalBegin(stokesGrid,x,INSERT_VALUES,xLocal);CHKERRQ(ierr);
-    ierr = DMGlobalToLocalEnd(stokesGrid,x,INSERT_VALUES,xLocal);CHKERRQ(ierr);
+      ierr = DMCreateLocalVector(stokesGrid,&xLocal);CHKERRQ(ierr);
+      ierr = DMGlobalToLocalBegin(stokesGrid,x,INSERT_VALUES,xLocal);CHKERRQ(ierr);
+      ierr = DMGlobalToLocalEnd(stokesGrid,x,INSERT_VALUES,xLocal);CHKERRQ(ierr);
 
-    ierr = VecGetArrayRead(xLocal,&arrxLocalRaw);CHKERRQ(ierr);
+      ierr = VecGetArrayRead(xLocal,&arrxLocalRaw);CHKERRQ(ierr);
 
-    // Here we are using local element numbering, so we reinterpret the local vector ourselves
-    arrxLocal = (StokesData*) arrxLocalRaw; // TODO this is not good enough for a user interface - think of a better way to do this, say with a DMCreateSubDM and field ISs
+      // Here we are using local element numbering, so we reinterpret the local vector ourselves
+      arrxLocal = (StokesData*) arrxLocalRaw; // TODO this is not good enough for a user interface - think of a better way to do this, say with a DMCreateSubDM and field ISs
 
-    // TODO pick a timestep based on max grid velocity
+      // TODO pick a timestep based on max grid velocity
 
       // Advect
       ierr = DMSwarmGetLocalSize(swarm, &Np);CHKERRQ(ierr);
@@ -186,7 +186,7 @@ int main(int argc, char **argv)
       ierr = DMSwarmGetField(swarm,DMSwarmPICField_cellid,NULL,NULL,(void**)&element);CHKERRQ(ierr); // element numbers include ghost/dummy elements
 
       PetscInt start[2],startGhost[2],nGhost[2],n[2],iGhostOffset,jGhostOffset;
-      
+
       ierr = DMStagGetCorners(stokesGrid,&start[0],&start[1],NULL,&n[0],&n[1],NULL,NULL,NULL,NULL);CHKERRQ(ierr);
 
       ierr = DMStagGetGhostCorners(stokesGrid,&startGhost[0],&startGhost[1],NULL,&nGhost[0],&nGhost[1],NULL);CHKERRQ(ierr);
@@ -205,10 +205,10 @@ int main(int argc, char **argv)
       ierr = DMSwarmRestoreField(swarm,DMSwarmPICField_cellid,NULL,NULL,(void**)&element);CHKERRQ(ierr);
 
       /* Migrate
-       I believe that this sends all points that aren't in a local cell to *all* 
-       neighboring ranks, which then check to see if that point exists there. We 
-       could modify things to be more complex and directly send points to the 
-       correct rank only */
+         I believe that this sends all points that aren't in a local cell to *all* 
+         neighboring ranks, which then check to see if that point exists there. We 
+         could modify things to be more complex and directly send points to the 
+         correct rank only */
       ierr = DMSwarmMigrate(swarm,PETSC_TRUE);CHKERRQ(ierr);
 
       // TODO allow for points outside of the domain as in 8.4 p. 121?
@@ -235,6 +235,11 @@ int main(int argc, char **argv)
   ierr = DMStagCreate2d( PETSC_COMM_WORLD, DM_BOUNDARY_NONE,DM_BOUNDARY_NONE,ctx->M,ctx->N,PETSC_DECIDE,PETSC_DECIDE,0,0,1,DMSTAG_GHOST_STENCIL_BOX,1,&elementOnlyGrid);CHKERRQ(ierr);
   ierr = DMSetUp(elementOnlyGrid);CHKERRQ(ierr);
   ierr = DMStagSetUniformCoordinates(elementOnlyGrid,ctx->xmin,ctx->xmax,ctx->ymin,ctx->ymax,0.0,0.0);CHKERRQ(ierr); 
+
+  // Another auxiliary DMStag to help dumping vertex/corner - only data
+  ierr = DMStagCreate2d(PETSC_COMM_WORLD,DM_BOUNDARY_NONE,DM_BOUNDARY_NONE,ctx->M,ctx->N,PETSC_DECIDE,PETSC_DECIDE,1,0,0,DMSTAG_GHOST_STENCIL_BOX,1,&vertexOnlyGrid);CHKERRQ(ierr);
+  ierr = DMSetUp(vertexOnlyGrid);CHKERRQ(ierr);
+  ierr = DMStagSetUniformCoordinates(vertexOnlyGrid,ctx->xmin,ctx->xmax,ctx->ymin,ctx->ymax,0.0,0.0);CHKERRQ(ierr); 
 
   // Create single dof element- or vertex-only vectors to dump with our Xdmf
   {
@@ -376,6 +381,14 @@ int main(int argc, char **argv)
     ierr = DMStag2dXDMFFinish(&viewer);CHKERRQ(ierr);
   }
 
+  // Vertex-only Xdmf
+  {
+    PetscViewer viewer;
+    ierr = OutputDMCoordsNaturalBinary(vertexOnlyGrid,"coordsVertexNatural.bin",PETSC_TRUE);CHKERRQ(ierr);
+    ierr = DMStag2dXDMFStart(vertexOnlyGrid,"ParaViewMe_Too.xmf","coordsVertexNatural.bin",&viewer);CHKERRQ(ierr);
+    ierr = DMStag2dXDMFFinish(&viewer);CHKERRQ(ierr);
+  }
+
   /* --- Simple Diagnostics -------------------------------------------------- */
   ierr = PetscPrintf(PETSC_COMM_WORLD,"-- Info -----\n");CHKERRQ(ierr);
   ierr = PetscPrintf(PETSC_COMM_WORLD,"Kbound = %g\n",ctx->Kbound);CHKERRQ(ierr);
@@ -391,6 +404,7 @@ int main(int argc, char **argv)
 
   /* --- Clean up and Finalize ----------------------------------------------- */
   ierr = DMDestroy(&elementOnlyGrid);CHKERRQ(ierr);
+  ierr = DMDestroy(&vertexOnlyGrid);CHKERRQ(ierr);
   ierr = VecDestroy(&paramLocal);CHKERRQ(ierr);
   ierr = MatDestroy(&A);CHKERRQ(ierr);
   ierr = VecDestroy(&b);CHKERRQ(ierr);
