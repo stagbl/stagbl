@@ -63,18 +63,45 @@ int main(int argc, char **argv)
     ierr = DMSetDimension(swarm,2);CHKERRQ(ierr);
     ierr = DMSwarmSetType(swarm,DMSWARM_PIC);CHKERRQ(ierr);
     ierr = DMSwarmSetCellDM(swarm,paramGrid);CHKERRQ(ierr);
-    ierr = DMSwarmRegisterPetscDatatypeField(swarm,"materialID",1,PETSC_INT);CHKERRQ(ierr);
+    ierr = DMSwarmRegisterPetscDatatypeField(swarm,"rho",1,PETSC_REAL);CHKERRQ(ierr);
+    ierr = DMSwarmRegisterPetscDatatypeField(swarm,"eta",1,PETSC_REAL);CHKERRQ(ierr);
     ierr = DMSwarmFinalizeFieldRegister(swarm);CHKERRQ(ierr); 
     ierr = DMStagGetLocalSizes(paramGrid,&n[0],&n[1],NULL);CHKERRQ(ierr);
     ierr = DMSwarmSetLocalSizes(swarm,n[0]*n[1]*particlesPerElementPerDim,100);CHKERRQ(ierr);
     ierr = DMSwarmInsertPointsUsingCellDM(swarm,DMSWARMPIC_LAYOUT_REGULAR,particlesPerElementPerDim);CHKERRQ(ierr);
 
-    // Displace particles randomly using -jiggle setting
-    // ..
 
-    // Set material points for particles
-    // ...
+    // Set properties for particles.  Each particle has a viscosity and density (would probably be more efficient
+    //  in this example to use material ids)
+    {
+      PetscReal   *array_x,*array_e,*array_r;
+      PetscInt    npoints,p;
 
+      ierr = DMSwarmGetField(swarm,DMSwarmPICField_coor,NULL,NULL,(void**)&array_x);CHKERRQ(ierr);
+      ierr = DMSwarmGetField(swarm,"eta",               NULL,NULL,(void**)&array_e);CHKERRQ(ierr);
+      ierr = DMSwarmGetField(swarm,"rho",               NULL,NULL,(void**)&array_r);CHKERRQ(ierr);
+      ierr = DMSwarmGetLocalSize(swarm,&npoints);CHKERRQ(ierr);
+      for (p = 0; p < npoints; p++) {
+        PetscReal x_p[2];
+
+        // TODO: Displace particles randomly using -jiggle setting 
+        // and later call migrate to account for potential changes of domain
+        // see ex70.c
+        // ..
+
+        // Get the coordinates of point p
+        x_p[0] = array_x[2*p + 0];
+        x_p[1] = array_x[2*p + 1];
+
+        // Call functions to compute eta and rho at that location
+        array_e[p] = getEta(ctx,x_p[0],x_p[1]);
+        array_r[p] = getRho(ctx,x_p[0],x_p[1]);
+
+      }
+      ierr = DMSwarmRestoreField(swarm,"rho",NULL,NULL,(void**)&array_r);CHKERRQ(ierr);
+      ierr = DMSwarmRestoreField(swarm,"eta",NULL,NULL,(void**)&array_e);CHKERRQ(ierr);
+      ierr = DMSwarmRestoreField(swarm,DMSwarmPICField_coor,NULL,NULL,(void**)&array_x);CHKERRQ(ierr);
+    }
 
     // View DMSwarm object
     ierr = DMView(swarm,PETSC_VIEWER_STDOUT_WORLD);CHKERRQ(ierr);
@@ -122,7 +149,7 @@ int main(int argc, char **argv)
 
   /* --- Create and Solve Linear System -------------------------------------- */
 
-  // TODO put this inside the time loop
+  // TODO put this, and recomputation of rho/eta from tracers, inside the time loop
   ierr = CreateSystem(ctx,&A,&b);CHKERRQ(ierr);
   ierr = VecDuplicate(b,&x);CHKERRQ(ierr);
   ierr = KSPCreate(PETSC_COMM_WORLD,&ksp);CHKERRQ(ierr);
@@ -160,12 +187,12 @@ int main(int argc, char **argv)
     const StokesData  *arrxLocal;
     PetscReal         dt;
 
-    nSteps = 100;
-    step = 0;
-    ierr = PetscOptionsGetInt(NULL,NULL,"-nsteps",&nSteps,NULL);CHKERRQ(ierr);
     ierr = PetscPrintf(PETSC_COMM_WORLD,"-- Advection -----\n",step);CHKERRQ(ierr);
+    nSteps = 10;
+    ierr = PetscOptionsGetInt(NULL,NULL,"-nsteps",&nSteps,NULL);CHKERRQ(ierr);
     ierr = PetscPrintf(PETSC_COMM_WORLD,"Step %D of %D\n",step,nSteps);CHKERRQ(ierr);
     ierr = DMSwarmViewXDMF(swarm,"swarm_0000.xmf");CHKERRQ(ierr);
+    step = 0;
     for (step=1; step<=nSteps; ++step) {
       ierr = PetscPrintf(PETSC_COMM_WORLD,"Step %D of %D\n",step,nSteps);CHKERRQ(ierr); // carriage return, clear line before printing
 
