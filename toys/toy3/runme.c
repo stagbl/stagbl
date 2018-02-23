@@ -13,16 +13,21 @@ static char help[] = " Extension of toy2, which relies on a branch of PETSc incl
 #include "output.h"
 #include "system.h"
 
+// TODO: introduce interface to fix this (or decide that the approach here
+//       is in general hacky and move more into the DMStag impl)
+#include <petsc/private/dmstagimpl.h>
+
 /* =========================================================================== */
 int main(int argc, char **argv)
 {
   PetscErrorCode ierr;
   Ctx            ctx;
-  DM             stokesGrid,paramGrid,elementOnlyGrid,vertexOnlyGrid,swarm;
+  DM             stokesGrid,paramGrid,elementOnlyGrid,vertexOnlyGrid,swarm,daVertex,daVertex2;
   Vec            paramLocal;
   Mat            A;
   Vec            b;
   Vec            x;
+  Vec            vVertex,vVertexLocal;
   KSP            ksp;
   PC             pc;
   PetscMPIInt    size;
@@ -52,6 +57,18 @@ int main(int argc, char **argv)
   ierr = DMSetUp(paramGrid);CHKERRQ(ierr);
   ierr = DMStagSetUniformCoordinates(paramGrid,ctx->xmin,ctx->xmax,ctx->ymin,ctx->ymax,0.0,0.0);CHKERRQ(ierr); 
 
+  PetscPrintf(PETSC_COMM_WORLD,"paramGrid:\n");
+  ierr = DMView(paramGrid,PETSC_VIEWER_STDOUT_WORLD);CHKERRQ(ierr);
+
+  /* --- Create a DMDAs representing the vertices of our grid (since the logic is already there for DMSwarm) --- */
+    ierr = DMStagGetVertexDMDA(paramGrid,1,&daVertex);
+    ierr = DMSetUp(daVertex);CHKERRQ(ierr);
+    ierr = DMDASetUniformCoordinates(daVertex,ctx->xmin,ctx->xmax,ctx->ymin,ctx->ymax,0.0,0.0);CHKERRQ(ierr);
+    ierr = DMStagGetVertexDMDA(paramGrid,2,&daVertex2);
+    ierr = DMSetUp(daVertex2);CHKERRQ(ierr);
+
+    ierr = DMView(daVertex2,PETSC_VIEWER_STDOUT_WORLD);
+
   /* --- Create a DMSwarm (particle system) object --------------------------- */
   {
     PetscInt particlesPerElementPerDim = 10;
@@ -62,7 +79,7 @@ int main(int argc, char **argv)
     ierr = DMSetType(swarm,DMSWARM);CHKERRQ(ierr);
     ierr = DMSetDimension(swarm,2);CHKERRQ(ierr);
     ierr = DMSwarmSetType(swarm,DMSWARM_PIC);CHKERRQ(ierr);
-    ierr = DMSwarmSetCellDM(swarm,paramGrid);CHKERRQ(ierr);
+    ierr = DMSwarmSetCellDM(swarm,daVertex);CHKERRQ(ierr);
     ierr = DMSwarmRegisterPetscDatatypeField(swarm,"rho",1,PETSC_REAL);CHKERRQ(ierr);
     ierr = DMSwarmRegisterPetscDatatypeField(swarm,"eta",1,PETSC_REAL);CHKERRQ(ierr);
     ierr = DMSwarmFinalizeFieldRegister(swarm);CHKERRQ(ierr); 
@@ -108,6 +125,26 @@ int main(int argc, char **argv)
   }
 
   /* --- Set up Problem ------------------------------------------------------ */
+  // TODO replace this with 
+  // 1. Obtain vertex DMDA
+  // 2. Use this as the base DM for the swarm
+  // 3. Get two vectors of the projected coefficients
+  // 4. Populate arrayParam from these values (and their averages) instead
+
+  // Project from particles 
+  // TODO do this each time step (but reuse these vectors and move decls up)
+  {
+    Vec *pfields;
+    Vec etaVertex,rhoVertex;
+    const char *fieldnames[]={"eta","rho"};
+    const PetscBool reuse = PETSC_FALSE;
+
+    ierr = DMSwarmProjectFields(swarm,2,fieldnames,&pfields,reuse);CHKERRQ(ierr);
+    etaVertex = pfields[0];
+    rhoVertex = pfields[1];
+  }
+
+
   {
     typedef struct {PetscReal xCorner,yCorner,xElement,yElement;} CoordinateData; // Definitely need to provide these types somehow to the user.. (specifying them wrong leads to very annoying bugs)
     typedef struct {PetscScalar etaCorner,etaElement,rho;} ElementData; // ? What's the best way to have users to do this? Provide these before hand? 
@@ -130,6 +167,7 @@ int main(int argc, char **argv)
     ierr = DMStagVecGetArrayRead(dmc,coordsLocal,&arrCoords);CHKERRQ(ierr);
 
     // Iterate over all elements in the ghosted region. This is redundant, but means we already have the local information for later (thus doing more computation but less communication).This is also encouraged by our conflation of the two types of ghost points, as mentioned above.
+    // TODO change this with getting stuff from etaVertex and rhoVertex (and interpolating)
     for (j=start[1];j<start[1]+n[1];++j) {
       for(i=start[0]; i<start[0]+n[0]; ++i) {
         arrParam[j][i].etaCorner  = getEta(ctx,arrCoords[j][i].xCorner, arrCoords[j][i].yCorner);
@@ -170,6 +208,86 @@ int main(int argc, char **argv)
     if (reason < 0) SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_CONV_FAILED,"Linear solve failed");CHKERRQ(ierr);
   }
 
+  // Transfer velocities to arrays living on the vertex-only DMDA
+  // TODO : introduce compatibility check for this (or perhaps make it so that we can do this with a vertex-only DMStag)
+  ierr = DMCreateGlobalVector(daVertex2,&vVertex);CHKERRQ(ierr);
+  ierr = DMCreateLocalVector(daVertex2,&vVertexLocal);CHKERRQ(ierr);
+  {
+    typedef struct {PetscScalar vy,vx,p;} StokesData; 
+
+    PetscScalar       *vArr;
+    Vec               xLocal;
+    const PetscScalar *arrxLocalRaw;
+    const StokesData  *arrxLocal;
+    PetscInt          nel,npe,eidx,nxDA,nyDA;
+    const PetscInt    *element_list;
+    DM_Stag           *stag; // TODO: obviously this isn't good. We shouldn't have to access this data once we have a proper API
+
+    PetscMPIInt       rank; // debug
+    DMDALocalInfo      info; // debug
+    PetscInt dzdb;
+
+    MPI_Comm_rank(PETSC_COMM_WORLD,&rank);
+    stag = (DM_Stag*)paramGrid->data;
+
+    ierr = DMCreateLocalVector(stokesGrid,&xLocal);CHKERRQ(ierr);
+    ierr = DMGlobalToLocalBegin(stokesGrid,x,INSERT_VALUES,xLocal);CHKERRQ(ierr);
+    ierr = DMGlobalToLocalEnd(stokesGrid,x,INSERT_VALUES,xLocal);CHKERRQ(ierr);
+    ierr = VecGetArrayRead(xLocal,&arrxLocalRaw);CHKERRQ(ierr);
+    arrxLocal = (StokesData*) arrxLocalRaw; // TODO this is not good enough for a user interface - think of a better way to do this, say with a DMCreateSubDM and field ISs
+
+      ierr = DMDAGetCorners(daVertex2,NULL,NULL,NULL,&nxDA,&nyDA,NULL);CHKERRQ(ierr);
+      ierr = DMDAGetLocalInfo(daVertex2,&info);CHKERRQ(ierr);
+      ierr = VecGetLocalSize(vVertexLocal,&dzdb);CHKERRQ(ierr);
+      PetscPrintf(PETSC_COMM_WORLD,"DA local sizes: %d %d\n Local vec size %d\n",info.gxm,info.gym,dzdb);CHKERRQ(ierr);
+
+    ierr = DMDAGetElements(daVertex2,&nel,&npe,&element_list);CHKERRQ(ierr);
+    ierr = DMDAVecGetArray(daVertex2,vVertexLocal,&vArr);CHKERRQ(ierr);
+    for (eidx = 0; eidx < nel; eidx++) {
+
+      // TODO : check the hell out of this conversion, from DMDA elements to DMStag elements - check all the numbers on up to 4 procs.
+
+      PetscInt localRowDA,localColDA;
+
+
+      // This lists the local element numbers
+      const PetscInt *element = &element_list[npe*eidx];
+      const PetscInt NSD = 2;
+
+      localRowDA = eidx % nxDA;
+      localColDA = eidx / nxDA; // integer div
+      PetscPrintf(PETSC_COMM_SELF,"[%d] DMDA el %d (%d,%d) : %d %d %d %d\n",rank,eidx,localRowDA,localColDA,element[0],element[1],element[2],element[3]);
+
+#if 1
+      vArr[element[0]*NSD+0] = arrxLocalRaw[(localRowDA  ) * stag->entriesPerElementRowGhost + (localColDA  ) * stag->entriesPerElement+ 1]; // vx is the second entry
+      vArr[element[0]*NSD+1] = arrxLocalRaw[(localRowDA  ) * stag->entriesPerElementRowGhost + (localColDA  ) * stag->entriesPerElement+ 0]; // vy is the second entry
+
+      vArr[element[1]*NSD+0] = arrxLocalRaw[(localRowDA  ) * stag->entriesPerElementRowGhost + (localColDA+1) * stag->entriesPerElement+ 1]; // vx is the second entry
+      vArr[element[1]*NSD+1] = arrxLocalRaw[(localRowDA  ) * stag->entriesPerElementRowGhost + (localColDA+1) * stag->entriesPerElement+ 0]; // vx is the second entry
+
+      // This is top-right in DMDA ordering
+      vArr[element[2]*NSD+0] = arrxLocalRaw[(localRowDA+1) * stag->entriesPerElementRowGhost + (localColDA+1) * stag->entriesPerElement+ 1]; // vx is the second entry
+      vArr[element[2]*NSD+1] = arrxLocalRaw[(localRowDA+1) * stag->entriesPerElementRowGhost + (localColDA+1) * stag->entriesPerElement+ 0]; // vx is the second entry
+
+      // This is top-left in DMDA ordering
+      vArr[element[3]*NSD+0] = arrxLocalRaw[(localRowDA+1) * stag->entriesPerElementRowGhost + (localColDA  ) * stag->entriesPerElement+ 1]; // vx is the second entry
+      vArr[element[3]*NSD+1] = arrxLocalRaw[(localRowDA+1) * stag->entriesPerElementRowGhost + (localColDA  ) * stag->entriesPerElement+ 0]; // vx is the second entry
+#endif
+    }
+
+    ierr = DMDAVecRestoreArray(daVertex2,vVertexLocal,&vArr);CHKERRQ(ierr);
+
+    MPI_Barrier(PETSC_COMM_WORLD);
+    PetscPrintf(PETSC_COMM_WORLD,"vVertexLocal:\n");
+    VecView(vVertexLocal,PETSC_VIEWER_STDOUT_WORLD);
+    ierr = DMLocalToGlobalBegin(daVertex2,vVertexLocal,INSERT_VALUES,vVertex);CHKERRQ(ierr);
+    ierr = DMLocalToGlobalEnd(daVertex2,vVertexLocal,INSERT_VALUES,vVertex);CHKERRQ(ierr);
+    PetscPrintf(PETSC_COMM_WORLD,"vVertex:\n");
+    VecView(vVertex,PETSC_VIEWER_STDOUT_WORLD);
+
+    ierr = VecRestoreArrayRead(xLocal,&arrxLocalRaw);CHKERRQ(ierr);
+    ierr = VecDestroy(&xLocal);CHKERRQ(ierr);
+  }
 
   /* --- Push Particles and Dump Xdmf ---------------------------------------- */
   // A naive forward Euler step 
@@ -187,12 +305,14 @@ int main(int argc, char **argv)
     const StokesData  *arrxLocal;
     PetscReal         dt;
 
-    ierr = PetscPrintf(PETSC_COMM_WORLD,"-- Advection -----\n",step);CHKERRQ(ierr);
+    // TODO : change this to be as in ex70 (using the DMDA stuff and the array of vels we calculated above)
+
+    step = 0;
     nSteps = 10;
+    ierr = PetscPrintf(PETSC_COMM_WORLD,"-- Advection -----\n",step);CHKERRQ(ierr);
     ierr = PetscOptionsGetInt(NULL,NULL,"-nsteps",&nSteps,NULL);CHKERRQ(ierr);
     ierr = PetscPrintf(PETSC_COMM_WORLD,"Step %D of %D\n",step,nSteps);CHKERRQ(ierr);
     ierr = DMSwarmViewXDMF(swarm,"swarm_0000.xmf");CHKERRQ(ierr);
-    step = 0;
     for (step=1; step<=nSteps; ++step) {
       ierr = PetscPrintf(PETSC_COMM_WORLD,"Step %D of %D\n",step,nSteps);CHKERRQ(ierr); // carriage return, clear line before printing
 
@@ -430,12 +550,16 @@ int main(int argc, char **argv)
   ierr = PetscPrintf(PETSC_COMM_WORLD,"-------------\n");CHKERRQ(ierr);
 
   /* --- Clean up and Finalize ----------------------------------------------- */
+  ierr = DMDestroy(&daVertex);CHKERRQ(ierr);
+  ierr = DMDestroy(&daVertex2);CHKERRQ(ierr);
   ierr = DMDestroy(&elementOnlyGrid);CHKERRQ(ierr);
   ierr = DMDestroy(&vertexOnlyGrid);CHKERRQ(ierr);
   ierr = VecDestroy(&paramLocal);CHKERRQ(ierr);
   ierr = MatDestroy(&A);CHKERRQ(ierr);
   ierr = VecDestroy(&b);CHKERRQ(ierr);
   ierr = VecDestroy(&x);CHKERRQ(ierr);
+  ierr = VecDestroy(&vVertex);CHKERRQ(ierr);
+  ierr = VecDestroy(&vVertexLocal);CHKERRQ(ierr);
   ierr = KSPDestroy(&ksp);CHKERRQ(ierr);
   ierr = DestroyCtx(&ctx);CHKERRQ(ierr);
   ierr = PetscFinalize();
