@@ -17,6 +17,8 @@ static char help[] = " Extension of toy2, which relies on a branch of PETSc incl
 //       is in general hacky and move more into the DMStag impl)
 #include <petsc/private/dmstagimpl.h>
 
+PetscErrorCode MaterialPoint_AdvectRK1(DM dm_vp,Vec vp,PetscReal dt,DM dm_mpoint);
+
 /* =========================================================================== */
 int main(int argc, char **argv)
 {
@@ -27,11 +29,13 @@ int main(int argc, char **argv)
   Mat            A;
   Vec            b;
   Vec            x;
-  Vec            vVertex,vVertexLocal;
+  Vec            vVertex=NULL,vVertexLocal=NULL;
   KSP            ksp;
   PC             pc;
   PetscMPIInt    size;
   PetscScalar    pMin,pMax,pPrimeMin,pPrimeMax,vxInterpMin,vxInterpMax,vyInterpMin,vyInterpMax;
+  PetscInt       nel,npe;
+  const PetscInt *element_list;
 
   /* --- Initialize and Create Context --------------------------------------- */
   ierr = PetscInitialize(&argc,&argv,(char*)0,help);CHKERRQ(ierr);
@@ -61,13 +65,18 @@ int main(int argc, char **argv)
   ierr = DMView(paramGrid,PETSC_VIEWER_STDOUT_WORLD);CHKERRQ(ierr);
 
   /* --- Create a DMDAs representing the vertices of our grid (since the logic is already there for DMSwarm) --- */
+   // TODO
     ierr = DMStagGetVertexDMDA(paramGrid,1,&daVertex);
     ierr = DMSetUp(daVertex);CHKERRQ(ierr);
-    ierr = DMDASetUniformCoordinates(daVertex,ctx->xmin,ctx->xmax,ctx->ymin,ctx->ymax,0.0,0.0);CHKERRQ(ierr);
+    ierr = DMDASetUniformCoordinates(daVertex,ctx->xmin,ctx->xmax,ctx->ymin,ctx->ymax,0.0,0.0);CHKERRQ(ierr); // TODO put this into the function to create teh DMDA, if coordinates are already set on the DMStag..
     ierr = DMStagGetVertexDMDA(paramGrid,2,&daVertex2);
     ierr = DMSetUp(daVertex2);CHKERRQ(ierr);
 
+    ierr = DMDASetUniformCoordinates(daVertex2,ctx->xmin,ctx->xmax,ctx->ymin,ctx->ymax,0.0,0.0);CHKERRQ(ierr);
     ierr = DMView(daVertex2,PETSC_VIEWER_STDOUT_WORLD);
+
+    ierr = DMDAGetElements(daVertex2,&nel,&npe,&element_list);CHKERRQ(ierr);
+    ierr = DMDARestoreElements(daVertex2,&nel,&npe,&element_list);CHKERRQ(ierr);
 
   /* --- Create a DMSwarm (particle system) object --------------------------- */
   {
@@ -83,8 +92,7 @@ int main(int argc, char **argv)
     ierr = DMSwarmRegisterPetscDatatypeField(swarm,"rho",1,PETSC_REAL);CHKERRQ(ierr);
     ierr = DMSwarmRegisterPetscDatatypeField(swarm,"eta",1,PETSC_REAL);CHKERRQ(ierr);
     ierr = DMSwarmFinalizeFieldRegister(swarm);CHKERRQ(ierr); 
-    ierr = DMStagGetLocalSizes(paramGrid,&n[0],&n[1],NULL);CHKERRQ(ierr);
-    ierr = DMSwarmSetLocalSizes(swarm,n[0]*n[1]*particlesPerElementPerDim,100);CHKERRQ(ierr);
+    ierr = DMSwarmSetLocalSizes(swarm,nel*particlesPerElementPerDim,100);CHKERRQ(ierr);
     ierr = DMSwarmInsertPointsUsingCellDM(swarm,DMSWARMPIC_LAYOUT_REGULAR,particlesPerElementPerDim);CHKERRQ(ierr);
 
 
@@ -208,9 +216,11 @@ int main(int argc, char **argv)
     if (reason < 0) SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_CONV_FAILED,"Linear solve failed");CHKERRQ(ierr);
   }
 
+   // TODO
+  ierr = DMCreateGlobalVector(daVertex2,&vVertex);CHKERRQ(ierr);
+#if 0
   // Transfer velocities to arrays living on the vertex-only DMDA
   // TODO : introduce compatibility check for this (or perhaps make it so that we can do this with a vertex-only DMStag)
-  ierr = DMCreateGlobalVector(daVertex2,&vVertex);CHKERRQ(ierr);
   ierr = DMCreateLocalVector(daVertex2,&vVertexLocal);CHKERRQ(ierr);
   {
     typedef struct {PetscScalar vy,vx,p;} StokesData; 
@@ -224,31 +234,33 @@ int main(int argc, char **argv)
     DM_Stag           *stag; // TODO: obviously this isn't good. We shouldn't have to access this data once we have a proper API
 
     PetscMPIInt       rank; // debug
-    DMDALocalInfo      info; // debug
-    PetscInt dzdb;
+    DMDALocalInfo     info; // debug
+    PetscInt          dzdb,dzdb2;
+
 
     MPI_Comm_rank(PETSC_COMM_WORLD,&rank);
-    stag = (DM_Stag*)paramGrid->data;
+    stag = (DM_Stag*)stokesGrid->data;
 
     ierr = DMCreateLocalVector(stokesGrid,&xLocal);CHKERRQ(ierr);
     ierr = DMGlobalToLocalBegin(stokesGrid,x,INSERT_VALUES,xLocal);CHKERRQ(ierr);
     ierr = DMGlobalToLocalEnd(stokesGrid,x,INSERT_VALUES,xLocal);CHKERRQ(ierr);
     ierr = VecGetArrayRead(xLocal,&arrxLocalRaw);CHKERRQ(ierr);
-    arrxLocal = (StokesData*) arrxLocalRaw; // TODO this is not good enough for a user interface - think of a better way to do this, say with a DMCreateSubDM and field ISs
+    arrxLocal = (StokesData*) arrxLocalRaw; // TODO this is not good enough for a user interface - think of a better way to do this, say with a DMCreateSubDM and field ISs // TODO not even actually using this?
 
       ierr = DMDAGetCorners(daVertex2,NULL,NULL,NULL,&nxDA,&nyDA,NULL);CHKERRQ(ierr);
       ierr = DMDAGetLocalInfo(daVertex2,&info);CHKERRQ(ierr);
       ierr = VecGetLocalSize(vVertexLocal,&dzdb);CHKERRQ(ierr);
-      PetscPrintf(PETSC_COMM_WORLD,"DA local sizes: %d %d\n Local vec size %d\n",info.gxm,info.gym,dzdb);CHKERRQ(ierr);
+      ierr = VecGetLocalSize(xLocal,&dzdb2);CHKERRQ(ierr);
+      PetscPrintf(PETSC_COMM_WORLD,"DA local sizes: %d %d\n Local vec size %d, local stag vec size %d\n",info.gxm,info.gym,dzdb,dzdb2);CHKERRQ(ierr);
 
     ierr = DMDAGetElements(daVertex2,&nel,&npe,&element_list);CHKERRQ(ierr);
-    ierr = DMDAVecGetArray(daVertex2,vVertexLocal,&vArr);CHKERRQ(ierr);
+    ierr = VecGetArray(vVertexLocal,&vArr);CHKERRQ(ierr);
+
     for (eidx = 0; eidx < nel; eidx++) {
 
       // TODO : check the hell out of this conversion, from DMDA elements to DMStag elements - check all the numbers on up to 4 procs.
 
       PetscInt localRowDA,localColDA;
-
 
       // This lists the local element numbers
       const PetscInt *element = &element_list[npe*eidx];
@@ -271,11 +283,12 @@ int main(int argc, char **argv)
 
       // This is top-left in DMDA ordering
       vArr[element[3]*NSD+0] = arrxLocalRaw[(localRowDA+1) * stag->entriesPerElementRowGhost + (localColDA  ) * stag->entriesPerElement+ 1]; // vx is the second entry
+      PetscPrintf(PETSC_COMM_SELF,"[%d] setting vArr[%d] = arrxLocalRaw[%d]\n",rank,element[3]*NSD+0,(localRowDA+1) * stag->entriesPerElementRowGhost + (localColDA  ) * stag->entriesPerElement+ 1);
       vArr[element[3]*NSD+1] = arrxLocalRaw[(localRowDA+1) * stag->entriesPerElementRowGhost + (localColDA  ) * stag->entriesPerElement+ 0]; // vx is the second entry
 #endif
     }
 
-    ierr = DMDAVecRestoreArray(daVertex2,vVertexLocal,&vArr);CHKERRQ(ierr);
+    ierr = VecRestoreArray(vVertexLocal,&vArr);CHKERRQ(ierr);
 
     MPI_Barrier(PETSC_COMM_WORLD);
     PetscPrintf(PETSC_COMM_WORLD,"vVertexLocal:\n");
@@ -288,27 +301,24 @@ int main(int argc, char **argv)
     ierr = VecRestoreArrayRead(xLocal,&arrxLocalRaw);CHKERRQ(ierr);
     ierr = VecDestroy(&xLocal);CHKERRQ(ierr);
   }
+#endif
 
   /* --- Push Particles and Dump Xdmf ---------------------------------------- */
   // A naive forward Euler step 
   // Note: open these in Paraview 5.3.0 on OS X with "Xdmf Reader", not "Xdmf 3.0 reader"
   {
-    typedef struct {PetscScalar vy,vx,p;} StokesData; 
-    PetscInt          step,Np,p;
-    char              filename[PETSC_MAX_PATH_LEN];
-    const PetscInt    dim = 2;
-    PetscReal         *coords;
-    PetscInt          *element;
-    PetscInt          nSteps;
-    Vec               xLocal;
-    const PetscScalar *arrxLocalRaw;
-    const StokesData  *arrxLocal;
-    PetscReal         dt;
+    PetscInt  step;
+    char      filename[PETSC_MAX_PATH_LEN];
+    PetscInt  nSteps;
+    PetscReal dt;
 
-    // TODO : change this to be as in ex70 (using the DMDA stuff and the array of vels we calculated above)
+    // TODO : check that this is advecting as planned
 
     step = 0;
     nSteps = 10;
+    dt = 1e11;
+      // TODO pick a timestep based on max grid velocity
+    ierr = PetscOptionsGetReal(NULL,NULL,"-dt",&dt,NULL);CHKERRQ(ierr);
     ierr = PetscPrintf(PETSC_COMM_WORLD,"-- Advection -----\n",step);CHKERRQ(ierr);
     ierr = PetscOptionsGetInt(NULL,NULL,"-nsteps",&nSteps,NULL);CHKERRQ(ierr);
     ierr = PetscPrintf(PETSC_COMM_WORLD,"Step %D of %D\n",step,nSteps);CHKERRQ(ierr);
@@ -316,59 +326,24 @@ int main(int argc, char **argv)
     for (step=1; step<=nSteps; ++step) {
       ierr = PetscPrintf(PETSC_COMM_WORLD,"Step %D of %D\n",step,nSteps);CHKERRQ(ierr); // carriage return, clear line before printing
 
-      ierr = DMCreateLocalVector(stokesGrid,&xLocal);CHKERRQ(ierr);
-      ierr = DMGlobalToLocalBegin(stokesGrid,x,INSERT_VALUES,xLocal);CHKERRQ(ierr);
-      ierr = DMGlobalToLocalEnd(stokesGrid,x,INSERT_VALUES,xLocal);CHKERRQ(ierr);
+      // DEBUG!!
+      printf("Hacccck\n");
+      ierr = VecSet(vVertex,1e-8);CHKERRQ(ierr);
+      //ierr = VecView(vVertex,0);
 
-      ierr = VecGetArrayRead(xLocal,&arrxLocalRaw);CHKERRQ(ierr);
+      ierr =  MaterialPoint_AdvectRK1(daVertex2,vVertex,dt,swarm);CHKERRQ(ierr);
 
-      // Here we are using local element numbering, so we reinterpret the local vector ourselves
-      arrxLocal = (StokesData*) arrxLocalRaw; // TODO this is not good enough for a user interface - think of a better way to do this, say with a DMCreateSubDM and field ISs
-
-      // TODO pick a timestep based on max grid velocity
-
-      // Advect
-      ierr = DMSwarmGetLocalSize(swarm, &Np);CHKERRQ(ierr);
-      ierr = DMSwarmGetField(swarm,DMSwarmPICField_coor,  NULL,NULL,(void**)&coords );CHKERRQ(ierr);
-      ierr = DMSwarmGetField(swarm,DMSwarmPICField_cellid,NULL,NULL,(void**)&element);CHKERRQ(ierr); // element numbers include ghost/dummy elements
-
-      PetscInt start[2],startGhost[2],nGhost[2],n[2],iGhostOffset,jGhostOffset;
-
-      ierr = DMStagGetCorners(stokesGrid,&start[0],&start[1],NULL,&n[0],&n[1],NULL,NULL,NULL,NULL);CHKERRQ(ierr);
-
-      ierr = DMStagGetGhostCorners(stokesGrid,&startGhost[0],&startGhost[1],NULL,&nGhost[0],&nGhost[1],NULL);CHKERRQ(ierr);
-      iGhostOffset = startGhost[0] - start[0]; jGhostOffset = startGhost[1] - start[1];
-      dt = 1e11;
-      ierr = PetscOptionsGetReal(NULL,NULL,"-dt",&dt,NULL);CHKERRQ(ierr);
-      for (p = 0; p<Np; ++p) {
-        // We apply a simple averaged velocity to all points in each element. 
-        // TODO use proper interpolation scheme to get velocity (8.19 seems odd, since we don't have velocities at the corner nodes, but rather at the boundaries..)
-        const PetscReal velx = 0.5* (arrxLocal[element[p]].vx + arrxLocal[element[p]+1].vx);
-        const PetscReal vely = 0.5 *(arrxLocal[element[p]].vy + arrxLocal[element[p] + nGhost[0]].vy);
-        coords[p*dim+0] += dt * velx;
-        coords[p*dim+1] += dt * vely;
-      }
-      ierr = DMSwarmRestoreField(swarm, DMSwarmPICField_coor, NULL, NULL, (void **) &coords);CHKERRQ(ierr);
-      ierr = DMSwarmRestoreField(swarm,DMSwarmPICField_cellid,NULL,NULL,(void**)&element);CHKERRQ(ierr);
-
-      /* Migrate
-         I believe that this sends all points that aren't in a local cell to *all* 
-         neighboring ranks, which then check to see if that point exists there. We 
-         could modify things to be more complex and directly send points to the 
-         correct rank only */
       ierr = DMSwarmMigrate(swarm,PETSC_TRUE);CHKERRQ(ierr);
 
       // TODO allow for points outside of the domain as in 8.4 p. 121?
 
-      // TODO update grid
+      // TODO update grid quanitities from tracers (once other stuff works)
 
       // Output
       ierr = PetscSNPrintf(filename,PETSC_MAX_PATH_LEN-1,"swarm_%.4D.xmf",step);CHKERRQ(ierr);
       ierr = DMSwarmViewXDMF(swarm,filename);CHKERRQ(ierr);
     }
 
-    ierr = VecRestoreArrayRead(xLocal,&arrxLocalRaw);CHKERRQ(ierr);
-    ierr = VecDestroy(&xLocal);CHKERRQ(ierr);
     ierr = PetscPrintf(PETSC_COMM_WORLD,"\rDone (%d steps).\n",nSteps);CHKERRQ(ierr);
   }
 
@@ -558,10 +533,110 @@ int main(int argc, char **argv)
   ierr = MatDestroy(&A);CHKERRQ(ierr);
   ierr = VecDestroy(&b);CHKERRQ(ierr);
   ierr = VecDestroy(&x);CHKERRQ(ierr);
-  ierr = VecDestroy(&vVertex);CHKERRQ(ierr);
-  ierr = VecDestroy(&vVertexLocal);CHKERRQ(ierr);
+  if (vVertex)      {ierr = VecDestroy(&vVertex);CHKERRQ(ierr);}
+  if (vVertexLocal) {ierr = VecDestroy(&vVertexLocal);CHKERRQ(ierr);}
   ierr = KSPDestroy(&ksp);CHKERRQ(ierr);
   ierr = DestroyCtx(&ctx);CHKERRQ(ierr);
   ierr = PetscFinalize();
   return ierr;
+}
+
+/* Routine taken from KSP tutorial ex70 */
+
+#define NSD            2 /* number of spatial dimensions */
+#define NODES_PER_EL   4 /* nodes per element */
+
+static void EvaluateBasis_Q1(PetscScalar _xi[],PetscScalar N[])
+{
+  PetscScalar xi  = _xi[0];
+  PetscScalar eta = _xi[1];
+
+  N[0] = 0.25*(1.0-xi)*(1.0-eta);
+  N[1] = 0.25*(1.0+xi)*(1.0-eta);
+  N[2] = 0.25*(1.0+xi)*(1.0+eta);
+  N[3] = 0.25*(1.0-xi)*(1.0+eta);
+}
+
+PetscErrorCode MaterialPoint_AdvectRK1(DM dm_vp,Vec vp,PetscReal dt,DM dm_mpoint)
+{
+  PetscErrorCode    ierr;
+  Vec               vp_l,coor_l;
+  const PetscScalar *LA_vp;
+  PetscInt          i,p,e,npoints,nel,npe;
+  PetscInt          *mpfield_cell;
+  PetscReal         *mpfield_coor;
+  const PetscInt    *element_list;
+  const PetscInt    *element;
+  PetscScalar       xi_p[NSD],Ni[NODES_PER_EL];
+  const PetscScalar *LA_coor;
+  PetscScalar       dx[NSD];
+
+  PetscFunctionBeginUser;
+  ierr = DMGetCoordinatesLocal(dm_vp,&coor_l);CHKERRQ(ierr);
+  ierr = VecGetArrayRead(coor_l,&LA_coor);CHKERRQ(ierr);
+  
+  ierr = DMGetLocalVector(dm_vp,&vp_l);CHKERRQ(ierr);
+  ierr = DMGlobalToLocalBegin(dm_vp,vp,INSERT_VALUES,vp_l);CHKERRQ(ierr);
+  ierr = DMGlobalToLocalEnd(dm_vp,vp,INSERT_VALUES,vp_l);CHKERRQ(ierr);
+  ierr = VecGetArrayRead(vp_l,&LA_vp);CHKERRQ(ierr);
+  
+  ierr = DMDAGetElements(dm_vp,&nel,&npe,&element_list);CHKERRQ(ierr);
+  ierr = DMSwarmGetLocalSize(dm_mpoint,&npoints);CHKERRQ(ierr);
+  ierr = DMSwarmGetField(dm_mpoint,DMSwarmPICField_coor,NULL,NULL,(void**)&mpfield_coor);CHKERRQ(ierr);
+  ierr = DMSwarmGetField(dm_mpoint,DMSwarmPICField_cellid,NULL,NULL,(void**)&mpfield_cell);CHKERRQ(ierr);
+  for (p=0; p<npoints; p++) {
+    PetscReal         *coor_p;
+    PetscScalar       vel_n[NSD*NODES_PER_EL],vel_p[NSD];
+    const PetscScalar *x0;
+    const PetscScalar *x2;
+    
+    e       = mpfield_cell[p];
+    coor_p  = &mpfield_coor[NSD*p];
+    element = &element_list[NODES_PER_EL*e];
+    
+    /* compute local coordinates: (xp-x0)/dx = (xip+1)/2 */
+    x0 = &LA_coor[NSD*element[0]];
+    x2 = &LA_coor[NSD*element[2]];
+    
+    dx[0] = x2[0] - x0[0];
+    dx[1] = x2[1] - x0[1];
+    
+    xi_p[0] = 2.0 * (coor_p[0] - x0[0])/dx[0] - 1.0;
+    xi_p[1] = 2.0 * (coor_p[1] - x0[1])/dx[1] - 1.0;
+    if (PetscRealPart(xi_p[0]) < -1.0) SETERRQ2(PETSC_COMM_SELF,PETSC_ERR_SUP,"value (xi) too small %1.4e [e=%D]\n",(double)PetscRealPart(xi_p[0]),e);
+    if (PetscRealPart(xi_p[0]) >  1.0) SETERRQ2(PETSC_COMM_SELF,PETSC_ERR_SUP,"value (xi) too large %1.4e [e=%D]\n",(double)PetscRealPart(xi_p[0]),e);
+    if (PetscRealPart(xi_p[1]) < -1.0) SETERRQ2(PETSC_COMM_SELF,PETSC_ERR_SUP,"value (eta) too small %1.4e [e=%D]\n",(double)PetscRealPart(xi_p[1]),e);
+    if (PetscRealPart(xi_p[1]) >  1.0) SETERRQ2(PETSC_COMM_SELF,PETSC_ERR_SUP,"value (eta) too large %1.4e [e=%D]\n",(double)PetscRealPart(xi_p[1]),e);
+    
+    /* evaluate basis functions */
+    EvaluateBasis_Q1(xi_p,Ni);
+    
+    /* get cell nodal velocities */
+    for (i=0; i<NODES_PER_EL; i++) {
+      PetscInt nid;
+      
+      nid = element[i];
+      // Note: this differs from ex70, since we only have 2 dof (not 3 - they have pressure)
+      vel_n[NSD*i+0] = LA_vp[(NSD)*nid+0];
+      vel_n[NSD*i+1] = LA_vp[(NSD)*nid+1];
+    }
+    
+    /* interpolate velocity */
+    vel_p[0] = vel_p[1] = 0.0;
+    for (i=0; i<NODES_PER_EL; i++) {
+      vel_p[0] += Ni[i] * vel_n[NSD*i+0];
+      vel_p[1] += Ni[i] * vel_n[NSD*i+1];
+    }
+    
+    coor_p[0] += dt * PetscRealPart(vel_p[0]);
+    coor_p[1] += dt * PetscRealPart(vel_p[1]);
+  }
+
+  ierr = DMSwarmRestoreField(dm_mpoint,DMSwarmPICField_cellid,NULL,NULL,(void**)&mpfield_cell);CHKERRQ(ierr);
+  ierr = DMSwarmRestoreField(dm_mpoint,DMSwarmPICField_coor,NULL,NULL,(void**)&mpfield_coor);CHKERRQ(ierr);
+  ierr = DMDARestoreElements(dm_vp,&nel,&npe,&element_list);CHKERRQ(ierr);
+  ierr = VecRestoreArrayRead(vp_l,&LA_vp);CHKERRQ(ierr);
+  ierr = DMRestoreLocalVector(dm_vp,&vp_l);CHKERRQ(ierr);
+  ierr = VecRestoreArrayRead(coor_l,&LA_coor);CHKERRQ(ierr);
+  PetscFunctionReturn(0);
 }
