@@ -213,25 +213,20 @@ int main(int argc, char **argv)
     if (reason < 0) SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_CONV_FAILED,"Linear solve failed");CHKERRQ(ierr);
   }
 
-  ierr = DMCreateGlobalVector(daVertex2,&vVertex);CHKERRQ(ierr);
-#if 1
-  // Transfer velocities to arrays living on the vertex-only DMDA
+  /* Transfer velocities to arrays living on the vertex-only DMDA.
+  TODO: this is hacky and it should be possible to do this through the API */
   // TODO : introduce compatibility check for this (or perhaps make it so that we can do this with a vertex-only DMStag)
+  ierr = DMCreateGlobalVector(daVertex2,&vVertex);CHKERRQ(ierr);
   ierr = DMCreateLocalVector(daVertex2,&vVertexLocal);CHKERRQ(ierr);
   {
-    //typedef struct {PetscScalar vy,vx,p;} StokesData; 
-
     PetscScalar       *vArr;
     Vec               xLocal;
     const PetscScalar *arrxLocalRaw;
-    //const StokesData  *arrxLocal;
-    PetscInt          nel,npe,eidx,nxDA,nyDA,xs,ys,xe,ye,Xs,Ys,Xe,Ye;
+    PetscInt          nel,npe,eidx,nelxDA,xs,ys,xe,ye,Xs,Ys,Xe,Ye;
     const PetscInt    *element_list;
     DM_Stag           *stag; // TODO: obviously this isn't good. We shouldn't have to access this data once we have a proper API
 
     PetscMPIInt       rank; // debug
-    DMDALocalInfo     info; // debug
-    PetscInt          dzdb,dzdb2;
 
     MPI_Comm_rank(PETSC_COMM_WORLD,&rank);
     stag = (DM_Stag*)stokesGrid->data;
@@ -240,12 +235,6 @@ int main(int argc, char **argv)
     ierr = DMGlobalToLocalBegin(stokesGrid,x,INSERT_VALUES,xLocal);CHKERRQ(ierr);
     ierr = DMGlobalToLocalEnd(stokesGrid,x,INSERT_VALUES,xLocal);CHKERRQ(ierr);
     ierr = VecGetArrayRead(xLocal,&arrxLocalRaw);CHKERRQ(ierr);
-    //arrxLocal = (StokesData*) arrxLocalRaw; // TODO this is not good enough for a user interface - think of a better way to do this, say with a DMCreateSubDM and field ISs 
-
-      ierr = DMDAGetLocalInfo(daVertex2,&info);CHKERRQ(ierr);
-      ierr = VecGetLocalSize(vVertexLocal,&dzdb);CHKERRQ(ierr);
-      ierr = VecGetLocalSize(xLocal,&dzdb2);CHKERRQ(ierr);
-      PetscPrintf(PETSC_COMM_WORLD,"DA local sizes: %d %d\n Local vec size %d, local stag vec size %d\n",info.gxm,info.gym,dzdb,dzdb2);CHKERRQ(ierr);
 
     // Logic copied from DMDAGetElements_2D()
     // TODO : check element type is correct 
@@ -253,20 +242,12 @@ int main(int argc, char **argv)
     ierr   = DMDAGetGhostCorners(daVertex2,&Xs,&Ys,0,&Xe,&Ye,0);CHKERRQ(ierr);
     xe    += xs; Xe += Xs; if (xs != Xs) xs -= 1;
     ye    += ys; Ye += Ys; if (ys != Ys) ys -= 1;
-    nxDA = xe-xs-1; 
-    nyDA = ye-ys-1;
+    nelxDA = xe-xs-1; 
     ierr = DMDAGetElements(daVertex2,&nel,&npe,&element_list);CHKERRQ(ierr);
-      PetscPrintf(PETSC_COMM_SELF,"[%d] DA local sizes: %d %d\n Local vec size %d, local stag vec size %d\n",rank,info.gxm,info.gym,dzdb,dzdb2);CHKERRQ(ierr);
-      PetscPrintf(PETSC_COMM_SELF,"[%d] DA el dims %d x %d = %d\n",rank,nxDA,nyDA,nel);CHKERRQ(ierr);
-
-    if (nxDA * nyDA != nel) SETERRQ3(PETSC_COMM_SELF,PETSC_ERR_ARG_WRONG,"Element counts inconsistent. %d x %d != %d\n",nxDA,nyDA,nel); // TODO: remove
 
     ierr = VecGetArray(vVertexLocal,&vArr);CHKERRQ(ierr);
 
     for (eidx = 0; eidx < nel; eidx++) {
-
-      // TODO : check the hell out of this conversion, from DMDA elements to DMStag elements - check all the numbers on up to 4 procs.
-
       PetscInt localRowDA,localColDA;
 
       // This lists the local element numbers
@@ -274,70 +255,60 @@ int main(int argc, char **argv)
       const PetscInt NSD = 2;
       PetscInt indTo,indFrom; 
 
-      localRowDA = eidx / nxDA; // Integer div
-      localColDA = eidx % nxDA; 
-      PetscPrintf(PETSC_COMM_SELF,"[%d] DMDA el %d (%d,%d) : %d %d %d %d\n",rank,eidx,localRowDA,localColDA,element[0],element[1],element[2],element[3]);
+      localRowDA = eidx / nelxDA; // Integer div
+      localColDA = eidx % nelxDA; 
+      //PetscPrintf(PETSC_COMM_SELF,"[%d] DMDA el %d (%d,%d) : %d %d %d %d\n",rank,eidx,localRowDA,localColDA,element[0],element[1],element[2],element[3]);
 
       indTo = element[0]*NSD+0;
       indFrom = (localRowDA  ) * stag->entriesPerElementRowGhost + (localColDA  ) * stag->entriesPerElement+ 1; // vx is the first entry
       vArr[indTo] = arrxLocalRaw[indFrom]; 
-      ierr = PetscPrintf(PETSC_COMM_SELF,"[%d] %d --> %d (%g) \n",rank,indFrom,indTo,vArr[indTo]);CHKERRQ(ierr);
+      //ierr = PetscPrintf(PETSC_COMM_SELF,"[%d] %d --> %d (%g) \n",rank,indFrom,indTo,vArr[indTo]);CHKERRQ(ierr);
 
       indTo = element[0]*NSD+1; 
       indFrom = (localRowDA  ) * stag->entriesPerElementRowGhost + (localColDA  ) * stag->entriesPerElement+ 0;
       vArr[indTo] = arrxLocalRaw[indFrom]; 
-      ierr = PetscPrintf(PETSC_COMM_SELF,"[%d] %d --> %d (%g) \n",rank,indFrom,indTo,vArr[indTo]);CHKERRQ(ierr);
+      //ierr = PetscPrintf(PETSC_COMM_SELF,"[%d] %d --> %d (%g) \n",rank,indFrom,indTo,vArr[indTo]);CHKERRQ(ierr);
 
       indTo = element[1]*NSD+0;
       indFrom = (localRowDA  ) * stag->entriesPerElementRowGhost + (localColDA+1) * stag->entriesPerElement+ 1;
       vArr[indTo] = arrxLocalRaw[indFrom]; 
-      ierr = PetscPrintf(PETSC_COMM_SELF,"[%d] %d --> %d (%g) \n",rank,indFrom,indTo,vArr[indTo]);CHKERRQ(ierr);
+      //ierr = PetscPrintf(PETSC_COMM_SELF,"[%d] %d --> %d (%g) \n",rank,indFrom,indTo,vArr[indTo]);CHKERRQ(ierr);
 
       indTo = element[1]*NSD+1;
       indFrom = (localRowDA  ) * stag->entriesPerElementRowGhost + (localColDA+1) * stag->entriesPerElement+ 0;
       vArr[indTo] = arrxLocalRaw[indFrom]; 
-      ierr = PetscPrintf(PETSC_COMM_SELF,"[%d] %d --> %d (%g) \n",rank,indFrom,indTo,vArr[indTo]);CHKERRQ(ierr);
+      //ierr = PetscPrintf(PETSC_COMM_SELF,"[%d] %d --> %d (%g) \n",rank,indFrom,indTo,vArr[indTo]);CHKERRQ(ierr);
 
       // This is top-right in DMDA ordering
       indTo = element[2]*NSD+0;
       indFrom = (localRowDA+1) * stag->entriesPerElementRowGhost + (localColDA+1) * stag->entriesPerElement+ 1;
       vArr[indTo] = arrxLocalRaw[indFrom]; 
-      ierr = PetscPrintf(PETSC_COMM_SELF,"[%d] %d --> %d (%g) \n",rank,indFrom,indTo,vArr[indTo]);CHKERRQ(ierr);
+      //ierr = PetscPrintf(PETSC_COMM_SELF,"[%d] %d --> %d (%g) \n",rank,indFrom,indTo,vArr[indTo]);CHKERRQ(ierr);
 
       indTo = element[2]*NSD+1;
       indFrom = (localRowDA+1) * stag->entriesPerElementRowGhost + (localColDA+1) * stag->entriesPerElement+ 0;
       vArr[indTo] = arrxLocalRaw[indFrom]; 
-      ierr = PetscPrintf(PETSC_COMM_SELF,"[%d] %d --> %d (%g) \n",rank,indFrom,indTo,vArr[indTo]);CHKERRQ(ierr);
+      //ierr = PetscPrintf(PETSC_COMM_SELF,"[%d] %d --> %d (%g) \n",rank,indFrom,indTo,vArr[indTo]);CHKERRQ(ierr);
 
       // This is top-left in DMDA ordering
       indTo = element[3]*NSD+0;
       indFrom = (localRowDA+1) * stag->entriesPerElementRowGhost + (localColDA  ) * stag->entriesPerElement+ 1;
       vArr[indTo] = arrxLocalRaw[indFrom]; 
-      ierr = PetscPrintf(PETSC_COMM_SELF,"[%d] %d --> %d (%g) \n",rank,indFrom,indTo,vArr[indTo]);CHKERRQ(ierr);
+      //ierr = PetscPrintf(PETSC_COMM_SELF,"[%d] %d --> %d (%g) \n",rank,indFrom,indTo,vArr[indTo]);CHKERRQ(ierr);
 
       indTo = element[3]*NSD+1;
       indFrom = (localRowDA+1) * stag->entriesPerElementRowGhost + (localColDA  ) * stag->entriesPerElement+ 0;
       vArr[indTo] = arrxLocalRaw[indFrom]; 
-      ierr = PetscPrintf(PETSC_COMM_SELF,"[%d] %d --> %d (%g) \n",rank,indFrom,indTo,vArr[indTo]);CHKERRQ(ierr);
+      //ierr = PetscPrintf(PETSC_COMM_SELF,"[%d] %d --> %d (%g) \n",rank,indFrom,indTo,vArr[indTo]);CHKERRQ(ierr);
     }
     // TODO: improve the above to use interpolated values, not just grabbing from one neighboring edge
 
     ierr = VecRestoreArray(vVertexLocal,&vArr);CHKERRQ(ierr);
-
-#if 1
-    MPI_Barrier(PETSC_COMM_WORLD);
-    PetscPrintf(PETSC_COMM_WORLD,"vVertexLocal:\n");
-    VecView(vVertexLocal,PETSC_VIEWER_STDOUT_WORLD);
+    ierr = VecRestoreArrayRead(xLocal,&arrxLocalRaw);CHKERRQ(ierr);
     ierr = DMLocalToGlobalBegin(daVertex2,vVertexLocal,INSERT_VALUES,vVertex);CHKERRQ(ierr);
     ierr = DMLocalToGlobalEnd(daVertex2,vVertexLocal,INSERT_VALUES,vVertex);CHKERRQ(ierr);
-    PetscPrintf(PETSC_COMM_WORLD,"vVertex:\n");
-    VecView(vVertex,PETSC_VIEWER_STDOUT_WORLD);
-#endif
-
-    ierr = VecRestoreArrayRead(xLocal,&arrxLocalRaw);CHKERRQ(ierr);
     ierr = VecDestroy(&xLocal);CHKERRQ(ierr);
   }
-#endif
 
   /* --- Push Particles and Dump Xdmf ---------------------------------------- */
   // A naive forward Euler step 
