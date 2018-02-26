@@ -3,7 +3,6 @@ static char help[] = " Extension of toy2, which relies on a branch of PETSc incl
                       -nx,-ny : number of cells in x and y direction\n\
                       -xmax,-ymax : domain sizes (m) \n\
                       -p : particles per cell per dimension\n\
-                      -jiggle 0 : don't randomly displace initial particle positions\n\
                       -dt : timestep for simple advection\n\
                       -isoviscous : don't use variable viscosity\n";
 
@@ -106,10 +105,9 @@ int main(int argc, char **argv)
       for (p = 0; p < npoints; p++) {
         PetscReal x_p[2];
 
-        // TODO: Displace particles randomly using -jiggle setting 
-        // and later call migrate to account for potential changes of domain
-        // see ex70.c
-        // ..
+        /* One could apply random noise to the particles here (and should!)
+         See KSP tutorial ex70 for an example; note that one should call 
+         DMSwarmMigrate() since particles may move across cell boundaries */
 
         // Get the coordinates of point p
         x_p[0] = array_x[2*p + 0];
