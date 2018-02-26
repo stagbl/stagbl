@@ -404,7 +404,7 @@ int main(int argc, char **argv)
     ierr = DMStagVecGetArray(elementOnlyGrid,pLocal,&arrp);CHKERRQ(ierr);
     ierr = DMStagVecGetArray(elementOnlyGrid,vxInterpLocal,&arrvxinterp);CHKERRQ(ierr);
     ierr = DMStagVecGetArray(elementOnlyGrid,vyInterpLocal,&arrvyinterp);CHKERRQ(ierr);
-    ierr = DMStagVecGetArrayRead(stokesGrid,xLocal,&arrx);CHKERRQ(ierr); // should be Read
+    ierr = DMStagVecGetArrayRead(stokesGrid,xLocal,&arrx);CHKERRQ(ierr);
 
     ierr = DMStagGetCorners(paramGrid,&start[0],&start[1],NULL,&n[0],&n[1],NULL,NULL,NULL,NULL);CHKERRQ(ierr);
     ierr = DMStagGetGlobalSizes(paramGrid,&N[0],&N[1],NULL);CHKERRQ(ierr);
