@@ -128,26 +128,124 @@ int main(int argc, char **argv)
   }
 
   /* --- Set up Problem ------------------------------------------------------ */
-  // TODO replace this with 
-  // 1. Obtain vertex DMDA
-  // 2. Use this as the base DM for the swarm
-  // 3. Get two vectors of the projected coefficients
-  // 4. Populate arrayParam from these values (and their averages) instead
 
-  // Project from particles 
-  // TODO do this each time step (but reuse these vectors and move decls up)
+  // Project from particles, using the existing DMDA implementation for DMSwarm and then making an ugly transfer.
+  // TODO do this each time step (but reuse these vectors and move decls up, and make sure that the vecs and the array of vecs are freed, as both are created here)
   {
-    Vec *pfields;
-    Vec etaVertex,rhoVertex;
-    const char *fieldnames[]={"eta","rho"};
-    const PetscBool reuse = PETSC_FALSE;
+    Vec               *pfields;
+    Vec               etaVertex,rhoVertex;
+    Vec               etaVertexLocal,rhoVertexLocal;
+    const char        *fieldnames[]={"eta","rho"};
+    const PetscBool   reuse = PETSC_FALSE;
+    PetscScalar       *arrParamRaw;
+    const PetscScalar *vArrEta,*vArrRho;
+
+    PetscInt          nel,npe,eidx,nelxDA,xs,ys,xe,ye,Xs,Ys,Xe,Ye;
+    const PetscInt    *element_list;
+    DM_Stag           *stag; // TODO: obviously this isn't good. We shouldn't have to access this data once we have a proper API
+
+    PetscMPIInt       rank; // debug
+
+    MPI_Comm_rank(PETSC_COMM_WORLD,&rank);
+    stag = (DM_Stag*)stokesGrid->data;
+
+    /* Note here that it would be better to implement DMStag as a base
+       DM for DMSwarm, as we could then project nicely to both the corners
+       and the cell centers */
 
     ierr = DMSwarmProjectFields(swarm,2,fieldnames,&pfields,reuse);CHKERRQ(ierr);
     etaVertex = pfields[0];
     rhoVertex = pfields[1];
+
+    // Global->Local
+    ierr = DMGetLocalVector(daVertex,&etaVertexLocal);CHKERRQ(ierr);
+    ierr = DMGetLocalVector(daVertex,&rhoVertexLocal);CHKERRQ(ierr);
+    ierr = DMGlobalToLocalBegin(daVertex,etaVertex,INSERT_VALUES,etaVertexLocal);CHKERRQ(ierr);
+    ierr = DMGlobalToLocalEnd(daVertex,etaVertex,INSERT_VALUES,etaVertexLocal);CHKERRQ(ierr);
+    ierr = DMGlobalToLocalBegin(daVertex,rhoVertex,INSERT_VALUES,rhoVertexLocal);CHKERRQ(ierr);
+    ierr = DMGlobalToLocalEnd(daVertex,rhoVertex,INSERT_VALUES,rhoVertexLocal);CHKERRQ(ierr);
+
+    ierr = DMCreateLocalVector(paramGrid,&paramLocal);CHKERRQ(ierr);
+    ierr = VecGetArray(paramLocal,&arrParamRaw);CHKERRQ(ierr);
+
+    ierr = VecGetArrayRead(etaVertex,&vArrEta);CHKERRQ(ierr);
+    ierr = VecGetArrayRead(rhoVertex,&vArrRho);CHKERRQ(ierr);
+
+    // Logic copied from DMDAGetElements_2D()
+    // TODO : check element type is correct 
+    ierr   = DMDAGetCorners(daVertex,&xs,&ys,0,&xe,&ye,0);CHKERRQ(ierr);
+    ierr   = DMDAGetGhostCorners(daVertex,&Xs,&Ys,0,&Xe,&Ye,0);CHKERRQ(ierr);
+    xe    += xs; Xe += Xs; if (xs != Xs) xs -= 1;
+    ye    += ys; Ye += Ys; if (ys != Ys) ys -= 1;
+    nelxDA = xe-xs-1; 
+    ierr = DMDAGetElements(daVertex,&nel,&npe,&element_list);CHKERRQ(ierr);
+
+    for (eidx = 0; eidx < nel; eidx++) {
+      PetscInt localRowDA,localColDA;
+
+      // This lists the local element numbers
+      const PetscInt *element = &element_list[npe*eidx];
+      PetscInt indTo,indFrom; 
+
+      localRowDA = eidx / nelxDA; // Integer div
+      localColDA = eidx % nelxDA; 
+
+      // Lower left
+      indFrom = element[0];
+      indTo = (localRowDA  ) * stag->entriesPerElementRowGhost + (localColDA  ) * stag->entriesPerElement+ 0; // etaCorner
+      arrParamRaw[indTo] = vArrEta[indFrom];
+      indTo = (localRowDA  ) * stag->entriesPerElementRowGhost + (localColDA  ) * stag->entriesPerElement+ 1; // etaElement
+      arrParamRaw[indTo] = vArrEta[indFrom];
+      indTo = (localRowDA  ) * stag->entriesPerElementRowGhost + (localColDA  ) * stag->entriesPerElement+ 2; // rho (element)
+      arrParamRaw[indTo] = vArrRho[indFrom];
+
+      // Lower Right
+      indFrom = element[1];
+      indTo = (localRowDA  ) * stag->entriesPerElementRowGhost + (localColDA+1) * stag->entriesPerElement+ 0; // etaCorner
+      arrParamRaw[indTo] = vArrEta[indFrom];
+      indTo = (localRowDA  ) * stag->entriesPerElementRowGhost + (localColDA+1) * stag->entriesPerElement+ 1; // etaElement
+      arrParamRaw[indTo] = vArrEta[indFrom];
+      indTo = (localRowDA  ) * stag->entriesPerElementRowGhost + (localColDA+1) * stag->entriesPerElement+ 2; // rho (element)
+      arrParamRaw[indTo] = vArrRho[indFrom];
+
+      // Upper Right
+      indFrom = element[2];
+      indTo = (localRowDA+1) * stag->entriesPerElementRowGhost + (localColDA+1) * stag->entriesPerElement+ 0; // etaCorner
+      arrParamRaw[indTo] = vArrEta[indFrom];
+      indTo = (localRowDA+1) * stag->entriesPerElementRowGhost + (localColDA+1) * stag->entriesPerElement+ 1; // etaElement
+      arrParamRaw[indTo] = vArrEta[indFrom];
+      indTo = (localRowDA+1) * stag->entriesPerElementRowGhost + (localColDA+1) * stag->entriesPerElement+ 2; // rho (element)
+      arrParamRaw[indTo] = vArrRho[indFrom];
+
+      // Upper Left
+      indFrom = element[3];
+      indTo = (localRowDA+1) * stag->entriesPerElementRowGhost + (localColDA ) * stag->entriesPerElement+ 0; // etaCorner
+      arrParamRaw[indTo] = vArrEta[indFrom];
+      indTo = (localRowDA+1) * stag->entriesPerElementRowGhost + (localColDA ) * stag->entriesPerElement+ 1; // etaElement
+      arrParamRaw[indTo] = vArrEta[indFrom];
+      indTo = (localRowDA+1) * stag->entriesPerElementRowGhost + (localColDA ) * stag->entriesPerElement+ 2; // rho (element)
+      arrParamRaw[indTo] = vArrRho[indFrom];
+    }
+
+    ierr = VecRestoreArray(paramLocal,&arrParamRaw);CHKERRQ(ierr);
+    ierr = VecRestoreArrayRead(etaVertex,&vArrEta);CHKERRQ(ierr);
+    ierr = VecRestoreArrayRead(rhoVertex,&vArrRho);CHKERRQ(ierr);
+
+    // Local->global
+    ierr = DMCreateGlobalVector(paramGrid,&ctx->param);CHKERRQ(ierr);
+    ierr = DMLocalToGlobalBegin(paramGrid,paramLocal,INSERT_VALUES,ctx->param);CHKERRQ(ierr);
+    ierr = DMLocalToGlobalEnd(paramGrid,paramLocal,INSERT_VALUES,ctx->param);CHKERRQ(ierr);
+
+    // Inefficiently, fill in any ghost/dummy points that we missed by scattering back again
+    ierr = DMGlobalToLocalBegin(paramGrid,ctx->param,INSERT_VALUES,paramLocal);CHKERRQ(ierr); 
+    ierr = DMGlobalToLocalEnd(paramGrid,ctx->param,INSERT_VALUES,paramLocal);CHKERRQ(ierr); 
+
+    ierr = VecDestroy(&etaVertexLocal);CHKERRQ(ierr);
+    ierr = VecDestroy(&rhoVertexLocal);CHKERRQ(ierr);
   }
 
-
+#if 0 
+  // This is how one might directly populate a DMStag array (keep this code around, as it'll be useful when implementing the proper usage of DMStag as a base DM)
   {
     typedef struct {PetscReal xCorner,yCorner,xElement,yElement;} CoordinateData; // Definitely need to provide these types somehow to the user.. (specifying them wrong leads to very annoying bugs)
     typedef struct {PetscScalar etaCorner,etaElement,rho;} ElementData; // ? What's the best way to have users to do this? Provide these before hand? 
@@ -186,11 +284,13 @@ int main(int argc, char **argv)
     ierr = DMCreateGlobalVector(paramGrid,&ctx->param);CHKERRQ(ierr);
     ierr = DMLocalToGlobalBegin(paramGrid,paramLocal,INSERT_VALUES,ctx->param);CHKERRQ(ierr);
     ierr = DMLocalToGlobalEnd(paramGrid,paramLocal,INSERT_VALUES,ctx->param);CHKERRQ(ierr);
+
   }
+#endif
 
   /* --- Create and Solve Linear System -------------------------------------- */
 
-  // TODO put this, and recomputation of rho/eta from tracers, inside the time loop
+  // TODO put the solve, and recomputation of rho/eta from tracers, inside the time loop
   ierr = CreateSystem(ctx,&A,&b);CHKERRQ(ierr);
   ierr = VecDuplicate(b,&x);CHKERRQ(ierr);
   ierr = KSPCreate(PETSC_COMM_WORLD,&ksp);CHKERRQ(ierr);
@@ -257,6 +357,7 @@ int main(int argc, char **argv)
       localColDA = eidx % nelxDA; 
       //PetscPrintf(PETSC_COMM_SELF,"[%d] DMDA el %d (%d,%d) : %d %d %d %d\n",rank,eidx,localRowDA,localColDA,element[0],element[1],element[2],element[3]);
 
+      // TODO wrap this in a function in the API (thus obviating the need for access to the DM_Stag object)
       indTo = element[0]*NSD+0;
       indFrom = (localRowDA  ) * stag->entriesPerElementRowGhost + (localColDA  ) * stag->entriesPerElement+ 1; // vx is the first entry
       vArr[indTo] = arrxLocalRaw[indFrom]; 
@@ -299,7 +400,7 @@ int main(int argc, char **argv)
       vArr[indTo] = arrxLocalRaw[indFrom]; 
       //ierr = PetscPrintf(PETSC_COMM_SELF,"[%d] %d --> %d (%g) \n",rank,indFrom,indTo,vArr[indTo]);CHKERRQ(ierr);
     }
-    // TODO: improve the above to use interpolated values, not just grabbing from one neighboring edge
+    // TODO: improve the above to use averaged values, not just grabbing from one neighboring edge
 
     ierr = VecRestoreArray(vVertexLocal,&vArr);CHKERRQ(ierr);
     ierr = VecRestoreArrayRead(xLocal,&arrxLocalRaw);CHKERRQ(ierr);
