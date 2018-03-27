@@ -49,13 +49,14 @@ int main(int argc, char **argv)
       0,1,1,                                   // no dof per vertex: 0 per vertex, 1 per edge, 1 per face/element
       DMSTAG_GHOST_STENCIL_BOX,                // elementwise stencil pattern
       1,                                       // elementwise stencil width
+      NULL,NULL,                               
       &ctx->stokesGrid);
   stokesGrid = ctx->stokesGrid;
   ierr = DMSetUp(stokesGrid);CHKERRQ(ierr);
   ierr = DMStagSetUniformCoordinates(stokesGrid,ctx->xmin,ctx->xmax,ctx->ymin,ctx->ymax,0.0,0.0);CHKERRQ(ierr); 
 
   // A DMStag to hold the coefficient fields for the Stokes problem: 1 dof per vertex and two per element/face
-  ierr = DMStagCreate2d(PETSC_COMM_WORLD,DM_BOUNDARY_NONE,DM_BOUNDARY_NONE,ctx->M,ctx->N,PETSC_DECIDE,PETSC_DECIDE,1,0,2,DMSTAG_GHOST_STENCIL_BOX,1,&ctx->paramGrid);CHKERRQ(ierr);
+  ierr = DMStagCreate2d(PETSC_COMM_WORLD,DM_BOUNDARY_NONE,DM_BOUNDARY_NONE,ctx->M,ctx->N,PETSC_DECIDE,PETSC_DECIDE,1,0,2,DMSTAG_GHOST_STENCIL_BOX,1,NULL,NULL,&ctx->paramGrid);CHKERRQ(ierr);
   paramGrid = ctx->paramGrid;
   ierr = DMSetUp(paramGrid);CHKERRQ(ierr);
   ierr = DMStagSetUniformCoordinates(paramGrid,ctx->xmin,ctx->xmax,ctx->ymin,ctx->ymax,0.0,0.0);CHKERRQ(ierr); 
@@ -452,12 +453,12 @@ int main(int argc, char **argv)
   ierr = OutputVecBinary(x,"x.pbin",PETSC_FALSE);
 
   // Create auxiliary DMStag object, with one dof per element, to help with output
-  ierr = DMStagCreate2d( PETSC_COMM_WORLD, DM_BOUNDARY_NONE,DM_BOUNDARY_NONE,ctx->M,ctx->N,PETSC_DECIDE,PETSC_DECIDE,0,0,1,DMSTAG_GHOST_STENCIL_BOX,1,&elementOnlyGrid);CHKERRQ(ierr);
+  ierr = DMStagCreate2d( PETSC_COMM_WORLD, DM_BOUNDARY_NONE,DM_BOUNDARY_NONE,ctx->M,ctx->N,PETSC_DECIDE,PETSC_DECIDE,0,0,1,DMSTAG_GHOST_STENCIL_BOX,1,NULL,NULL,&elementOnlyGrid);CHKERRQ(ierr);
   ierr = DMSetUp(elementOnlyGrid);CHKERRQ(ierr);
   ierr = DMStagSetUniformCoordinates(elementOnlyGrid,ctx->xmin,ctx->xmax,ctx->ymin,ctx->ymax,0.0,0.0);CHKERRQ(ierr); 
 
   // Another auxiliary DMStag to help dumping vertex/corner - only data
-  ierr = DMStagCreate2d(PETSC_COMM_WORLD,DM_BOUNDARY_NONE,DM_BOUNDARY_NONE,ctx->M,ctx->N,PETSC_DECIDE,PETSC_DECIDE,1,0,0,DMSTAG_GHOST_STENCIL_BOX,1,&vertexOnlyGrid);CHKERRQ(ierr);
+  ierr = DMStagCreate2d(PETSC_COMM_WORLD,DM_BOUNDARY_NONE,DM_BOUNDARY_NONE,ctx->M,ctx->N,PETSC_DECIDE,PETSC_DECIDE,1,0,0,DMSTAG_GHOST_STENCIL_BOX,1,NULL,NULL,&vertexOnlyGrid);CHKERRQ(ierr);
   ierr = DMSetUp(vertexOnlyGrid);CHKERRQ(ierr);
   ierr = DMStagSetUniformCoordinates(vertexOnlyGrid,ctx->xmin,ctx->xmax,ctx->ymin,ctx->ymax,0.0,0.0);CHKERRQ(ierr); 
 

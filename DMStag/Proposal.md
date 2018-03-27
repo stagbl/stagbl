@@ -367,6 +367,6 @@ A small set of examples/tests is key to the PETSc contribution. A small set of e
  - simultaneous iteration (SoA)
  - destroying
 2. An example for using multiple grids and checking compatibility.
-3. A simple operator construction (isoviscous Stokes, eta=1) and solution.
-4. A linear Stokes solver, modelled on KSP tutorial example 70
+3. A simple operator construction (isoviscous Stokes, eta=1, using MMS), solution, and converge rate check.
+4. A linear Stokes solver, modelled on KSP tutorial example 70, solving a common benchmark (or several), e.g. solck, solkx, Rayleigh-Benard (compute Nusselt number), viscous sinker, etc.
 5. Additional tests of individual operations, as needed for coverage or for better unit testing
