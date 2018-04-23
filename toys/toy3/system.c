@@ -21,9 +21,7 @@ PetscReal getEta(Ctx ctx,PetscReal x,PetscReal y)
   }
 }
 
-/* (Re-)create the sytem. If create == PETSC_TRUE, creates the 
-   matrix and vectors. Otherwise assumes that they already exist */
-PetscErrorCode CreateSystem(Ctx ctx,Mat *pA,Vec *pb,Vec *px,PetscBool create)
+PetscErrorCode CreateSystem(Ctx ctx,Mat *pA,Vec *pb)
 {
   typedef struct {PetscScalar etaCorner,etaElement,rho;} ParamData;
   typedef struct {PetscScalar vy,vx,p;} StokesData; 
@@ -45,23 +43,21 @@ PetscErrorCode CreateSystem(Ctx ctx,Mat *pA,Vec *pb,Vec *px,PetscBool create)
   stag = (DM_Stag*)stokesGrid->data;
 
   // Create RHS vector and local version
-  if (create)  {
-    ierr = DMCreateGlobalVector(stokesGrid,pb);CHKERRQ(ierr);
-  }
+  ierr = DMCreateGlobalVector(stokesGrid,pb);CHKERRQ(ierr);
   b = *pb;
 
   // Create Matrix
   // Here, we drastically overestimate the number of nonzeros
-  if (create) {
+  {
     PetscInt sizeLocal;
     ISLocalToGlobalMapping ltogmap;
     const PetscInt width = 11; // largest stencil (momentum)
     ierr = VecGetLocalSize(b,&sizeLocal);CHKERRQ(ierr);
     ierr = MatCreateAIJ(PETSC_COMM_WORLD,sizeLocal,sizeLocal,PETSC_DETERMINE,PETSC_DETERMINE,width,NULL,width,NULL,pA);CHKERRQ(ierr);
+    A = *pA;
     ierr = DMGetLocalToGlobalMapping(stokesGrid,&ltogmap);CHKERRQ(ierr);
-    ierr = MatSetLocalToGlobalMapping(*pA,ltogmap,ltogmap);CHKERRQ(ierr);
+    ierr = MatSetLocalToGlobalMapping(A,ltogmap,ltogmap);CHKERRQ(ierr);
   }
-  A = *pA;
 
   // Get access to parameters array
   ierr = DMCreateLocalVector(paramGrid,&paramLocal);CHKERRQ(ierr);
@@ -277,11 +273,5 @@ PetscErrorCode CreateSystem(Ctx ctx,Mat *pA,Vec *pb,Vec *px,PetscBool create)
 
   ierr = DMStagVecRestoreArray(paramGrid,paramLocal,&arrParam);CHKERRQ(ierr); // should be Read
   ierr = VecDestroy(&paramLocal);CHKERRQ(ierr);
-
-  // Create RHS vector
-  if (create) {
-    ierr = VecDuplicate(b,px);CHKERRQ(ierr);
-  }
-    
   PetscFunctionReturn(0);
 }

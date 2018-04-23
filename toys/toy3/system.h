@@ -4,7 +4,7 @@
 #include <petsc.h>
 #include "ctx.h"
 
-PetscErrorCode CreateSystem(Ctx,Mat*,Vec*,Vec*,PetscBool);
+PetscErrorCode CreateSystem(Ctx,Mat*,Vec*);
 PetscReal getRho(Ctx ctx,PetscReal,PetscReal);
 PetscReal getEta(Ctx ctx,PetscReal,PetscReal);
 

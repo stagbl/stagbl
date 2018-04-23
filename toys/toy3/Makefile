@@ -21,15 +21,15 @@ run :
 
 # Aggressive clean
 clean :: cleanOutput
-	${RM} ${EXNAME} ${SRC_O} ${SRC_D}
+	${RM} ${EXNAME} ${SRC_O} ${SRC_D} 
 
 cleanOutput :
 	${RM} *.xmf *.pbin *.pbin.info *.h5 *.bin *.bin.info *.vts octave-workspace
 .PHONY: cleanOutput
 
 # Indicate that SRC_D is all up to date. This apparently prevents the include
-#   from having quadratic complexity.
-$(SRC_D) : ;
+#   from having quadratic complexity. 
+$(SRC_D) : ; 
 -include $(SRC_D)
 
 .DELETE_ON_ERROR:

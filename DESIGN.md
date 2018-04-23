@@ -3,11 +3,13 @@ Each point should include a rationale [in brackets].
 
 # Code style
 
-General : [Patrick's (in progress) style guide](https://bitbucket.org/psanan/pdsstyle)
+[Patrick's (in progress) style guide](https://bitbucket.org/psanan/pdsstyle)
 
-PETSc : [PETSc Developer's Manual](http://www.mcs.anl.gov/petsc/petsc-current/docs/developers.pdf)
+# Documentation
 
-# Conventions 
+Use .rst format [Human-readable, can go on readthedocs.org]
+
+# Conventions
 
 ## Grids
 
