@@ -4,18 +4,20 @@ StagBL Layout Proposal (WIP)
 A proposal for the layout of the StagBL project
 Guidelines: keep it lean, keep it self-documenting as much as possible
 
-Root :
-  README.md                          # Contains quickstart w/ pictures
-  Makefile [or some other config..]
-  documentation
-  examples
-  src
-  include
-  developer
+config/
 
+demos/
 
 developer/                            # Everything that only the developer would care about (toys, util scripts, etc.)
   toys/
+
+documentation/
+
+LICENSE.txt
+
+Makefile                              # or some other root configure script
+
+README.md
 
 src/                                  # Each subdirectory contains a collection of classes
   core/
@@ -34,3 +36,5 @@ src/                                  # Each subdirectory contains a collection 
   io/
   stokes/
   particles/
+
+tests/
