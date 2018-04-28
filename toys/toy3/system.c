@@ -100,7 +100,7 @@ PetscErrorCode CreateSystem(Ctx ctx,Mat *pA,Vec *pb)
       PetscReal      Kbound=ctx->Kbound,Kcont=ctx->Kcont;
 
       e = stag->entriesPerElement;
-      epr = stag->entriesPerElementRowGhost;
+      epr = stag->entriesPerElement * stag->nGhost[0];
 
       vyoffset = stag->dof[0]; // 2d only
       vxoffset = stag->dof[0] + stag->dof[1]; // 2d only

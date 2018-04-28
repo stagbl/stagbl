@@ -53,13 +53,13 @@ int main(int argc, char **argv)
       &ctx->stokesGrid);
   stokesGrid = ctx->stokesGrid;
   ierr = DMSetUp(stokesGrid);CHKERRQ(ierr);
-  ierr = DMStagSetUniformCoordinates(stokesGrid,ctx->xmin,ctx->xmax,ctx->ymin,ctx->ymax,0.0,0.0);CHKERRQ(ierr); 
+  ierr = DMStagSetUniformCoordinatesExplicit(stokesGrid,ctx->xmin,ctx->xmax,ctx->ymin,ctx->ymax,0.0,0.0);CHKERRQ(ierr);  // TODO : here (and everywhere) use DMStagSetUniformCoordinates (once implemented)
 
   // A DMStag to hold the coefficient fields for the Stokes problem: 1 dof per vertex and two per element/face
   ierr = DMStagCreate2d(PETSC_COMM_WORLD,DM_BOUNDARY_NONE,DM_BOUNDARY_NONE,ctx->M,ctx->N,PETSC_DECIDE,PETSC_DECIDE,1,0,2,DMSTAG_GHOST_STENCIL_BOX,1,NULL,NULL,&ctx->paramGrid);CHKERRQ(ierr);
   paramGrid = ctx->paramGrid;
   ierr = DMSetUp(paramGrid);CHKERRQ(ierr);
-  ierr = DMStagSetUniformCoordinates(paramGrid,ctx->xmin,ctx->xmax,ctx->ymin,ctx->ymax,0.0,0.0);CHKERRQ(ierr); 
+  ierr = DMStagSetUniformCoordinatesExplicit(paramGrid,ctx->xmin,ctx->xmax,ctx->ymin,ctx->ymax,0.0,0.0);CHKERRQ(ierr); 
 
   PetscPrintf(PETSC_COMM_WORLD,"paramGrid:\n");
   ierr = DMView(paramGrid,PETSC_VIEWER_STDOUT_WORLD);CHKERRQ(ierr);
@@ -141,7 +141,7 @@ int main(int argc, char **argv)
     PetscScalar       *arrParamRaw;
     const PetscScalar *vArrEta,*vArrRho;
 
-    PetscInt          nel,npe,eidx,nelxDA,xs,ys,xe,ye,Xs,Ys,Xe,Ye;
+    PetscInt          nel,npe,eidx,nelxDA,xs,ys,xe,ye,Xs,Ys,Xe,Ye,entriesPerElementRowGhost;
     const PetscInt    *element_list;
     DM_Stag           *stag; // TODO: obviously this isn't good. We shouldn't have to access this data once we have a proper API
 
@@ -181,6 +181,8 @@ int main(int argc, char **argv)
     nelxDA = xe-xs-1; 
     ierr = DMDAGetElements(daVertex,&nel,&npe,&element_list);CHKERRQ(ierr);
 
+    entriesPerElementRowGhost =  stag->nGhost[0] * stag->entriesPerElement;
+
     for (eidx = 0; eidx < nel; eidx++) {
       PetscInt localRowDA,localColDA;
 
@@ -193,38 +195,38 @@ int main(int argc, char **argv)
 
       // Lower left
       indFrom = element[0];
-      indTo = (localRowDA  ) * stag->entriesPerElementRowGhost + (localColDA  ) * stag->entriesPerElement+ 0; // etaCorner
+      indTo = (localRowDA  ) * entriesPerElementRowGhost + (localColDA  ) * stag->entriesPerElement+ 0; // etaCorner
       arrParamRaw[indTo] = vArrEta[indFrom];
-      indTo = (localRowDA  ) * stag->entriesPerElementRowGhost + (localColDA  ) * stag->entriesPerElement+ 1; // etaElement
+      indTo = (localRowDA  ) * entriesPerElementRowGhost + (localColDA  ) * stag->entriesPerElement+ 1; // etaElement
       arrParamRaw[indTo] = vArrEta[indFrom];
-      indTo = (localRowDA  ) * stag->entriesPerElementRowGhost + (localColDA  ) * stag->entriesPerElement+ 2; // rho (element)
+      indTo = (localRowDA  ) * entriesPerElementRowGhost + (localColDA  ) * stag->entriesPerElement+ 2; // rho (element)
       arrParamRaw[indTo] = vArrRho[indFrom];
 
       // Lower Right
       indFrom = element[1];
-      indTo = (localRowDA  ) * stag->entriesPerElementRowGhost + (localColDA+1) * stag->entriesPerElement+ 0; // etaCorner
+      indTo = (localRowDA  ) * entriesPerElementRowGhost + (localColDA+1) * stag->entriesPerElement+ 0; // etaCorner
       arrParamRaw[indTo] = vArrEta[indFrom];
-      indTo = (localRowDA  ) * stag->entriesPerElementRowGhost + (localColDA+1) * stag->entriesPerElement+ 1; // etaElement
+      indTo = (localRowDA  ) * entriesPerElementRowGhost + (localColDA+1) * stag->entriesPerElement+ 1; // etaElement
       arrParamRaw[indTo] = vArrEta[indFrom];
-      indTo = (localRowDA  ) * stag->entriesPerElementRowGhost + (localColDA+1) * stag->entriesPerElement+ 2; // rho (element)
+      indTo = (localRowDA  ) * entriesPerElementRowGhost + (localColDA+1) * stag->entriesPerElement+ 2; // rho (element)
       arrParamRaw[indTo] = vArrRho[indFrom];
 
       // Upper Right
       indFrom = element[2];
-      indTo = (localRowDA+1) * stag->entriesPerElementRowGhost + (localColDA+1) * stag->entriesPerElement+ 0; // etaCorner
+      indTo = (localRowDA+1) * entriesPerElementRowGhost + (localColDA+1) * stag->entriesPerElement+ 0; // etaCorner
       arrParamRaw[indTo] = vArrEta[indFrom];
-      indTo = (localRowDA+1) * stag->entriesPerElementRowGhost + (localColDA+1) * stag->entriesPerElement+ 1; // etaElement
+      indTo = (localRowDA+1) * entriesPerElementRowGhost + (localColDA+1) * stag->entriesPerElement+ 1; // etaElement
       arrParamRaw[indTo] = vArrEta[indFrom];
-      indTo = (localRowDA+1) * stag->entriesPerElementRowGhost + (localColDA+1) * stag->entriesPerElement+ 2; // rho (element)
+      indTo = (localRowDA+1) * entriesPerElementRowGhost + (localColDA+1) * stag->entriesPerElement+ 2; // rho (element)
       arrParamRaw[indTo] = vArrRho[indFrom];
 
       // Upper Left
       indFrom = element[3];
-      indTo = (localRowDA+1) * stag->entriesPerElementRowGhost + (localColDA ) * stag->entriesPerElement+ 0; // etaCorner
+      indTo = (localRowDA+1) * entriesPerElementRowGhost + (localColDA ) * stag->entriesPerElement+ 0; // etaCorner
       arrParamRaw[indTo] = vArrEta[indFrom];
-      indTo = (localRowDA+1) * stag->entriesPerElementRowGhost + (localColDA ) * stag->entriesPerElement+ 1; // etaElement
+      indTo = (localRowDA+1) * entriesPerElementRowGhost + (localColDA ) * stag->entriesPerElement+ 1; // etaElement
       arrParamRaw[indTo] = vArrEta[indFrom];
-      indTo = (localRowDA+1) * stag->entriesPerElementRowGhost + (localColDA ) * stag->entriesPerElement+ 2; // rho (element)
+      indTo = (localRowDA+1) * entriesPerElementRowGhost + (localColDA ) * stag->entriesPerElement+ 2; // rho (element)
       arrParamRaw[indTo] = vArrRho[indFrom];
     }
 
@@ -321,7 +323,7 @@ int main(int argc, char **argv)
     PetscScalar       *vArr;
     Vec               xLocal;
     const PetscScalar *arrxLocalRaw;
-    PetscInt          nel,npe,eidx,nelxDA,xs,ys,xe,ye,Xs,Ys,Xe,Ye;
+    PetscInt          nel,npe,eidx,nelxDA,xs,ys,xe,ye,Xs,Ys,Xe,Ye,entriesPerElementRowGhost;
     const PetscInt    *element_list;
     DM_Stag           *stag; // TODO: obviously this isn't good. We shouldn't have to access this data once we have a proper API
 
@@ -346,6 +348,8 @@ int main(int argc, char **argv)
 
     ierr = VecGetArray(vVertexLocal,&vArr);CHKERRQ(ierr);
 
+    entriesPerElementRowGhost =  stag->nGhost[0] * stag->entriesPerElement;
+
     for (eidx = 0; eidx < nel; eidx++) {
       PetscInt localRowDA,localColDA;
 
@@ -360,44 +364,44 @@ int main(int argc, char **argv)
 
       // TODO wrap this in a function in the API (thus obviating the need for access to the DM_Stag object)
       indTo = element[0]*NSD+0;
-      indFrom = (localRowDA  ) * stag->entriesPerElementRowGhost + (localColDA  ) * stag->entriesPerElement+ 1; // vx is the first entry
+      indFrom = (localRowDA  ) * entriesPerElementRowGhost + (localColDA  ) * stag->entriesPerElement+ 1; // vx is the first entry
       vArr[indTo] = arrxLocalRaw[indFrom]; 
       //ierr = PetscPrintf(PETSC_COMM_SELF,"[%d] %d --> %d (%g) \n",rank,indFrom,indTo,vArr[indTo]);CHKERRQ(ierr);
 
       indTo = element[0]*NSD+1; 
-      indFrom = (localRowDA  ) * stag->entriesPerElementRowGhost + (localColDA  ) * stag->entriesPerElement+ 0;
+      indFrom = (localRowDA  ) * entriesPerElementRowGhost + (localColDA  ) * stag->entriesPerElement+ 0;
       vArr[indTo] = arrxLocalRaw[indFrom]; 
       //ierr = PetscPrintf(PETSC_COMM_SELF,"[%d] %d --> %d (%g) \n",rank,indFrom,indTo,vArr[indTo]);CHKERRQ(ierr);
 
       indTo = element[1]*NSD+0;
-      indFrom = (localRowDA  ) * stag->entriesPerElementRowGhost + (localColDA+1) * stag->entriesPerElement+ 1;
+      indFrom = (localRowDA  ) * entriesPerElementRowGhost + (localColDA+1) * stag->entriesPerElement+ 1;
       vArr[indTo] = arrxLocalRaw[indFrom]; 
       //ierr = PetscPrintf(PETSC_COMM_SELF,"[%d] %d --> %d (%g) \n",rank,indFrom,indTo,vArr[indTo]);CHKERRQ(ierr);
 
       indTo = element[1]*NSD+1;
-      indFrom = (localRowDA  ) * stag->entriesPerElementRowGhost + (localColDA+1) * stag->entriesPerElement+ 0;
+      indFrom = (localRowDA  ) * entriesPerElementRowGhost + (localColDA+1) * stag->entriesPerElement+ 0;
       vArr[indTo] = arrxLocalRaw[indFrom]; 
       //ierr = PetscPrintf(PETSC_COMM_SELF,"[%d] %d --> %d (%g) \n",rank,indFrom,indTo,vArr[indTo]);CHKERRQ(ierr);
 
       // This is top-right in DMDA ordering
       indTo = element[2]*NSD+0;
-      indFrom = (localRowDA+1) * stag->entriesPerElementRowGhost + (localColDA+1) * stag->entriesPerElement+ 1;
+      indFrom = (localRowDA+1) * entriesPerElementRowGhost + (localColDA+1) * stag->entriesPerElement+ 1;
       vArr[indTo] = arrxLocalRaw[indFrom]; 
       //ierr = PetscPrintf(PETSC_COMM_SELF,"[%d] %d --> %d (%g) \n",rank,indFrom,indTo,vArr[indTo]);CHKERRQ(ierr);
 
       indTo = element[2]*NSD+1;
-      indFrom = (localRowDA+1) * stag->entriesPerElementRowGhost + (localColDA+1) * stag->entriesPerElement+ 0;
+      indFrom = (localRowDA+1) * entriesPerElementRowGhost + (localColDA+1) * stag->entriesPerElement+ 0;
       vArr[indTo] = arrxLocalRaw[indFrom]; 
       //ierr = PetscPrintf(PETSC_COMM_SELF,"[%d] %d --> %d (%g) \n",rank,indFrom,indTo,vArr[indTo]);CHKERRQ(ierr);
 
       // This is top-left in DMDA ordering
       indTo = element[3]*NSD+0;
-      indFrom = (localRowDA+1) * stag->entriesPerElementRowGhost + (localColDA  ) * stag->entriesPerElement+ 1;
+      indFrom = (localRowDA+1) * entriesPerElementRowGhost + (localColDA  ) * stag->entriesPerElement+ 1;
       vArr[indTo] = arrxLocalRaw[indFrom]; 
       //ierr = PetscPrintf(PETSC_COMM_SELF,"[%d] %d --> %d (%g) \n",rank,indFrom,indTo,vArr[indTo]);CHKERRQ(ierr);
 
       indTo = element[3]*NSD+1;
-      indFrom = (localRowDA+1) * stag->entriesPerElementRowGhost + (localColDA  ) * stag->entriesPerElement+ 0;
+      indFrom = (localRowDA+1) * entriesPerElementRowGhost + (localColDA  ) * stag->entriesPerElement+ 0;
       vArr[indTo] = arrxLocalRaw[indFrom]; 
       //ierr = PetscPrintf(PETSC_COMM_SELF,"[%d] %d --> %d (%g) \n",rank,indFrom,indTo,vArr[indTo]);CHKERRQ(ierr);
     }
@@ -455,12 +459,12 @@ int main(int argc, char **argv)
   // Create auxiliary DMStag object, with one dof per element, to help with output
   ierr = DMStagCreate2d( PETSC_COMM_WORLD, DM_BOUNDARY_NONE,DM_BOUNDARY_NONE,ctx->M,ctx->N,PETSC_DECIDE,PETSC_DECIDE,0,0,1,DMSTAG_GHOST_STENCIL_BOX,1,NULL,NULL,&elementOnlyGrid);CHKERRQ(ierr);
   ierr = DMSetUp(elementOnlyGrid);CHKERRQ(ierr);
-  ierr = DMStagSetUniformCoordinates(elementOnlyGrid,ctx->xmin,ctx->xmax,ctx->ymin,ctx->ymax,0.0,0.0);CHKERRQ(ierr); 
+  ierr = DMStagSetUniformCoordinatesExplicit(elementOnlyGrid,ctx->xmin,ctx->xmax,ctx->ymin,ctx->ymax,0.0,0.0);CHKERRQ(ierr); 
 
   // Another auxiliary DMStag to help dumping vertex/corner - only data
   ierr = DMStagCreate2d(PETSC_COMM_WORLD,DM_BOUNDARY_NONE,DM_BOUNDARY_NONE,ctx->M,ctx->N,PETSC_DECIDE,PETSC_DECIDE,1,0,0,DMSTAG_GHOST_STENCIL_BOX,1,NULL,NULL,&vertexOnlyGrid);CHKERRQ(ierr);
   ierr = DMSetUp(vertexOnlyGrid);CHKERRQ(ierr);
-  ierr = DMStagSetUniformCoordinates(vertexOnlyGrid,ctx->xmin,ctx->xmax,ctx->ymin,ctx->ymax,0.0,0.0);CHKERRQ(ierr); 
+  ierr = DMStagSetUniformCoordinatesExplicit(vertexOnlyGrid,ctx->xmin,ctx->xmax,ctx->ymin,ctx->ymax,0.0,0.0);CHKERRQ(ierr); 
 
   // Create single dof element- or vertex-only vectors to dump with our Xdmf
   {

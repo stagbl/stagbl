@@ -73,9 +73,9 @@ PetscErrorCode DMStag2dXDMFStart(DM dm,const char* filename,const char* coordsBi
   PetscFunctionBeginUser;
 
   // this will only work for element-only or vertex-only DMStags 
-  if (stag->stratumActive[1] || (stag->stratumActive[0]  && stag->stratumActive[2])) SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_SUP,"Regular grid output only available for vertex-only or element-only DMStag objects");
+  if (stag->dof[1] > 0 || (stag->dof[0] > 0  && stag->dof[2] > 0)) SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_SUP,"Regular grid output only available for vertex-only or element-only DMStag objects");
 
-  isVertex = stag->stratumActive[0];
+  isVertex = stag->dof[0] > 0;
 
   M = stag->N[0] + (isVertex ? 1 : 0);
   N = stag->N[1] + (isVertex ? 1 : 0);
@@ -116,12 +116,12 @@ PetscErrorCode DMStag2dXDMFAddAttribute(DM dm,const char* binFilename,const char
 
   PetscFunctionBeginUser;
   // this will only work for element-only or vertex-only DMStags 
-  if (stag->stratumActive[1] || (stag->stratumActive[0]  && stag->stratumActive[2])) SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_SUP,"Regular grid output only available for vertex-only or element-only DMStag objects");
+  if (stag->dof[1] > 0 || (stag->dof[0] > 0  && stag->dof[2] > 0)) SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_SUP,"Regular grid output only available for vertex-only or element-only DMStag objects");
 
-  isVertex = stag->stratumActive[0];
-  if (stag->stratumActive[0]) {
+  isVertex = stag->dof[0] > 0;
+  if (stag->dof[0] > 0) {
     dof = stag->dof[0];
-  } else if (stag->stratumActive[2]) {
+  } else if (stag->dof[2] > 0) {
     dof = stag->dof[2];
   } else {
     SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_SUP,"XDMF attributes only implemented or vertex- or element-only DMStag objects");
