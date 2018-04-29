@@ -7,6 +7,9 @@ a picture from StagBL, and links to data from other packages performing the benc
 
 This table also needs to be something easily exportable for presentations and other material.
 
+TODO: add papers from Section 4.3 of http://jupiter.ethz.ch/~pjt/papers/tackley2008pepi_yinyang.pdf
+TODO: add the papers from R. Davies in this email: https://mail.google.com/mail/u/0/#all/155e3912031c3d18
+
 # The Benchmarks
 The "Ref"s here correspond to this Bibtex file: https://bitbucket.org/psanan/pdsbib
 
@@ -59,3 +62,5 @@ Codes mentioned in the papers above, or which otherwise can run these benchmarks
  - GAIA
  - StreamV
  - Slim3D
+ - pylith
+ - GARNET
