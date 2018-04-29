@@ -1,6 +1,8 @@
 DMStag - Component Proposal
 ---------------------------
 
+(See psanan/dmstag branch at https://bitbucket.org/psanan/petsc)
+
 `DMStag` is a proposed implementation of PETSc's `DM` abstract class.
 
 It represents a topologically Cartesian cell complex based on a rectangular grid of line segments, quadrilaterals, or hexahedra.
@@ -34,7 +36,7 @@ Since the cell complex represented by DMDA is included in those which can be rep
 - Stratum      : set of all k-cells for a given k
 - Entry        : a single entry in a vector representing one or more fields on the complex
 - Ghost        : describes an extra point or degree of freedom used locally, in addition to those which correspond to global degrees of freedom stored on the current rank
-- Dummy point  : a ghost point used on the top/right/front of the domain, to give a representation with an equal number of points of each type, or to allow a uniform stencil to be applied on the whole physical domain. Unlike other ghost points, it does not participate in local<-->global mappings.
+- Dummy point  : a ghost point used for padding purposes, which does not participate in global<-->local mappings. These can either on the right/top/front of the physical domain, or in the corners of interior subdomains when using a "star" stencil.
 
 ### Working Definition of DM
 We think of a `DM` as a combination of up to three other concepts:
