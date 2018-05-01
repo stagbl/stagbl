@@ -1,0 +1,27 @@
+# Rendered file
+slides.pdf
+
+# Obtain from bitbucket.org/psanan/pdsbib and symlink here
+pds.bib
+
+# Latex and Beamer intermediates
+*.toc
+*.bbl
+*.blg
+*.aux
+*.log
+*.nav
+*.snm
+*.out
+*.fls
+*.temp
+*.vrb
+*-blx.bib
+*.run.xml
+*.fdb_latexmk
+
+# OS X
+*.DS_Store
+
+# vim
+.*.swp

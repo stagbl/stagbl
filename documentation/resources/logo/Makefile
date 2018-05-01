@@ -1,15 +1,16 @@
-PDFS = logo.pdf
+PDFS = logo.pdf logo_slides.pdf
+SVGS = logo.svg
 
 PDFLATEX=pdflatex --halt-on-error
 
-all : $(PDFS) logo.svg
+all : $(PDFS) $(SVGS)
 
 %.pdf : %.tex
 	$(PDFLATEX) $<
 
 # requires ImageMagick
-logo.svg : logo.pdf
-	convert logo.pdf logo.svg 
+%.svg : %.pdf
+	convert $^ $@
 
 # Remove intermediate files
 clean :
