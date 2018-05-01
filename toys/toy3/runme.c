@@ -18,6 +18,9 @@ static char help[] = " Extension of toy2, which relies on a branch of PETSc incl
 
 PetscErrorCode MaterialPoint_AdvectRK1(DM dm_vp,Vec vp,PetscReal dt,DM dm_mpoint);
 
+/* A deprecated function, removed from DMStag but still used here */
+PetscErrorCode DMStagGetVertexDMDA(DM,PetscInt,DM*);
+
 /* =========================================================================== */
 int main(int argc, char **argv)
 {
@@ -43,13 +46,13 @@ int main(int argc, char **argv)
 
   /* --- Create Main DMStag Objects ------------------------------------------ */
   // A DMStag to hold the unknowns to solve the Stokes problem
-  ierr = DMStagCreate2d(PETSC_COMM_WORLD, 
+  ierr = DMStagCreate2d(PETSC_COMM_WORLD,
       DM_BOUNDARY_NONE,DM_BOUNDARY_NONE,       // no special boundary support yet
       ctx->M,ctx->N,PETSC_DECIDE,PETSC_DECIDE, // sizes provided as DMDA (global x, global y, local x, local y)
       0,1,1,                                   // no dof per vertex: 0 per vertex, 1 per edge, 1 per face/element
       DMSTAG_GHOST_STENCIL_BOX,                // elementwise stencil pattern
       1,                                       // elementwise stencil width
-      NULL,NULL,                               
+      NULL,NULL,
       &ctx->stokesGrid);
   stokesGrid = ctx->stokesGrid;
   ierr = DMSetUp(stokesGrid);CHKERRQ(ierr);
@@ -59,7 +62,7 @@ int main(int argc, char **argv)
   ierr = DMStagCreate2d(PETSC_COMM_WORLD,DM_BOUNDARY_NONE,DM_BOUNDARY_NONE,ctx->M,ctx->N,PETSC_DECIDE,PETSC_DECIDE,1,0,2,DMSTAG_GHOST_STENCIL_BOX,1,NULL,NULL,&ctx->paramGrid);CHKERRQ(ierr);
   paramGrid = ctx->paramGrid;
   ierr = DMSetUp(paramGrid);CHKERRQ(ierr);
-  ierr = DMStagSetUniformCoordinatesExplicit(paramGrid,ctx->xmin,ctx->xmax,ctx->ymin,ctx->ymax,0.0,0.0);CHKERRQ(ierr); 
+  ierr = DMStagSetUniformCoordinatesExplicit(paramGrid,ctx->xmin,ctx->xmax,ctx->ymin,ctx->ymax,0.0,0.0);CHKERRQ(ierr);
 
   PetscPrintf(PETSC_COMM_WORLD,"paramGrid:\n");
   ierr = DMView(paramGrid,PETSC_VIEWER_STDOUT_WORLD);CHKERRQ(ierr);
@@ -67,7 +70,7 @@ int main(int argc, char **argv)
   /* --- Create a DMDAs representing the vertices of our grid (since the logic is already there for DMSwarm) --- */
     ierr = DMStagGetVertexDMDA(paramGrid,1,&daVertex);
     ierr = DMSetUp(daVertex);CHKERRQ(ierr);
-    ierr = DMDASetUniformCoordinates(daVertex,ctx->xmin,ctx->xmax,ctx->ymin,ctx->ymax,0.0,0.0);CHKERRQ(ierr); // TODO put this into the function to create the DMDA? 
+    ierr = DMDASetUniformCoordinates(daVertex,ctx->xmin,ctx->xmax,ctx->ymin,ctx->ymax,0.0,0.0);CHKERRQ(ierr); // TODO put this into the function to create the DMDA?
     ierr = DMStagGetVertexDMDA(paramGrid,2,&daVertex2);
     ierr = DMSetUp(daVertex2);CHKERRQ(ierr);
 
@@ -89,7 +92,7 @@ int main(int argc, char **argv)
     ierr = DMSwarmSetCellDM(swarm,daVertex);CHKERRQ(ierr);
     ierr = DMSwarmRegisterPetscDatatypeField(swarm,"rho",1,PETSC_REAL);CHKERRQ(ierr);
     ierr = DMSwarmRegisterPetscDatatypeField(swarm,"eta",1,PETSC_REAL);CHKERRQ(ierr);
-    ierr = DMSwarmFinalizeFieldRegister(swarm);CHKERRQ(ierr); 
+    ierr = DMSwarmFinalizeFieldRegister(swarm);CHKERRQ(ierr);
     ierr = DMSwarmSetLocalSizes(swarm,nel*particlesPerElementPerDim,100);CHKERRQ(ierr);
     ierr = DMSwarmInsertPointsUsingCellDM(swarm,DMSWARMPIC_LAYOUT_REGULAR,particlesPerElementPerDim);CHKERRQ(ierr);
 
@@ -107,7 +110,7 @@ int main(int argc, char **argv)
         PetscReal x_p[2];
 
         /* One could apply random noise to the particles here (and should!)
-         See KSP tutorial ex70 for an example; note that one should call 
+         See KSP tutorial ex70 for an example; note that one should call
          DMSwarmMigrate() since particles may move across cell boundaries */
 
         // Get the coordinates of point p
@@ -173,12 +176,12 @@ int main(int argc, char **argv)
     ierr = VecGetArrayRead(rhoVertex,&vArrRho);CHKERRQ(ierr);
 
     // Logic copied from DMDAGetElements_2D()
-    // TODO : check element type is correct 
+    // TODO : check element type is correct
     ierr   = DMDAGetCorners(daVertex,&xs,&ys,0,&xe,&ye,0);CHKERRQ(ierr);
     ierr   = DMDAGetGhostCorners(daVertex,&Xs,&Ys,0,&Xe,&Ye,0);CHKERRQ(ierr);
     xe    += xs; Xe += Xs; if (xs != Xs) xs -= 1;
     ye    += ys; Ye += Ys; if (ys != Ys) ys -= 1;
-    nelxDA = xe-xs-1; 
+    nelxDA = xe-xs-1;
     ierr = DMDAGetElements(daVertex,&nel,&npe,&element_list);CHKERRQ(ierr);
 
     entriesPerElementRowGhost =  stag->nGhost[0] * stag->entriesPerElement;
@@ -188,10 +191,10 @@ int main(int argc, char **argv)
 
       // This lists the local element numbers
       const PetscInt *element = &element_list[npe*eidx];
-      PetscInt indTo,indFrom; 
+      PetscInt indTo,indFrom;
 
       localRowDA = eidx / nelxDA; // Integer div
-      localColDA = eidx % nelxDA; 
+      localColDA = eidx % nelxDA;
 
       // Lower left
       indFrom = element[0];
@@ -240,22 +243,22 @@ int main(int argc, char **argv)
     ierr = DMLocalToGlobalEnd(paramGrid,paramLocal,INSERT_VALUES,ctx->param);CHKERRQ(ierr);
 
     // Inefficiently, fill in any ghost/dummy points that we missed by scattering back again
-    ierr = DMGlobalToLocalBegin(paramGrid,ctx->param,INSERT_VALUES,paramLocal);CHKERRQ(ierr); 
-    ierr = DMGlobalToLocalEnd(paramGrid,ctx->param,INSERT_VALUES,paramLocal);CHKERRQ(ierr); 
+    ierr = DMGlobalToLocalBegin(paramGrid,ctx->param,INSERT_VALUES,paramLocal);CHKERRQ(ierr);
+    ierr = DMGlobalToLocalEnd(paramGrid,ctx->param,INSERT_VALUES,paramLocal);CHKERRQ(ierr);
 
     ierr = VecDestroy(&etaVertexLocal);CHKERRQ(ierr);
     ierr = VecDestroy(&rhoVertexLocal);CHKERRQ(ierr);
   }
 
-#if 0 
+#if 0
   // This is how one might directly populate a DMStag array (keep this code around, as it'll be useful when implementing the proper usage of DMStag as a base DM)
   {
     typedef struct {PetscReal xCorner,yCorner,xElement,yElement;} CoordinateData; // Definitely need to provide these types somehow to the user.. (specifying them wrong leads to very annoying bugs)
-    typedef struct {PetscScalar etaCorner,etaElement,rho;} ElementData; // ? What's the best way to have users to do this? Provide these before hand? 
+    typedef struct {PetscScalar etaCorner,etaElement,rho;} ElementData; // ? What's the best way to have users to do this? Provide these before hand?
     DM             dmc;
     Vec            coordsGlobal,coordsLocal;
     CoordinateData **arrCoords;
-    ElementData    **arrParam; 
+    ElementData    **arrParam;
     PetscInt       start[2],n[2],i,j;
 
     ierr = DMGetCoordinateDM(paramGrid,&dmc);CHKERRQ(ierr);
@@ -303,7 +306,7 @@ int main(int argc, char **argv)
   if (size == 1) {
     ierr = PCFactorSetMatSolverType(pc,MATSOLVERUMFPACK);CHKERRQ(ierr);
   } else {
-    ierr = PCFactorSetMatSolverType(pc,MATSOLVERMUMPS);CHKERRQ(ierr); 
+    ierr = PCFactorSetMatSolverType(pc,MATSOLVERMUMPS);CHKERRQ(ierr);
   }
   ierr = PetscOptionsSetValue(NULL,"-ksp_converged_reason","");CHKERRQ(ierr); // To get info on direct solve success
   ierr = KSPSetFromOptions(ksp);CHKERRQ(ierr);
@@ -338,12 +341,12 @@ int main(int argc, char **argv)
     ierr = VecGetArrayRead(xLocal,&arrxLocalRaw);CHKERRQ(ierr);
 
     // Logic copied from DMDAGetElements_2D()
-    // TODO : check element type is correct 
+    // TODO : check element type is correct
     ierr   = DMDAGetCorners(daVertex2,&xs,&ys,0,&xe,&ye,0);CHKERRQ(ierr);
     ierr   = DMDAGetGhostCorners(daVertex2,&Xs,&Ys,0,&Xe,&Ye,0);CHKERRQ(ierr);
     xe    += xs; Xe += Xs; if (xs != Xs) xs -= 1;
     ye    += ys; Ye += Ys; if (ys != Ys) ys -= 1;
-    nelxDA = xe-xs-1; 
+    nelxDA = xe-xs-1;
     ierr = DMDAGetElements(daVertex2,&nel,&npe,&element_list);CHKERRQ(ierr);
 
     ierr = VecGetArray(vVertexLocal,&vArr);CHKERRQ(ierr);
@@ -356,53 +359,53 @@ int main(int argc, char **argv)
       // This lists the local element numbers
       const PetscInt *element = &element_list[npe*eidx];
       const PetscInt NSD = 2;
-      PetscInt indTo,indFrom; 
+      PetscInt indTo,indFrom;
 
       localRowDA = eidx / nelxDA; // Integer div
-      localColDA = eidx % nelxDA; 
+      localColDA = eidx % nelxDA;
       //PetscPrintf(PETSC_COMM_SELF,"[%d] DMDA el %d (%d,%d) : %d %d %d %d\n",rank,eidx,localRowDA,localColDA,element[0],element[1],element[2],element[3]);
 
       // TODO wrap this in a function in the API (thus obviating the need for access to the DM_Stag object)
       indTo = element[0]*NSD+0;
       indFrom = (localRowDA  ) * entriesPerElementRowGhost + (localColDA  ) * stag->entriesPerElement+ 1; // vx is the first entry
-      vArr[indTo] = arrxLocalRaw[indFrom]; 
+      vArr[indTo] = arrxLocalRaw[indFrom];
       //ierr = PetscPrintf(PETSC_COMM_SELF,"[%d] %d --> %d (%g) \n",rank,indFrom,indTo,vArr[indTo]);CHKERRQ(ierr);
 
-      indTo = element[0]*NSD+1; 
+      indTo = element[0]*NSD+1;
       indFrom = (localRowDA  ) * entriesPerElementRowGhost + (localColDA  ) * stag->entriesPerElement+ 0;
-      vArr[indTo] = arrxLocalRaw[indFrom]; 
+      vArr[indTo] = arrxLocalRaw[indFrom];
       //ierr = PetscPrintf(PETSC_COMM_SELF,"[%d] %d --> %d (%g) \n",rank,indFrom,indTo,vArr[indTo]);CHKERRQ(ierr);
 
       indTo = element[1]*NSD+0;
       indFrom = (localRowDA  ) * entriesPerElementRowGhost + (localColDA+1) * stag->entriesPerElement+ 1;
-      vArr[indTo] = arrxLocalRaw[indFrom]; 
+      vArr[indTo] = arrxLocalRaw[indFrom];
       //ierr = PetscPrintf(PETSC_COMM_SELF,"[%d] %d --> %d (%g) \n",rank,indFrom,indTo,vArr[indTo]);CHKERRQ(ierr);
 
       indTo = element[1]*NSD+1;
       indFrom = (localRowDA  ) * entriesPerElementRowGhost + (localColDA+1) * stag->entriesPerElement+ 0;
-      vArr[indTo] = arrxLocalRaw[indFrom]; 
+      vArr[indTo] = arrxLocalRaw[indFrom];
       //ierr = PetscPrintf(PETSC_COMM_SELF,"[%d] %d --> %d (%g) \n",rank,indFrom,indTo,vArr[indTo]);CHKERRQ(ierr);
 
       // This is top-right in DMDA ordering
       indTo = element[2]*NSD+0;
       indFrom = (localRowDA+1) * entriesPerElementRowGhost + (localColDA+1) * stag->entriesPerElement+ 1;
-      vArr[indTo] = arrxLocalRaw[indFrom]; 
+      vArr[indTo] = arrxLocalRaw[indFrom];
       //ierr = PetscPrintf(PETSC_COMM_SELF,"[%d] %d --> %d (%g) \n",rank,indFrom,indTo,vArr[indTo]);CHKERRQ(ierr);
 
       indTo = element[2]*NSD+1;
       indFrom = (localRowDA+1) * entriesPerElementRowGhost + (localColDA+1) * stag->entriesPerElement+ 0;
-      vArr[indTo] = arrxLocalRaw[indFrom]; 
+      vArr[indTo] = arrxLocalRaw[indFrom];
       //ierr = PetscPrintf(PETSC_COMM_SELF,"[%d] %d --> %d (%g) \n",rank,indFrom,indTo,vArr[indTo]);CHKERRQ(ierr);
 
       // This is top-left in DMDA ordering
       indTo = element[3]*NSD+0;
       indFrom = (localRowDA+1) * entriesPerElementRowGhost + (localColDA  ) * stag->entriesPerElement+ 1;
-      vArr[indTo] = arrxLocalRaw[indFrom]; 
+      vArr[indTo] = arrxLocalRaw[indFrom];
       //ierr = PetscPrintf(PETSC_COMM_SELF,"[%d] %d --> %d (%g) \n",rank,indFrom,indTo,vArr[indTo]);CHKERRQ(ierr);
 
       indTo = element[3]*NSD+1;
       indFrom = (localRowDA+1) * entriesPerElementRowGhost + (localColDA  ) * stag->entriesPerElement+ 0;
-      vArr[indTo] = arrxLocalRaw[indFrom]; 
+      vArr[indTo] = arrxLocalRaw[indFrom];
       //ierr = PetscPrintf(PETSC_COMM_SELF,"[%d] %d --> %d (%g) \n",rank,indFrom,indTo,vArr[indTo]);CHKERRQ(ierr);
     }
     // TODO: improve the above to use averaged values, not just grabbing from one neighboring edge
@@ -415,7 +418,7 @@ int main(int argc, char **argv)
   }
 
   /* --- Push Particles and Dump Xdmf ---------------------------------------- */
-  // A naive forward Euler step 
+  // A naive forward Euler step
   // Note: open these in Paraview 5.3.0 on OS X with "Xdmf Reader", not "Xdmf 3.0 reader"
   {
     PetscInt  step;
@@ -459,24 +462,24 @@ int main(int argc, char **argv)
   // Create auxiliary DMStag object, with one dof per element, to help with output
   ierr = DMStagCreate2d( PETSC_COMM_WORLD, DM_BOUNDARY_NONE,DM_BOUNDARY_NONE,ctx->M,ctx->N,PETSC_DECIDE,PETSC_DECIDE,0,0,1,DMSTAG_GHOST_STENCIL_BOX,1,NULL,NULL,&elementOnlyGrid);CHKERRQ(ierr);
   ierr = DMSetUp(elementOnlyGrid);CHKERRQ(ierr);
-  ierr = DMStagSetUniformCoordinatesExplicit(elementOnlyGrid,ctx->xmin,ctx->xmax,ctx->ymin,ctx->ymax,0.0,0.0);CHKERRQ(ierr); 
+  ierr = DMStagSetUniformCoordinatesExplicit(elementOnlyGrid,ctx->xmin,ctx->xmax,ctx->ymin,ctx->ymax,0.0,0.0);CHKERRQ(ierr);
 
   // Another auxiliary DMStag to help dumping vertex/corner - only data
   ierr = DMStagCreate2d(PETSC_COMM_WORLD,DM_BOUNDARY_NONE,DM_BOUNDARY_NONE,ctx->M,ctx->N,PETSC_DECIDE,PETSC_DECIDE,1,0,0,DMSTAG_GHOST_STENCIL_BOX,1,NULL,NULL,&vertexOnlyGrid);CHKERRQ(ierr);
   ierr = DMSetUp(vertexOnlyGrid);CHKERRQ(ierr);
-  ierr = DMStagSetUniformCoordinatesExplicit(vertexOnlyGrid,ctx->xmin,ctx->xmax,ctx->ymin,ctx->ymax,0.0,0.0);CHKERRQ(ierr); 
+  ierr = DMStagSetUniformCoordinatesExplicit(vertexOnlyGrid,ctx->xmin,ctx->xmax,ctx->ymin,ctx->ymax,0.0,0.0);CHKERRQ(ierr);
 
   // Create single dof element- or vertex-only vectors to dump with our Xdmf
   {
     typedef struct {PetscScalar etaCorner,etaElement,rho;} ParamData; // Design question: What's the best way to have users to do this? Provide these beforehand somehow?
-    typedef struct {PetscScalar vy,vx,p;} StokesData; 
+    typedef struct {PetscScalar vy,vx,p;} StokesData;
     Vec         xLocal;
     Vec         etaElGlobal,etaElNatural,etaElLocal;
     Vec         rhoGlobal,rhoNatural,rhoLocal;
     Vec         pGlobal,pLocal,pNatural;
     Vec         vxInterpGlobal,vxInterpLocal,vxInterpNatural,vyInterpGlobal,vyInterpLocal,vyInterpNatural;
     PetscScalar **arrRho,**arrEtaEl,**arrp,**arrvxinterp,**arrvyinterp;
-    ParamData   **arrParam; 
+    ParamData   **arrParam;
     StokesData  **arrx;
     PetscInt    start[2],n[2],N[2],i,j;
     PetscMPIInt rank;
@@ -677,12 +680,12 @@ PetscErrorCode MaterialPoint_AdvectRK1(DM dm_vp,Vec vp,PetscReal dt,DM dm_mpoint
   PetscFunctionBeginUser;
   ierr = DMGetCoordinatesLocal(dm_vp,&coor_l);CHKERRQ(ierr);
   ierr = VecGetArrayRead(coor_l,&LA_coor);CHKERRQ(ierr);
-  
+
   ierr = DMGetLocalVector(dm_vp,&vp_l);CHKERRQ(ierr);
   ierr = DMGlobalToLocalBegin(dm_vp,vp,INSERT_VALUES,vp_l);CHKERRQ(ierr);
   ierr = DMGlobalToLocalEnd(dm_vp,vp,INSERT_VALUES,vp_l);CHKERRQ(ierr);
   ierr = VecGetArrayRead(vp_l,&LA_vp);CHKERRQ(ierr);
-  
+
   ierr = DMDAGetElements(dm_vp,&nel,&npe,&element_list);CHKERRQ(ierr);
   ierr = DMSwarmGetLocalSize(dm_mpoint,&npoints);CHKERRQ(ierr);
   ierr = DMSwarmGetField(dm_mpoint,DMSwarmPICField_coor,NULL,NULL,(void**)&mpfield_coor);CHKERRQ(ierr);
@@ -692,45 +695,45 @@ PetscErrorCode MaterialPoint_AdvectRK1(DM dm_vp,Vec vp,PetscReal dt,DM dm_mpoint
     PetscScalar       vel_n[NSD*NODES_PER_EL],vel_p[NSD];
     const PetscScalar *x0;
     const PetscScalar *x2;
-    
+
     e       = mpfield_cell[p];
     coor_p  = &mpfield_coor[NSD*p];
     element = &element_list[NODES_PER_EL*e];
-    
+
     /* compute local coordinates: (xp-x0)/dx = (xip+1)/2 */
     x0 = &LA_coor[NSD*element[0]];
     x2 = &LA_coor[NSD*element[2]];
-    
+
     dx[0] = x2[0] - x0[0];
     dx[1] = x2[1] - x0[1];
-    
+
     xi_p[0] = 2.0 * (coor_p[0] - x0[0])/dx[0] - 1.0;
     xi_p[1] = 2.0 * (coor_p[1] - x0[1])/dx[1] - 1.0;
     if (PetscRealPart(xi_p[0]) < -1.0) SETERRQ2(PETSC_COMM_SELF,PETSC_ERR_SUP,"value (xi) too small %1.4e [e=%D]\n",(double)PetscRealPart(xi_p[0]),e);
     if (PetscRealPart(xi_p[0]) >  1.0) SETERRQ2(PETSC_COMM_SELF,PETSC_ERR_SUP,"value (xi) too large %1.4e [e=%D]\n",(double)PetscRealPart(xi_p[0]),e);
     if (PetscRealPart(xi_p[1]) < -1.0) SETERRQ2(PETSC_COMM_SELF,PETSC_ERR_SUP,"value (eta) too small %1.4e [e=%D]\n",(double)PetscRealPart(xi_p[1]),e);
     if (PetscRealPart(xi_p[1]) >  1.0) SETERRQ2(PETSC_COMM_SELF,PETSC_ERR_SUP,"value (eta) too large %1.4e [e=%D]\n",(double)PetscRealPart(xi_p[1]),e);
-    
+
     /* evaluate basis functions */
     EvaluateBasis_Q1(xi_p,Ni);
-    
+
     /* get cell nodal velocities */
     for (i=0; i<NODES_PER_EL; i++) {
       PetscInt nid;
-      
+
       nid = element[i];
       // Note: this differs from ex70, since we only have 2 dof (not 3 - they have pressure)
       vel_n[NSD*i+0] = LA_vp[(NSD)*nid+0];
       vel_n[NSD*i+1] = LA_vp[(NSD)*nid+1];
     }
-    
+
     /* interpolate velocity */
     vel_p[0] = vel_p[1] = 0.0;
     for (i=0; i<NODES_PER_EL; i++) {
       vel_p[0] += Ni[i] * vel_n[NSD*i+0];
       vel_p[1] += Ni[i] * vel_n[NSD*i+1];
     }
-    
+
     coor_p[0] += dt * PetscRealPart(vel_p[0]);
     coor_p[1] += dt * PetscRealPart(vel_p[1]);
   }
@@ -741,5 +744,56 @@ PetscErrorCode MaterialPoint_AdvectRK1(DM dm_vp,Vec vp,PetscReal dt,DM dm_mpoint
   ierr = VecRestoreArrayRead(vp_l,&LA_vp);CHKERRQ(ierr);
   ierr = DMRestoreLocalVector(dm_vp,&vp_l);CHKERRQ(ierr);
   ierr = VecRestoreArrayRead(coor_l,&LA_coor);CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
+/* A deprecated function, removed from DMStag but still used here */
+PetscErrorCode DMStagGetVertexDMDA(DM dmstag,PetscInt dof,DM *dmda)
+{
+  PetscErrorCode  ierr;
+  PetscInt        dim,i,j,stencilWidth;
+  DM_Stag * const stag = (DM_Stag*)dmstag->data;
+  DMDAStencilType stencilType;
+  PetscInt        *l[DMSTAG_MAX_DIM];
+
+  PetscFunctionBegin;
+  ierr = DMGetDimension(dmstag,&dim);CHKERRQ(ierr);
+
+  switch (stag->ghostStencilType) {
+    case DMSTAG_GHOST_STENCIL_NONE: stencilType = DMDA_STENCIL_STAR; stencilWidth= 0                       ; break;
+    case DMSTAG_GHOST_STENCIL_STAR: stencilType = DMDA_STENCIL_STAR; stencilWidth = stag->ghostStencilWidth; break;
+    case DMSTAG_GHOST_STENCIL_BOX : stencilType = DMDA_STENCIL_BOX ; stencilWidth = stag->ghostStencilWidth; break;
+    default: SETERRQ1(PETSC_COMM_WORLD,PETSC_ERR_SUP,"Unsupported Stencil Type %d",stag->ghostStencilType);
+  }
+
+  for (i=0;i<dim;++i) {
+    ierr = PetscMalloc1(stag->nRanks[i],&l[i]);CHKERRQ(ierr);
+    for (j=0; j<stag->nRanks[i]; ++j) l[i][j] = stag->l[i][j];
+    l[i][stag->nRanks[i]-1] += 1; /* extra vertex on last rank in each dimension */
+  }
+
+  switch (dim) {
+    case 2 :
+      ierr = DMDACreate2d(PetscObjectComm((PetscObject)dmstag),
+            stag->boundaryType[0],
+            stag->boundaryType[1],
+            stencilType,
+            stag->N[0] + 1,       /* Note + 1 */
+            stag->N[1] + 1,       /* Note + 1 */
+            stag->nRanks[0],
+            stag->nRanks[1],
+            dof,
+            stencilWidth,
+            l[0],
+            l[1],
+            dmda);CHKERRQ(ierr);
+      break;
+    default:
+      SETERRQ1(PETSC_COMM_WORLD,PETSC_ERR_SUP,"DMStagGetVertexDMDA not implemented for dim %d (but simple to add)",dim);
+  }
+
+  for (i=0;i<dim;++i) {
+    ierr = PetscFree(l[i]);CHKERRQ(ierr);
+  }
   PetscFunctionReturn(0);
 }
