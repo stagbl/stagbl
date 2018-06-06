@@ -1,9 +1,7 @@
-![Logo](docs/logo/logo.pdf)
+![Logo](documentation/resources/logo/logo.pdf)
 # StagBL
 
-Development: See the Trello Board on the BitBucket repository.
-
-Layout: see Layout.md for WIP
+StagBL is in the initial development phase. See the Trello Board on the Bitbucket repository.
 
 ## Quickstart
 
