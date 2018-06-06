@@ -1,5 +1,6 @@
 DMStag - Component Proposal
 ---------------------------
+(convert this to a [white] paper and/or documentation)
 
 (See psanan/dmstag branch at https://bitbucket.org/psanan/petsc)
 
@@ -11,11 +12,9 @@ It provides routines to manipulate interacting fields with respect to these top-
 The intended use is for finite volume or DEC schemes, on regular grids.
 It is intended to be intermediate between `DMDA` and `DMPlex`; it represents a structured grid like `DMDA`, but supports different strata like `DMPlex`.
 
-It will also support a notion of "structured coordinates," allowing for efficiency associated with knowing that coordinates are regularly-spaced in one or more dimensions, or describable as a product of 1- or 2-dimensional coordinate grids.
+It will also support a notion of "structured coordinates," allowing for efficiency associated with knowing that coordinates are regularly-spaced in one or more dimensions, or describable as a product of lower-dimensional coordinates.
 
 ## Comparison with DMDA
-
-It is illuminating to consider how the functionality of DMStag can be achieved using DMDA.
 
 Most staggered-grid codes in PETSc thus far have opted to either use
 1. A single DMDA with "dummy" points
@@ -25,25 +24,25 @@ The first approach is practical but saddles the user with remembering a conventi
 
 The second requires care in ensuring that parallel decompositions and numberings are used correctly, and does not allow for interlaced storage of data.
 
-
 Since the cell complex represented by DMDA is included in those which can be represented by a DMPlex object, it may of course be represented this way. However, one expects to find some added performance and simplicity in restricting to a much-more-structured case.
 
 ## Terminology
 
-- Point        : a cell of any dimension
-- Vertex       : 0-cell
-- Element      : 3-cell in 3D, 2-cell in 2D, 1-cell in 1D
-- Stratum      : set of all k-cells for a given k
-- Entry        : a single entry in a vector representing one or more fields on the complex
-- Ghost        : describes an extra point or degree of freedom used locally, in addition to those which correspond to global degrees of freedom stored on the current rank
-- Dummy point  : a ghost point used for padding purposes, which does not participate in global<-->local mappings. These can either on the right/top/front of the physical domain, or in the corners of interior subdomains when using a "star" stencil.
+- Point  : a cell of any dimension
+- Vertex : 0-cell
+- Element: 3-cell in 3D, 2-cell in 2D, 1-cell in 1D
+- Stratum: set of all k-cells for a given k
+- Entry  : a single entry in a vector representing one or more fields on the complex
+- Ghost  : describes an extra point or degree of freedom used locally, in addition to those which correspond to global degrees of freedom stored on the current rank
+- Dummy  : describes a ghost point which does not participate in global<-->local mappings. These can be on the right/top/front of the physical domain (as padding), in the corners of interior subdomains when using a "star" stencil, or on the boundaries when using DM_BOUNDARY_GHOSTED.
 
 ### Working Definition of DM
-We think of a `DM` as a combination of up to three other concepts:
+We think of a `DM` as a combination of up to four other concepts:
 
-1. Topology (required), including parallel decomposition
-2. An embedding/immersion of this topology (coordinates)
-3. A "Section" - what the primary fields living on the DM are.
+1. Topology (required) : the mesh
+2. Atlas (required) : parallel decomposition
+3. An embedding/immersion of this topology (coordinates)
+4. A "Section" - what the primary fields living on the DM are.
 
 "Topology" includes both "local" and "global" topology and the maps between them. In the case of `DMDA`, we consider the stencil description to be part of the topology, as it is used to define the local spaces.
 
@@ -61,7 +60,7 @@ It should be noted that one will often work with multiple DM objects correspondi
 ### PETSc design
 
 - Maintain parallels to `DMDA` and `DMPlex`
-- Obeys the working definition above
+- Obeys the definition above of DM
 - Provide interfaces that "make MPI invisible" as much as possible.
 - Prioritize simple, efficient, easily-debuggable implementation
 
@@ -73,6 +72,7 @@ It should be noted that one will often work with multiple DM objects correspondi
 ### Ease of use
 
 - Provide interfaces that reduce the number of indexing errors possible from the user
+- Provide interfaces to allow the user to reason about a global array of elements, and no other numbering.
 
 ### Extensibility
 
@@ -123,7 +123,7 @@ This ordering is used in an extension to `MatStencil`. This allows the user to s
 think in terms of which element (in global numbering) and which boundary, as opposed to having to remember
 a convention for index numbering of face/edge/vertex degrees of freedom.
 
-(Note: more-verbose names like `PETSC_STENCIL_LEFT` will likely be used to avoid clashes in the global namespace).
+(Note: more-verbose names, e.g. `DMSTAG_LEFT` are actually used, for namespacing purposes)
 
 
 ### 2D example
@@ -158,17 +158,18 @@ Unknowns (pressure and velocity)
 ```
 
 
-Vertex- and Element-based material parameters
+Vertex- and Element-based material parameters,
+one per vertex and two per element
 ```
-    10 ------ 11 ------ 12
+    14 ------ 15 ------ 16
     |         |         |
-    |    6    |    8    |
+    |   8,9   |  11,12  |
     |         |         |
-    5 ------- 7 ------- 9
+    7 ------- 10------- 13
     |         |         |
-    |    1    |    3    |
+    |   1,2   |   4,5   |
     |         |         |
-    0 --------2 ------- 4
+    0 --------3 ------- 6
 ```
 
 ### Parallel Decomposition
@@ -239,7 +240,12 @@ As with `DMDA`, "natural" ordering is defined as the global ordering in the 1-ra
 
 We deem two (or more) `DMStag` objects "compatible" if they have the same topology (including parallel decomposition). That is, they have the same sizes and live on the same communicator. This in particular asserts that they can be safely iterated over together, using element numbering from either of them.
 
+Note: we would like to extend this to a more general idea of compatiblity between two `DM`s.
+They are compatible if the section on one makes sense as the section on the other.
+
 ## Structured coordinate description for orthogonal grids
+
+TODO: change this to use a DMProduct implementation.
 
 DMStag features optimized additional data structures for grid coordinates, beyond those available with DM.
 There, a single coordinate DM is used for all coordinate information. With DMStag (as opposed to the other available option of defining special DM implementations for this purpose), we store a flag signifying whether to use "structured" coordinates, along with a coordinate type for each dimension. This includes "uniform" and "DMStag 1D". Data is also stored giving a (global) minimum and maximum real value for each dimension, a spacing (redundant), and a pointer to a DM. Functions in the DMStag API can be used to efficiently access these coordinates. In the
@@ -248,16 +254,12 @@ There, a single coordinate DM is used for all coordinate information. With DMSta
 
 "Raw" access to vectors is of course still available, for expert users.
 
-In addition, two other access methods are provided, one which is likely more performant, but requires
-more assumptions from the user, and another which is less error-prone but likely will involve more overhead.
+In addition, two other access methods are provided, one analogous to using `DMDAVecGetArrayDOF()`,
+and one similar to using `MatStencil`.
 
 ### Method 1
 
-Here, the user must accept the convention about which element degress of freedom are attached to,
-"under the hood". Namely, that a degree of freedom which is not element-centered is grouped
-with the element above, right, or in front of it, and that ordering within an element follows the same "S shape". This, and the fact that local
-vectors are padded with ghosts, allows access to vectors much like a DMDA with multiple degrees of freedom.
-This simply uses e.g. `VecGetValues2d()` internally.
+TODO update this
 
 ### Method 2
 
@@ -308,7 +310,7 @@ Creation Routines mirror those for `DMDA`.
 
 ## Conversion
 
-Creating derivative `DMStag` objects is accomplished with a new function `DMStagCreateReducedDMStag()` which (despite the name) creates a compatible `DMStag` object with different numbers of dof on each point type, ignoring or zeroing values present in only one of the source or destination `DMStag`.
+Creating derivative `DMStag` objects is accomplished with a new function `DMStagCreateCompatibleDMStag()` which creates a compatible `DMStag` object with different numbers of dof on each point type, ignoring or zeroing values present in only one of the source or destination `DMStag`.
 
 ## Members
 
@@ -319,6 +321,8 @@ dimensionality of the grid (likely to remain at 3).
 
 ## Examples
 
+TODO renumbering of these
+
 A small set of examples/tests is key to the PETSc contribution. A small set of examples should cover the new functionality.
 
 * `stag_ex1` : for unit tests. Don't do anything useful but simply exercise the API, controlling with command line options
@@ -326,3 +330,5 @@ A small set of examples/tests is key to the PETSc contribution. A small set of e
 * `stag_ex3` : a 2-D problem (isoviscous Stokes, MMS)
 * `stag_ex4` : a 3-D problem, similar to the previous example
 * `stag_ex5` : a 2-D linear Stokes solver, analogous to KSP tutorial ex70
+
+TODO add things in tests/
