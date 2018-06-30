@@ -8,5 +8,5 @@ standard examples and benchmarks.
 
 Some unit/integration tests in tests/ might also do double duty as examples.
 
-All additional documentation will be presented in .rst or .md format, so that it 
+All additional documentation will be presented in a format like .rst, .md, Madoko, etc. so that it
 is both easily human-readable and easily rendered to html.

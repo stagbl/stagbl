@@ -20,7 +20,7 @@ as to whether something is "core" or not.
 
 Implementations:
  - Default
- - PETSc (DMStag, but probably not using the section directly)
+ - PETSc (DMStag)
 
 ### StagBLArray
 A multi-dimensional array, endowed with global
@@ -60,8 +60,8 @@ Implementations:
 Implementations:
  - Direct interface(s) to some direct solver package(s) (MUMPs or SuperLU or maybe even Elemental ..)
  - PETSc (KSP)
- - Native Krylov using StagBL components and ILUPACK (not a huge priority..)
  - Native MG using StagBL components only (again, aim to make data between StagBLGrid and DMStag data-compatible, so we can provide our StagBL components to PCMG if desired)
  - UTOPIA
+ - Native Krylov using StagBL components and ILUPACK
 
 ### StagBLNonlinearSolver (?)

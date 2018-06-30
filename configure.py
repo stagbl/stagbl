@@ -37,12 +37,13 @@ def main():
     configure(args)
 
 def configure(args):
+    open(os.path.join(args.arch,'variables.mk'), 'w').write(variables(args))
     open(os.path.join(args.arch,'Makefile'), 'w').write(makefile(args))
     print('Configuration complete in: %s' % os.path.realpath(args.arch))
     print('To build:')
     print('make -j3 -C %s' % args.arch)
 
-def makefile(args):
+def variables(args):
     if args.CC:
         CC = args.CC
     else:
@@ -58,18 +59,23 @@ def makefile(args):
          'STAGBL_LDLIBS = %s' % args.LDLIBS,
          'PETSC_DIR = %s' % args.petsc_dir,
          'PETSC_ARCH = %s' % args.petsc_arch,
-         'SRCDIR = %s' % os.path.abspath(os.path.dirname(__name__)),]
+         'SRCDIR = %s' % os.path.abspath(os.path.dirname(__name__)),
+         'STAGBL_DIR = %s' % os.path.abspath(os.path.dirname(__name__)),] # the same as SRCDIR
     if args.petsc_dir:
         found = False
         for variables_path in [os.path.join('lib', 'petsc', 'conf', 'variables'),
                                os.path.join('lib', 'petsc-conf', 'variables'),
                                os.path.join('conf', 'variables')]:
             if os.path.exists(os.path.join(args.petsc_dir,variables_path)):
-                m.append('include $(PETSC_DIR)/' + variables_path)
+                m.append('include $(PETSC_DIR)/' + variables_path +'\n')
                 found = True
         if not found:
             raise RuntimeError('Could not find PETSc variables file in PETSC_DIR=%s' % (args.petsc_dir,))
-    m.append('include $(SRCDIR)/base.mk\n')
+    return '\n'.join(m)
+
+def makefile(args):
+    m = ['include variables.mk']
+    m.append('include $(STAGBL_DIR)/stagbl.mk\n')
     return '\n'.join(m)
 
 if __name__ == "__main__" :

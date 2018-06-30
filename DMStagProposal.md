@@ -321,14 +321,12 @@ dimensionality of the grid (likely to remain at 3).
 
 ## Examples
 
-TODO renumbering of these
-
 A small set of examples/tests is key to the PETSc contribution. A small set of examples should cover the new functionality.
 
-* `stag_ex1` : for unit tests. Don't do anything useful but simply exercise the API, controlling with command line options
-* `stag_ex2` : a 1-D toy problem (u''(x) = f(x) in mixed form)
-* `stag_ex3` : a 2-D problem (isoviscous Stokes, MMS)
-* `stag_ex4` : a 3-D problem, similar to the previous example
-* `stag_ex5` : a 2-D linear Stokes solver, analogous to KSP tutorial ex70
+* `stag_ex1` : a 1-D toy problem (u''(x) = f(x) in mixed form)
+* `stag_ex2` : a 2-D problem (isoviscous Stokes, MMS)
+* `stag_ex3` : a 3-D problem, similar to the previous example
+* `stag_ex4` : a 2-D linear Stokes solver, analogous to KSP tutorial ex70
 
-TODO add things in tests/
+In addition, some other tests are added too the PETSc test suite, as they
+are needed to ensure correctness during development.

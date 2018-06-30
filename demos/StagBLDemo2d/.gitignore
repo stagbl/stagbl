@@ -1,0 +1,7 @@
+stagbldemo2d
+
+*.o
+*.d
+*.dSYM
+
+*.vtr
