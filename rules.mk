@@ -17,9 +17,6 @@ endif
 
 # TODO This doesn't actually work without PETSc. Need to define these AR-style things to build the library.
 
-%.$(AR_LIB_SUFFIX) : | $$(@D)/.DIR
-	$(call quiet,AR) $(AR_FLAGS) $@ $^
-	$(call quiet,RANLIB) $@
 
 # gcc/gfortran style dependency flags; these are set in petscvariables starting with petsc-3.5
 C_DEPFLAGS ?= $(if $(CONFIG_XLCOMPILER),-qmakedep=gcc,-MMD -MP)
@@ -31,10 +28,18 @@ C99FLAGS := $(if $(findstring c99,$(PCC_FLAGS) $(STAGBL_CFLAGS) $(CFLAGS)),,$(if
 # Public headers for the library
 STAGBL_INCLUDE = -I$(STAGBL_DIR)/include 
 
+# TODO: consider putting infor aobut libstagbl itself in here, so that it can be more easily linked to. stagbl.mk picks up this info and uses it to actually build the library.
+
+# Compile and Link
 STAGBL_COMPILE.c = $(call quiet,CC) -c $(C99FLAGS) $(STAGBL_CPPFLAGS) $(CPPFLAGS) $(STAGBL_CFLAGS) $(CFLAGS) $(C_DEPFLAGS) $(STAGBL_INCLUDE)
 STAGBL_LINK = $(call quiet,CCLD) $(STAGBL_CFLAGS) $(CFLAGS) $(STAGBL_LDFLAGS) $(LDFLAGS) -o $@
 CC = $(STAGBL_CC)
 CCLD = $(if $(PCC_LINKER),$(PCC_LINKER),$(STAGBL_CC))
+
+# Build libraries
+%.$(AR_LIB_SUFFIX) : | $$(@D)/.DIR
+	$(call quiet,AR) $(AR_FLAGS) $@ $^
+	$(call quiet,RANLIB) $@
 
 %/.DIR :
 	@mkdir -p $(@D)
