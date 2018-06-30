@@ -6,3 +6,9 @@ StagBL is in the initial development phase. See the Trello Board on the Bitbucke
 ## Quickstart
 
 TODO: briefest possible route from nothing to an image of a succesful solve.
+
+## Dependencies
+
+MPI is required.
+
+Python is required for the configuration process.
