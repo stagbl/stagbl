@@ -6,6 +6,10 @@ See the Trello Board on the Bitbucket repository.
 
 ## Quickstart
 
+    export PETSC_DIR=yyy
+    export PETSC_ARCH=xxx
+    ./configure.py
+
 TODO: briefest possible route from nothing to an image of a succesful solve.
 
 ## Dependencies
