@@ -475,28 +475,11 @@ static PetscErrorCode PopulateCoefficientData(Ctx ctx)
 
 static PetscErrorCode DumpSolution(Ctx ctx,Vec x)
 {
-  PetscErrorCode              ierr;
-  PetscInt                    i;
-
-  const PetscInt              nloc_stokes = 3;
-  const DMStagStencilLocation locs_stokes[3] = {DMSTAG_LEFT,DMSTAG_DOWN,DMSTAG_ELEMENT};
-  const PetscInt              cs_stokes[3] = {0,0,0};
-  Vec                         vecs_stokes[3];
-  DM                          das_stokes[3];
-
-  const PetscInt              nloc_coeff = 3;
-  const DMStagStencilLocation locs_coeff[3] = {DMSTAG_DOWN_LEFT,DMSTAG_ELEMENT,DMSTAG_ELEMENT};
-  const PetscInt              cs_coeff[3] = {0,0,1};
-  Vec                         vecs_coeff[3];
-  DM                          das_coeff[3];
-
-  const PetscInt              nloc_velAvg = 1;
-  const DMStagStencilLocation locs_velAvg[1] = {DMSTAG_ELEMENT};
-  const PetscInt              cs_velAvg[1] = {-3}; /* this means "compute 3 dof" (will pad zero) */
-  Vec                         vecs_velAvg[1];
-  DM                          das_velAvg[1];
-  DM                          dmVelAvg;
-  Vec                         velAvg;
+  PetscErrorCode ierr;
+  DM             dmVelAvg;
+  Vec            velAvg;
+  DM             daVelAvg,daP,daEtaElement,daEtaCorner,daRho;
+  Vec            vecVelAvg,vecP,vecEtaElement,vecEtaCorner,vecRho;
 
   PetscFunctionBeginUser;
 
@@ -533,67 +516,48 @@ static PetscErrorCode DumpSolution(Ctx ctx,Vec x)
     ierr = DMRestoreLocalVector(ctx->dmStokes,&stokesLocal);CHKERRQ(ierr);
   }
 
-  /* Create individual DMDAs for sub-grids of our DMStag objects. This is
-     somewhat inefficient, but allows use of the DMDA API without re-implementing
-     all utilities for DMStag */
-  ierr = DMStagVecSplitToDMDAs(ctx->dmStokes,x,         nloc_stokes, locs_stokes, cs_stokes, das_stokes, vecs_stokes);CHKERRQ(ierr);
-  ierr = DMStagVecSplitToDMDAs(ctx->dmCoeff, ctx->coeff,nloc_coeff,  locs_coeff,  cs_coeff,  das_coeff,  vecs_coeff );CHKERRQ(ierr);
-  ierr = DMStagVecSplitToDMDAs(dmVelAvg,     velAvg,    nloc_velAvg, locs_velAvg, cs_velAvg, das_velAvg, vecs_velAvg);CHKERRQ(ierr);
+  ierr = DMStagVecSplitToDMDA(ctx->dmStokes,x,DMSTAG_ELEMENT,0,&daP,&vecP);CHKERRQ(ierr);
+  ierr = PetscObjectSetName((PetscObject)vecP,"p (scaled)");CHKERRQ(ierr);
+  ierr = DMStagVecSplitToDMDA(ctx->dmCoeff,ctx->coeff,DMSTAG_DOWN_LEFT,0, &daEtaCorner, &vecEtaCorner);CHKERRQ(ierr);
+  ierr = PetscObjectSetName((PetscObject)vecEtaCorner,"eta");CHKERRQ(ierr);
+  ierr = DMStagVecSplitToDMDA(ctx->dmCoeff,ctx->coeff,DMSTAG_ELEMENT,  0, &daEtaElement,&vecEtaElement);CHKERRQ(ierr);
+  ierr = PetscObjectSetName((PetscObject)vecEtaElement,"eta");CHKERRQ(ierr);
+  ierr = DMStagVecSplitToDMDA(ctx->dmCoeff,ctx->coeff,DMSTAG_ELEMENT,  1, &daRho,       &vecRho);CHKERRQ(ierr);
+  ierr = PetscObjectSetName((PetscObject)vecRho,"density");CHKERRQ(ierr);
+  ierr = DMStagVecSplitToDMDA(dmVelAvg,    velAvg,    DMSTAG_ELEMENT,  -3,&daVelAvg,    &vecVelAvg);CHKERRQ(ierr); /* note -3 : pad with zero */
+  ierr = PetscObjectSetName((PetscObject)vecVelAvg,"Velocity (Averaged)");CHKERRQ(ierr);
 
   /* Dump element-based fields to a .vtr file */
   {
     PetscViewer viewer;
-    ierr = PetscViewerVTKOpen(PetscObjectComm((PetscObject)das_velAvg[0]),"out_element.vtr",FILE_MODE_WRITE,&viewer);CHKERRQ(ierr);
-    ierr = PetscObjectSetName((PetscObject)vecs_velAvg[0],"Velocity (Averaged)");CHKERRQ(ierr);
-    ierr = VecView(vecs_velAvg[0],viewer);CHKERRQ(ierr);
-    ierr = PetscObjectSetName((PetscObject)vecs_stokes[2],"p_scaled");CHKERRQ(ierr);
-    ierr = VecView(vecs_stokes[2],viewer);CHKERRQ(ierr);
-    ierr = PetscObjectSetName((PetscObject)vecs_coeff[1],"eta_element");CHKERRQ(ierr);
-    ierr = VecView(vecs_coeff[1],viewer);CHKERRQ(ierr);
-    ierr = PetscObjectSetName((PetscObject)vecs_coeff[2],"rho_element");CHKERRQ(ierr);
-    ierr = VecView(vecs_coeff[2],viewer);CHKERRQ(ierr);
+    ierr = PetscViewerVTKOpen(PetscObjectComm((PetscObject)daVelAvg),"out_element.vtr",FILE_MODE_WRITE,&viewer);CHKERRQ(ierr);
+    ierr = VecView(vecVelAvg,viewer);CHKERRQ(ierr);
+    ierr = VecView(vecP,viewer);CHKERRQ(ierr);
+    ierr = VecView(vecEtaElement,viewer);CHKERRQ(ierr);
+    ierr = VecView(vecRho,viewer);CHKERRQ(ierr);
     ierr = PetscViewerDestroy(&viewer);CHKERRQ(ierr);
   }
 
   /* Dump vertex-based fields to a second .vtr file */
   {
     PetscViewer viewer;
-    ierr = PetscViewerVTKOpen(PetscObjectComm((PetscObject)das_coeff[0]),"out_vertex.vtr",FILE_MODE_WRITE,&viewer);CHKERRQ(ierr);
-    ierr = PetscObjectSetName((PetscObject)vecs_coeff[0],"eta_corner");CHKERRQ(ierr);
-    ierr = VecView(vecs_coeff[0],viewer);CHKERRQ(ierr);
+    ierr = PetscViewerVTKOpen(PetscObjectComm((PetscObject)daEtaCorner),"out_vertex.vtr",FILE_MODE_WRITE,&viewer);CHKERRQ(ierr);
+    ierr = VecView(vecEtaCorner,viewer);CHKERRQ(ierr);
     ierr = PetscViewerDestroy(&viewer);CHKERRQ(ierr);
   }
 
-  /* Edge-based fields can similarly be dumped */
-  {
-    PetscViewer viewer;
-    ierr = PetscViewerVTKOpen(PetscObjectComm((PetscObject)das_stokes[0]),"out_vertedges.vtr",FILE_MODE_WRITE,&viewer);CHKERRQ(ierr);
-    ierr = PetscObjectSetName((PetscObject)vecs_stokes[0],"xvel");CHKERRQ(ierr);
-    ierr = VecView(vecs_stokes[0],viewer);CHKERRQ(ierr);
-    ierr = PetscViewerDestroy(&viewer);CHKERRQ(ierr);
-  }
-  {
-    PetscViewer viewer;
-    ierr = PetscViewerVTKOpen(PetscObjectComm((PetscObject)das_stokes[1]),"out_horizedges.vtr",FILE_MODE_WRITE,&viewer);CHKERRQ(ierr);
-    ierr = PetscObjectSetName((PetscObject)vecs_stokes[1],"yvel");CHKERRQ(ierr);
-    ierr = VecView(vecs_stokes[1],viewer);CHKERRQ(ierr);
-    ierr = PetscViewerDestroy(&viewer);CHKERRQ(ierr);
-  }
+  /* Edge-based fields could similarly be dumped */
 
   /* Destroy DMDAs and Vecs */
-  for (i=0; i<nloc_stokes; ++i) {
-    ierr = VecDestroy(&vecs_stokes[i]);CHKERRQ(ierr);
-    ierr = DMDestroy(&das_stokes[i]);CHKERRQ(ierr);
-  }
-  for (i=0; i<nloc_coeff; ++i) {
-    ierr = VecDestroy(&vecs_coeff[i]);CHKERRQ(ierr);
-    ierr = DMDestroy(&das_coeff[i]);CHKERRQ(ierr);
-  }
-  for (i=0; i<nloc_velAvg; ++i) {
-    ierr = VecDestroy(&vecs_velAvg[i]);CHKERRQ(ierr);
-    ierr = DMDestroy(&das_velAvg[i]);CHKERRQ(ierr);
-  }
-  ierr = DMDestroy(&dmVelAvg);CHKERRQ(ierr);
-  ierr = VecDestroy(&velAvg);CHKERRQ(ierr);
+  ierr = VecDestroy(&vecVelAvg);CHKERRQ(ierr);
+  ierr = VecDestroy(&vecP);CHKERRQ(ierr);
+  ierr = VecDestroy(&vecEtaCorner);CHKERRQ(ierr);
+  ierr = VecDestroy(&vecEtaElement);CHKERRQ(ierr);
+  ierr = VecDestroy(&vecRho);CHKERRQ(ierr);
+  ierr = DMDestroy(&daVelAvg);CHKERRQ(ierr);
+  ierr = DMDestroy(&daP);CHKERRQ(ierr);
+  ierr = DMDestroy(&daEtaCorner);CHKERRQ(ierr);
+  ierr = DMDestroy(&daEtaElement);CHKERRQ(ierr);
+  ierr = DMDestroy(&daRho);CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
