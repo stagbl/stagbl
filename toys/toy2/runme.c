@@ -33,7 +33,7 @@ int main(int argc, char **argv)
   ierr = DMRegister(DMSTAG,DMCreate_Stag);CHKERRQ(ierr);
 
   // A DMStag to hold the unknowns to solve the Stokes problem
-  ierr = DMStagCreate2d(PETSC_COMM_WORLD, 
+  ierr = DMStagCreate2d(PETSC_COMM_WORLD,
       DM_BOUNDARY_NONE,DM_BOUNDARY_NONE,       // no special boundary support yet
       ctx->M,ctx->N,PETSC_DECIDE,PETSC_DECIDE, // sizes provided as DMDA
       0,1,1,                                   // no dof per vertex: 0 per vertex, 1 per edge, 1 per face/element
@@ -42,22 +42,22 @@ int main(int argc, char **argv)
       &ctx->stokesGrid);
   stokesGrid = ctx->stokesGrid;
   ierr = DMSetUp(stokesGrid);CHKERRQ(ierr);
-  ierr = DMStagSetUniformCoordinates(stokesGrid,ctx->xmin,ctx->xmax,ctx->ymin,ctx->ymax,0.0,0.0);CHKERRQ(ierr); 
+  ierr = DMStagSetUniformCoordinates(stokesGrid,ctx->xmin,ctx->xmax,ctx->ymin,ctx->ymax,0.0,0.0);CHKERRQ(ierr);
 
   // A DMStag to hold the coefficient fields for the Stokes problem: 1 dof per vertex and two per element/face
   ierr = DMStagCreate2d(PETSC_COMM_WORLD,DM_BOUNDARY_NONE,DM_BOUNDARY_NONE,ctx->M,ctx->N,PETSC_DECIDE,PETSC_DECIDE,1,0,2,DMSTAG_GHOST_STENCIL_BOX,1,&ctx->paramGrid);CHKERRQ(ierr);
   paramGrid = ctx->paramGrid;
   ierr = DMSetUp(paramGrid);CHKERRQ(ierr);
-  ierr = DMStagSetUniformCoordinates(paramGrid,ctx->xmin,ctx->xmax,ctx->ymin,ctx->ymax,0.0,0.0);CHKERRQ(ierr); 
+  ierr = DMStagSetUniformCoordinates(paramGrid,ctx->xmin,ctx->xmax,ctx->ymin,ctx->ymax,0.0,0.0);CHKERRQ(ierr);
 
   /* --- Set up Problem ------------------------------------------------------ */
   {
     typedef struct {PetscReal xCorner,yCorner,xElement,yElement;} CoordinateData; // Definitely need to provide these types somehow to the user.. (specifying them wrong leads to very annoying bugs)
-    typedef struct {PetscScalar etaCorner,etaElement,rho;} ElementData; // ? What's the best way to have users to do this? Provide these before hand? 
+    typedef struct {PetscScalar etaCorner,etaElement,rho;} ElementData; // ? What's the best way to have users to do this? Provide these before hand?
     DM             dmc;
     Vec            coordsGlobal,coordsLocal;
     CoordinateData **arrCoords;
-    ElementData    **arrParam; 
+    ElementData    **arrParam;
     PetscInt       start[2],n[2],i,j;
 
     // We do this with the help of a local-global mapping (even in serial), which even with no overlap should make things easier
@@ -72,7 +72,7 @@ int main(int argc, char **argv)
     ierr = DMCreateLocalVector(paramGrid,&paramLocal);CHKERRQ(ierr);
     ierr = DMStagGetGhostCorners(paramGrid,&start[0],&start[1],NULL,&n[0],&n[1],NULL);CHKERRQ(ierr);
     ierr = DMStagVecGetArray(paramGrid,paramLocal,&arrParam);CHKERRQ(ierr);
-    ierr = DMStagVecGetArray(dmc,coordsLocal,&arrCoords);CHKERRQ(ierr); // should be a "Read" version 
+    ierr = DMStagVecGetArray(dmc,coordsLocal,&arrCoords);CHKERRQ(ierr); // should be a "Read" version
 
     // Iterate over all elements in the ghosted region. This is redundant, but means we already have the local information for later (thus doing more computation but less communication).This is also encouraged by our conflation of the two types of ghost points, as mentioned above.
     for (j=start[1];j<start[1]+n[1];++j) {
@@ -84,7 +84,7 @@ int main(int argc, char **argv)
     }
 
     ierr = DMStagVecRestoreArray(paramGrid,paramLocal,&arrParam);CHKERRQ(ierr);
-    ierr = DMStagVecRestoreArray(dmc,coordsLocal,&arrCoords);CHKERRQ(ierr); // should be a "Read" version 
+    ierr = DMStagVecRestoreArray(dmc,coordsLocal,&arrCoords);CHKERRQ(ierr); // should be a "Read" version
     ierr = VecDestroy(&coordsLocal);CHKERRQ(ierr);
 
     ierr = DMCreateGlobalVector(paramGrid,&ctx->param);CHKERRQ(ierr);
@@ -100,9 +100,9 @@ int main(int argc, char **argv)
   ierr = KSPGetPC(ksp,&pc);CHKERRQ(ierr);
   ierr = PCSetType(pc,PCLU);CHKERRQ(ierr);
   if (size == 1) {
-    ierr = PCFactorSetMatSolverPackage(pc,MATSOLVERUMFPACK);CHKERRQ(ierr);
+    ierr = PCFactorSetMatSolverType(pc,MATSOLVERUMFPACK);CHKERRQ(ierr);
   } else {
-    ierr = PCFactorSetMatSolverPackage(pc,MATSOLVERMUMPS);CHKERRQ(ierr); 
+    ierr = PCFactorSetMatSolverType(pc,MATSOLVERMUMPS);CHKERRQ(ierr);
   }
   ierr = KSPSetFromOptions(ksp);CHKERRQ(ierr);
   ierr = KSPSolve(ksp,b,x);CHKERRQ(ierr);
@@ -117,21 +117,21 @@ int main(int argc, char **argv)
   // DMStag with a single dof per element/face
   ierr = DMStagCreate2d( PETSC_COMM_WORLD, DM_BOUNDARY_NONE,DM_BOUNDARY_NONE,ctx->M,ctx->N,PETSC_DECIDE,PETSC_DECIDE,0,0,1,DMSTAG_GHOST_STENCIL_BOX, 1,&elementOnlyGrid);CHKERRQ(ierr);
   ierr = DMSetUp(elementOnlyGrid);CHKERRQ(ierr);
-  ierr = DMStagSetUniformCoordinates(elementOnlyGrid,ctx->xmin,ctx->xmax,ctx->ymin,ctx->ymax,0.0,0.0);CHKERRQ(ierr); 
+  ierr = DMStagSetUniformCoordinates(elementOnlyGrid,ctx->xmin,ctx->xmax,ctx->ymin,ctx->ymax,0.0,0.0);CHKERRQ(ierr);
 
   // DMStag with a single dof per vertex
   ierr = DMStagCreate2d( PETSC_COMM_WORLD, DM_BOUNDARY_NONE,DM_BOUNDARY_NONE, ctx->M,ctx->N, PETSC_DECIDE,PETSC_DECIDE, 1,0,0,DMSTAG_GHOST_STENCIL_BOX,1,&vertexOnlyGrid);CHKERRQ(ierr);
   ierr = DMSetUp(vertexOnlyGrid);CHKERRQ(ierr);
-  ierr = DMStagSetUniformCoordinates(vertexOnlyGrid,ctx->xmin,ctx->xmax,ctx->ymin,ctx->ymax,0.0,0.0);CHKERRQ(ierr); 
+  ierr = DMStagSetUniformCoordinates(vertexOnlyGrid,ctx->xmin,ctx->xmax,ctx->ymin,ctx->ymax,0.0,0.0);CHKERRQ(ierr);
 
   // Create single dof element- or vertex-only vectors to dump with our xdmf
   // Also do some simple diagnostics
   {
     typedef struct {PetscScalar etaCorner,etaElement,rho;} ParamData; // Design question: What's the best way to have users to do this? Provide these beforehand somehow?
-    typedef struct {PetscScalar vy,vx,p;} StokesData; 
+    typedef struct {PetscScalar vy,vx,p;} StokesData;
     Vec         etaElNatural,etaElLocal,rhoNatural,rhoLocal,etaCornerNatural,etaCornerLocal,bLocal,pLocal,pNatural,xLocal,vxInterpLocal,vxInterpNatural,vyInterpLocal,vyInterpNatural;
     PetscScalar **arrRho,**arrEtaEl,**arrEtaCorner,**arrp,**arrvxinterp,**arrvyinterp;
-    ParamData   **arrParam; 
+    ParamData   **arrParam;
     StokesData  **arrb,**arrx;
     PetscInt    start[2],n[2],N[2],i,j;
     PetscMPIInt rank;
