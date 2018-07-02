@@ -559,5 +559,6 @@ static PetscErrorCode DumpSolution(Ctx ctx,Vec x)
   ierr = DMDestroy(&daEtaCorner);CHKERRQ(ierr);
   ierr = DMDestroy(&daEtaElement);CHKERRQ(ierr);
   ierr = DMDestroy(&daRho);CHKERRQ(ierr);
+  ierr = DMDestroy(&dmVelAvg);CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
