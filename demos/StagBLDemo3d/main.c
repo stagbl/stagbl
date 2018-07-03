@@ -73,6 +73,7 @@ int main(int argc, char** argv)
   StagBLOperator     A;
   StagBLLinearSolver solver;
   MPI_Comm           comm;
+  PetscInt           Nx,Ny,Nz;
 
   Ctx            ctx;
 
@@ -115,12 +116,22 @@ int main(int argc, char** argv)
   ctx->gy    = 10.0;
 
   // Create a Grid
+  Nx = 20; Ny = 40; Nz = 20;
+  {
+    PetscBool flg;
+    ierr = PetscOptionsGetInt(NULL,NULL,"-nx",&Nx,&flg);CHKERRQ(ierr);
+    if (flg) {
+      Ny = Nz = Nx;
+    }
+    ierr = PetscOptionsGetInt(NULL,NULL,"-ny",&Ny,NULL);CHKERRQ(ierr);
+    ierr = PetscOptionsGetInt(NULL,NULL,"-nz",&Nz,NULL);CHKERRQ(ierr);
+  }
   StagBLGridCreate(&grid);
   StagBLGridPETScGetDMPointer(grid,&pdm);
   ierr = DMStagCreate3d(
       comm,
       DM_BOUNDARY_NONE,DM_BOUNDARY_NONE,DM_BOUNDARY_NONE,
-      20,40,20,                                /* Global element counts */
+      Nx,Ny,Nz,                                /* Global element counts */
       PETSC_DECIDE,PETSC_DECIDE,PETSC_DECIDE,  /* Determine parallel decomposition automatically */
       0,0,1,1,                                 /* dof: 1 dof on each face and 3-cell */
       DMSTAG_GHOST_STENCIL_BOX,
@@ -200,23 +211,6 @@ int main(int argc, char** argv)
 
 static PetscErrorCode CreateSystem(const Ctx ctx,Mat *pA,Vec *pRhs)
 {
-#if 0
-  // TODO Placeholder
-  PetscErrorCode ierr;
-  Mat A;
-  Vec rhs;
-
-  PetscFunctionBeginUser;
-  ierr = DMCreateMatrix(ctx->dmStokes,pA);CHKERRQ(ierr);
-  A = *pA;
-  ierr = DMCreateGlobalVector(ctx->dmStokes,pRhs);CHKERRQ(ierr);
-  rhs = *pRhs;
-  ierr = VecSet(rhs,2.222);CHKERRQ(ierr);
-  ierr = MatAssemblyBegin(A,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
-  ierr = MatAssemblyEnd(A,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
-  ierr = MatShift(A,10.0);CHKERRQ(ierr);
-  PetscFunctionReturn(0);
-#else
   PetscErrorCode ierr;
   PetscInt       N[3];
   PetscInt       ex,ey,ez,startx,starty,startz,nx,ny,nz;
@@ -253,7 +247,7 @@ static PetscErrorCode CreateSystem(const Ctx ctx,Mat *pA,Vec *pRhs)
           const PetscScalar valA = 1.0;
           row.i = ex; row.j = ey; row.k = ez; row.loc = RIGHT; row.c = 0;
           ierr = DMStagMatSetValuesStencil(ctx->dmStokes,A,1,&row,1,&row,&valA,INSERT_VALUES);CHKERRQ(ierr);
-          valRhs = 4.4; // TODO placeholder
+          valRhs = 0.0;
           ierr = DMStagVecSetValuesStencil(ctx->dmStokes,rhs,1,&row,&valRhs,INSERT_VALUES);CHKERRQ(ierr);
         }
         if (ey == N[1]-1) {
@@ -263,7 +257,7 @@ static PetscErrorCode CreateSystem(const Ctx ctx,Mat *pA,Vec *pRhs)
           const PetscScalar valA = 1.0;
           row.i = ex; row.j = ey; row.k = ez; row.loc = UP; row.c = 0;
           ierr = DMStagMatSetValuesStencil(ctx->dmStokes,A,1,&row,1,&row,&valA,INSERT_VALUES);CHKERRQ(ierr);
-          valRhs = 5.5; // TODO placeholder
+          valRhs = 0.0;
           ierr = DMStagVecSetValuesStencil(ctx->dmStokes,rhs,1,&row,&valRhs,INSERT_VALUES);CHKERRQ(ierr);
         }
         if (ez == N[2]-1) {
@@ -273,7 +267,7 @@ static PetscErrorCode CreateSystem(const Ctx ctx,Mat *pA,Vec *pRhs)
           const PetscScalar valA = 1.0;
           row.i = ex; row.j = ey; row.k = ez; row.loc = FRONT; row.c = 0;
           ierr = DMStagMatSetValuesStencil(ctx->dmStokes,A,1,&row,1,&row,&valA,INSERT_VALUES);CHKERRQ(ierr);
-          valRhs = 6.6; // TODO placeholder
+          valRhs = 0.0;
           ierr = DMStagVecSetValuesStencil(ctx->dmStokes,rhs,1,&row,&valRhs,INSERT_VALUES);CHKERRQ(ierr);
         }
 
@@ -285,7 +279,7 @@ static PetscErrorCode CreateSystem(const Ctx ctx,Mat *pA,Vec *pRhs)
           const PetscScalar valA = 1.0;
           row.i = ex; row.j = ey; row.k = ez; row.loc = LEFT; row.c = 0;
           ierr = DMStagMatSetValuesStencil(ctx->dmStokes,A,1,&row,1,&row,&valA,INSERT_VALUES);CHKERRQ(ierr);
-          valRhs = 7.7; // TODO placeholder
+          valRhs = 0.0;
           ierr = DMStagVecSetValuesStencil(ctx->dmStokes,rhs,1,&row,&valRhs,INSERT_VALUES);CHKERRQ(ierr);
         } else {
           /* X-momentum interior equation : (u_xx + u_yy + u_zz) - p_x = f^x */
@@ -399,7 +393,7 @@ static PetscErrorCode CreateSystem(const Ctx ctx,Mat *pA,Vec *pRhs)
             col[8].i = ex  ; col[8].j = ey  ;  col[8].k = ez  ; col[8].loc = ELEMENT; col[8].c  = 0; valA[8] = -1.0 / hx;
           }
           ierr = DMStagMatSetValuesStencil(ctx->dmStokes,A,1,&row,nEntries,col,valA,INSERT_VALUES);CHKERRQ(ierr);
-          valRhs = 9.9; // TODO placeholder
+          valRhs = 0.0;
           ierr = DMStagVecSetValuesStencil(ctx->dmStokes,rhs,1,&row,&valRhs,INSERT_VALUES);CHKERRQ(ierr);
         }
 
@@ -411,7 +405,7 @@ static PetscErrorCode CreateSystem(const Ctx ctx,Mat *pA,Vec *pRhs)
           const PetscScalar valA = 1.0;
           row.i = ex; row.j = ey; row.k = ez; row.loc = DOWN; row.c = 0;
           ierr = DMStagMatSetValuesStencil(ctx->dmStokes,A,1,&row,1,&row,&valA,INSERT_VALUES);CHKERRQ(ierr);
-          valRhs = 10.10; // TODO placeholder
+          valRhs = 0.0;
           ierr = DMStagVecSetValuesStencil(ctx->dmStokes,rhs,1,&row,&valRhs,INSERT_VALUES);CHKERRQ(ierr);
         } else {
           /* Y-momentum equation, (v_xx + v_yy + v_zz) - p_y = f^y */
@@ -525,7 +519,7 @@ static PetscErrorCode CreateSystem(const Ctx ctx,Mat *pA,Vec *pRhs)
             col[8].i = ex  ; col[8].j = ey  ;  col[8].k = ez  ; col[8].loc = ELEMENT; col[8].c  = 0; valA[8] = -1.0 / hy;
           }
           ierr = DMStagMatSetValuesStencil(ctx->dmStokes,A,1,&row,nEntries,col,valA,INSERT_VALUES);CHKERRQ(ierr);
-          valRhs = 11.11; // TODO placeholder
+          valRhs = -ctx->gy * ctx->rho1; // TODO placeholder - gravity force!
           ierr = DMStagVecSetValuesStencil(ctx->dmStokes,rhs,1,&row,&valRhs,INSERT_VALUES);CHKERRQ(ierr);
         }
 
@@ -537,7 +531,7 @@ static PetscErrorCode CreateSystem(const Ctx ctx,Mat *pA,Vec *pRhs)
           const PetscScalar valA = 1.0;
           row.i = ex; row.j = ey; row.k = ez; row.loc = BACK; row.c = 0;
           ierr = DMStagMatSetValuesStencil(ctx->dmStokes,A,1,&row,1,&row,&valA,INSERT_VALUES);CHKERRQ(ierr);
-          valRhs = 12.12; // TODO placeholder
+          valRhs = 0.0;
           ierr = DMStagVecSetValuesStencil(ctx->dmStokes,rhs,1,&row,&valRhs,INSERT_VALUES);CHKERRQ(ierr);
         } else {
           /* Z-momentum equation, (w_xx + w_yy + w_zz) - p_z = f^z */
@@ -651,7 +645,7 @@ static PetscErrorCode CreateSystem(const Ctx ctx,Mat *pA,Vec *pRhs)
             col[8].i = ex  ; col[8].j = ey  ;  col[8].k = ez  ; col[8].loc = ELEMENT; col[8].c  = 0; valA[8] = -1.0 / hz;
           }
           ierr = DMStagMatSetValuesStencil(ctx->dmStokes,A,1,&row,nEntries,col,valA,INSERT_VALUES);CHKERRQ(ierr);
-          valRhs = 13.13; // TODO placeholder
+          valRhs = 0.0;
           ierr = DMStagVecSetValuesStencil(ctx->dmStokes,rhs,1,&row,&valRhs,INSERT_VALUES);CHKERRQ(ierr);
         }
 
@@ -664,7 +658,7 @@ static PetscErrorCode CreateSystem(const Ctx ctx,Mat *pA,Vec *pRhs)
           row.i = ex; row.j = ey; row.k = ez; row.loc  = ELEMENT; row.c = 0;
           valA = 1.0;
           ierr = DMStagMatSetValuesStencil(ctx->dmStokes,A,1,&row,1,&row,&valA,INSERT_VALUES);CHKERRQ(ierr);
-          valRhs = 14.14; // TODO placeholder
+          valRhs = 0.0;
           ierr = DMStagVecSetValuesStencil(ctx->dmStokes,rhs,1,&row,&valRhs,INSERT_VALUES);CHKERRQ(ierr);
         } else {
           DMStagStencil row,col[7];
@@ -679,7 +673,7 @@ static PetscErrorCode CreateSystem(const Ctx ctx,Mat *pA,Vec *pRhs)
           col[5].i = ex; col[5].j = ey; col[5].k = ez; col[5].loc = FRONT;   col[5].c = 0; valA[5] =  1.0 / hz;
           col[6]   = row;                                                                  valA[6] =  0.0;
           ierr = DMStagMatSetValuesStencil(ctx->dmStokes,A,1,&row,7,col,valA,INSERT_VALUES);CHKERRQ(ierr);
-          valRhs = 15.15; // TODO placeholder
+          valRhs = 0.0;
           ierr = DMStagVecSetValuesStencil(ctx->dmStokes,rhs,1,&row,&valRhs,INSERT_VALUES);CHKERRQ(ierr);
         }
       }
@@ -691,7 +685,6 @@ static PetscErrorCode CreateSystem(const Ctx ctx,Mat *pA,Vec *pRhs)
   ierr = MatAssemblyEnd(A,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
   ierr = VecAssemblyEnd(rhs);CHKERRQ(ierr);
   PetscFunctionReturn(0);
-#endif
 }
 
 /* Here, we demonstrate getting coordinates from a vector by using DMStagStencil.
