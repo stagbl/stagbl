@@ -470,51 +470,43 @@ static PetscErrorCode CreateSystem(const Ctx ctx,Mat *pA,Vec *pRhs)
 This would usually be done with direct array access, though. */
 static PetscErrorCode PopulateCoefficientData(Ctx ctx)
 {
-#if 1
-  // TODO PLACEHOLDER
   PetscErrorCode ierr;
-
-  PetscFunctionBeginUser;
-  ierr = DMCreateGlobalVector(ctx->dmCoeff,&ctx->coeff);CHKERRQ(ierr);
-  ierr = VecSet(ctx->coeff,1.234);CHKERRQ(ierr);
-  PetscFunctionReturn(0);
-#else
-  PetscErrorCode ierr;
-  PetscInt       N[2],nDummy[2];
-  PetscInt       ex,ey,startx,starty,nx,ny,ietaCorner,ietaElement,irho,iprev,icenter;
+  PetscInt       N[3],nDummy[3]; // TODO change to nExtra
+  PetscInt       ex,ey,ez,startx,starty,startz,nx,ny,nz,ietaCorner,ietaElement,irho,iprev,icenter;
   Vec            coeffLocal;
-  PetscReal      **cArrX,**cArrY;
-  PetscScalar    ***coeffArr;
+  PetscReal      **cArrX,**cArrY,**cArrZ;
+  PetscScalar    ****coeffArr;
 
   PetscFunctionBeginUser;
   ierr = DMGetLocalVector(ctx->dmCoeff,&coeffLocal);CHKERRQ(ierr);
-  ierr = DMStagGetCorners(ctx->dmCoeff,&startx,&starty,NULL,&nx,&ny,NULL,&nDummy[0],&nDummy[1],NULL);CHKERRQ(ierr);
-  ierr = DMStagGetGlobalSizes(ctx->dmCoeff,&N[0],&N[1],NULL);CHKERRQ(ierr);
-  ierr = DMStagGetLocationSlot(ctx->dmCoeff,DMSTAG_DOWN_LEFT,0,&ietaCorner);CHKERRQ(ierr);
+  ierr = DMStagGetCorners(ctx->dmCoeff,&startx,&starty,&startz,&nx,&ny,&nz,&nDummy[0],&nDummy[1],&nDummy[2]);CHKERRQ(ierr);
+  ierr = DMStagGetGlobalSizes(ctx->dmCoeff,&N[0],&N[1],&N[2]);CHKERRQ(ierr);
+  ierr = DMStagGetLocationSlot(ctx->dmCoeff,DMSTAG_BACK_DOWN_LEFT,0,&ietaCorner);CHKERRQ(ierr);
   ierr = DMStagGetLocationSlot(ctx->dmCoeff,DMSTAG_ELEMENT,0,&ietaElement);CHKERRQ(ierr);
   ierr = DMStagGetLocationSlot(ctx->dmCoeff,DMSTAG_ELEMENT,1,&irho);CHKERRQ(ierr);
 
-  ierr = DMStagGet1DCoordinateArraysDOFRead(ctx->dmCoeff,&cArrX,&cArrY,NULL);CHKERRQ(ierr);
+  ierr = DMStagGet1DCoordinateArraysDOFRead(ctx->dmCoeff,&cArrX,&cArrY,&cArrZ);CHKERRQ(ierr);
   ierr = DMStagGet1DCoordinateLocationSlot(ctx->dmCoeff,DMSTAG_ELEMENT,&icenter);CHKERRQ(ierr);
   ierr = DMStagGet1DCoordinateLocationSlot(ctx->dmCoeff,DMSTAG_LEFT,&iprev);CHKERRQ(ierr);
 
   ierr = DMStagVecGetArrayDOF(ctx->dmCoeff,coeffLocal,&coeffArr);CHKERRQ(ierr);
 
-  for (ey = starty; ey<starty+ny+nDummy[1]; ++ey) {
-    for (ex = startx; ex<startx+nx+nDummy[0]; ++ex) {
-      coeffArr[ey][ex][ietaElement] = getEta(ctx,cArrX[ex][icenter],cArrY[ey][icenter]); // Note dummy value filled here, needlessly
-      coeffArr[ey][ex][ietaCorner]  = getEta(ctx,cArrX[ex][iprev],  cArrY[ey][iprev]);
-      coeffArr[ey][ex][irho]        = getRho(ctx,cArrX[ex][icenter],cArrY[ey][icenter]);
+  for (ez = startz; ez<startz+nz+nDummy[2]; ++ez) {
+    for (ey = starty; ey<starty+ny+nDummy[1]; ++ey) {
+      for (ex = startx; ex<startx+nx+nDummy[0]; ++ex) {
+        coeffArr[ez][ey][ex][ietaElement] = getEta(ctx,cArrX[ex][icenter],cArrY[ey][icenter],cArrZ[ez][icenter]); // Note dummy value filled here, needlessly
+        coeffArr[ez][ey][ex][ietaCorner]  = getEta(ctx,cArrX[ex][iprev],  cArrY[ey][iprev],cArrZ[ez][iprev]);
+        coeffArr[ez][ey][ex][irho]        = getRho(ctx,cArrX[ex][icenter],cArrY[ey][icenter],cArrZ[ez][icenter]);
+      }
     }
   }
-  ierr = DMStagRestore1DCoordinateArraysDOFRead(ctx->dmCoeff,&cArrX,&cArrY,NULL);CHKERRQ(ierr);
+  ierr = DMStagRestore1DCoordinateArraysDOFRead(ctx->dmCoeff,&cArrX,&cArrY,&cArrZ);CHKERRQ(ierr);
   ierr = DMStagVecRestoreArrayDOF(ctx->dmCoeff,coeffLocal,&coeffArr);CHKERRQ(ierr);
   ierr = DMCreateGlobalVector(ctx->dmCoeff,&ctx->coeff);CHKERRQ(ierr);
   ierr = DMLocalToGlobalBegin(ctx->dmCoeff,coeffLocal,INSERT_VALUES,ctx->coeff);CHKERRQ(ierr);
   ierr = DMLocalToGlobalEnd(ctx->dmCoeff,coeffLocal,INSERT_VALUES,ctx->coeff);CHKERRQ(ierr);
   ierr = DMRestoreLocalVector(ctx->dmCoeff,&coeffLocal);CHKERRQ(ierr);
   PetscFunctionReturn(0);
-#endif
 }
 
 static PetscErrorCode DumpSolution(Ctx ctx,Vec x)
@@ -533,6 +525,7 @@ static PetscErrorCode DumpSolution(Ctx ctx,Vec x)
   ierr = DMStagCreateCompatibleDMStag(ctx->dmStokes,0,0,0,3,&dmVelAvg); /* 2 dof per element */
   ierr = DMSetUp(dmVelAvg);CHKERRQ(ierr);
   ierr = DMStagSetUniformCoordinatesExplicit(dmVelAvg,0.0,ctx->xmax,0.0,ctx->ymax,0.0,ctx->zmax);CHKERRQ(ierr);
+  // TODO this should be product, probably
   ierr = DMCreateGlobalVector(dmVelAvg,&velAvg);CHKERRQ(ierr);
   {
     PetscInt ex,ey,ez,startx,starty,startz,nx,ny,nz;
