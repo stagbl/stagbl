@@ -8,7 +8,7 @@ void StagBLInitialize(int argc,char** argv,MPI_Comm comm)
   {
     if (comm) PETSC_COMM_WORLD = comm;
     PetscInitialize(&argc,&argv,(char*)0,(void*)0);
-    PetscPrintf(PETSC_COMM_WORLD,"PETSc active");
+    PetscPrintf(PETSC_COMM_WORLD,"PETSc active\n");
   }
 
 #endif

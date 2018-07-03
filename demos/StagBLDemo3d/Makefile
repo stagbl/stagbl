@@ -2,7 +2,7 @@
 STAGBL_DIR ?= ../..
 STAGBL_ARCH ?= $(PETSC_ARCH)
 
-EXNAME = stagbldemo2d
+EXNAME = stagbldemo3d
 
 all : $(EXNAME)
 
@@ -13,9 +13,9 @@ include $(STAGBL_DIR)/rules.mk
 %.o: %.c
 	$(STAGBL_COMPILE.c) $< -o $@
 
-# Note: it'd be better if variables.mk gave more, so that this was generated for us
 STAGBL_LIB = -L$(STAGBL_DIR)/$(STAGBL_ARCH)/lib/ -lstagbl
 
+# Note: it's not great that I have to include the PETSc lib here. Would be better to have things like this in variables.mk already
 $(EXNAME) : main.o
 	$(STAGBL_LINK) $< $(STAGBL_LIB)  $(PETSC_LIB)
 
