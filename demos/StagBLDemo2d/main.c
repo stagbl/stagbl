@@ -13,8 +13,6 @@
 #define UP         DMSTAG_UP
 #define UP_RIGHT   DMSTAG_UP_RIGHT
 
-// Note: we should perhaps define a standard structure in StagBL which can be used in constructing Stokes operators in common scenarios.
-
 /* An application context */
 typedef struct {
   MPI_Comm    comm;
@@ -32,11 +30,6 @@ static PetscErrorCode CreateSystem(const Ctx,Mat*,Vec*);
 static PetscErrorCode DumpSolution(Ctx,Vec);
 
 /* Coefficient/forcing Functions */
-#if 0
-static PetscReal getRho(Ctx ctx,PetscReal x, PetscReal y) { return 0*y + x < (ctx->xmax-ctx->xmin)/2.0 ? ctx->rho1 : ctx->rho2; }
-static PetscReal getEta(Ctx ctx,PetscReal x, PetscReal y) { return 0*y + x < (ctx->xmax-ctx->xmin)/2.0 ? ctx->eta1 : ctx->eta2; }
-#endif
-
 static PetscReal getRho(Ctx ctx,PetscReal x, PetscReal y) {
   const PetscReal d = ctx->xmax-ctx->xmin;
   const PetscReal xx = x/d - 0.5;
@@ -97,7 +90,7 @@ int main(int argc, char** argv)
   ctx->eta2 = 1e22;
   ctx->gy    = 10.0;
 
-  // Create a Grid
+  /* Create a Grid */
   StagBLGridCreate(&grid);
   StagBLGridPETScGetDMPointer(grid,&pdm);
   ierr = DMStagCreate2d(
@@ -114,7 +107,7 @@ int main(int argc, char** argv)
   ierr = DMSetFromOptions(ctx->dmStokes);CHKERRQ(ierr);
   ierr = DMSetUp(ctx->dmStokes);CHKERRQ(ierr);
   ierr = DMStagSetUniformCoordinatesProduct(ctx->dmStokes,0.0,ctx->xmax,0.0,ctx->ymax,0.0,0.0);CHKERRQ(ierr);
-  ierr = DMStagCreateCompatibleDMStag(ctx->dmStokes,1,0,2,0,&ctx->dmCoeff);CHKERRQ(ierr);
+  ierr = DMStagCreateCompatibleDMStag(ctx->dmStokes,1,0,2,0,&ctx->dmCoeff);CHKERRQ(ierr); // TODO this is wrong - the densities should live on the vertices, not the elements!
   ierr = DMSetUp(ctx->dmCoeff);CHKERRQ(ierr);
   ierr = DMStagSetUniformCoordinatesProduct(ctx->dmCoeff,0.0,ctx->xmax,0.0,ctx->ymax,0.0,0.0);CHKERRQ(ierr);
 
@@ -136,7 +129,7 @@ int main(int argc, char** argv)
   /* Populate coefficient data */
   ierr = PopulateCoefficientData(ctx);CHKERRQ(ierr);
 
-  // Create a system
+  /* Create a system */
   StagBLOperatorCreate(&A);
   StagBLArrayCreate(&x);
   StagBLArrayCreate(&b);
@@ -151,7 +144,7 @@ int main(int argc, char** argv)
   matA = *pmatA;
   vecb = *pvecb;
 
-  // Solve the system (you will likely want to choose a solver from the command line)
+  /* Solve the system (you will likely want to specify a solver from the command line) */
   StagBLLinearSolverCreate(&solver);
   StagBLLinearSolverPETScGetKSPPointer(solver,&pksp);
 
