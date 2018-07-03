@@ -20,7 +20,7 @@ After it is configured,
     ./stagbldemo2d
     paraview &
 
-![stagbl2ddemo quickstart](documentation/resources/stagbl2ddemo_quickstart.pdf)
+![stagbl2ddemo quickstart](documentation/resources/stagbldemo2d_quickstart.pdf)
 
 ## Dependencies
 
