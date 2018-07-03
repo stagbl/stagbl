@@ -409,9 +409,15 @@ static PetscErrorCode CreateSystem(const Ctx ctx,Mat *pA,Vec *pRhs)
           ierr = DMStagVecSetValuesStencil(ctx->dmStokes,rhs,1,&row,&valRhs,INSERT_VALUES);CHKERRQ(ierr);
         } else {
           /* Y-momentum equation, (v_xx + v_yy + v_zz) - p_y = f^y */
-          DMStagStencil row,col[9];
-          PetscScalar   valA[9],valRhs;
+          DMStagStencil row,col[9],rhoPoint[2];
+          PetscScalar   valA[9],rho[2],valRhs;
           PetscInt      nEntries;
+
+          /* get rho values  and compute rhs value*/
+          rhoPoint[0].i = ex; rhoPoint[0].j = ey;   rhoPoint[0].k = ez; rhoPoint[0].loc = ELEMENT; rhoPoint[0].c = 1;
+          rhoPoint[1].i = ex; rhoPoint[1].j = ey-1; rhoPoint[1].k = ez; rhoPoint[1].loc = ELEMENT; rhoPoint[1].c = 1;
+          ierr = DMStagVecGetValuesStencil(ctx->dmCoeff,coeffLocal,2,rhoPoint,rho);CHKERRQ(ierr);
+          valRhs = -ctx->gy * 0.5 * (rho[0] + rho[1]);
 
           row.i    = ex  ; row.j    = ey  ;  row.k    = ez  ; row.loc    = DOWN;    row.c     = 0;
           if (ex ==0) {
@@ -519,7 +525,6 @@ static PetscErrorCode CreateSystem(const Ctx ctx,Mat *pA,Vec *pRhs)
             col[8].i = ex  ; col[8].j = ey  ;  col[8].k = ez  ; col[8].loc = ELEMENT; col[8].c  = 0; valA[8] = -1.0 / hy;
           }
           ierr = DMStagMatSetValuesStencil(ctx->dmStokes,A,1,&row,nEntries,col,valA,INSERT_VALUES);CHKERRQ(ierr);
-          valRhs = -ctx->gy * ctx->rho1; // TODO placeholder - gravity force!
           ierr = DMStagVecSetValuesStencil(ctx->dmStokes,rhs,1,&row,&valRhs,INSERT_VALUES);CHKERRQ(ierr);
         }
 
