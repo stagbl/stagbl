@@ -24,6 +24,6 @@ After it is configured,
     cd demos/StagBLDemo2d
     make
     ./stagbldemo2d
-    paraview &
+    paraview & # open out_element.vtr 
 
 ![stagbl2ddemo quickstart](documentation/resources/stagbldemo2d_quickstart.pdf)
