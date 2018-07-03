@@ -107,7 +107,7 @@ int main(int argc, char** argv)
   ierr = DMSetFromOptions(ctx->dmStokes);CHKERRQ(ierr);
   ierr = DMSetUp(ctx->dmStokes);CHKERRQ(ierr);
   ierr = DMStagSetUniformCoordinatesProduct(ctx->dmStokes,0.0,ctx->xmax,0.0,ctx->ymax,0.0,0.0);CHKERRQ(ierr);
-  ierr = DMStagCreateCompatibleDMStag(ctx->dmStokes,1,0,2,0,&ctx->dmCoeff);CHKERRQ(ierr); // TODO this is wrong - the densities should live on the vertices, not the elements!
+  ierr = DMStagCreateCompatibleDMStag(ctx->dmStokes,2,0,1,0,&ctx->dmCoeff);CHKERRQ(ierr);
   ierr = DMSetUp(ctx->dmCoeff);CHKERRQ(ierr);
   ierr = DMStagSetUniformCoordinatesProduct(ctx->dmCoeff,0.0,ctx->xmax,0.0,ctx->ymax,0.0,0.0);CHKERRQ(ierr);
 
@@ -235,8 +235,8 @@ static PetscErrorCode CreateSystem(const Ctx ctx,Mat *pA,Vec *pRhs)
         PetscScalar   eta[4],etaLeft,etaRight,etaUp,etaDown;
 
         /* get rho values  and compute rhs value*/
-        rhoPoint[0].i = ex; rhoPoint[0].j = ey;   rhoPoint[0].loc = ELEMENT; rhoPoint[0].c = 1;
-        rhoPoint[1].i = ex; rhoPoint[1].j = ey-1; rhoPoint[1].loc = ELEMENT; rhoPoint[1].c = 1;
+        rhoPoint[0].i = ex; rhoPoint[0].j = ey; rhoPoint[0].loc = DOWN_LEFT;  rhoPoint[0].c = 1;
+        rhoPoint[1].i = ex; rhoPoint[1].j = ey; rhoPoint[1].loc = DOWN_RIGHT; rhoPoint[1].c = 1;
         ierr = DMStagVecGetValuesStencil(ctx->dmCoeff,coeffLocal,2,rhoPoint,rho);CHKERRQ(ierr);
         valRhs = -ctx->gy * 0.5 * (rho[0] + rho[1]);
 
@@ -442,7 +442,7 @@ static PetscErrorCode PopulateCoefficientData(Ctx ctx)
   ierr = DMStagGetGlobalSizes(ctx->dmCoeff,&N[0],&N[1],NULL);CHKERRQ(ierr);
   ierr = DMStagGetLocationSlot(ctx->dmCoeff,DMSTAG_DOWN_LEFT,0,&ietaCorner);CHKERRQ(ierr);
   ierr = DMStagGetLocationSlot(ctx->dmCoeff,DMSTAG_ELEMENT,0,&ietaElement);CHKERRQ(ierr);
-  ierr = DMStagGetLocationSlot(ctx->dmCoeff,DMSTAG_ELEMENT,1,&irho);CHKERRQ(ierr);
+  ierr = DMStagGetLocationSlot(ctx->dmCoeff,DMSTAG_DOWN_LEFT,1,&irho);CHKERRQ(ierr);
 
   ierr = DMStagGet1DCoordinateArraysDOFRead(ctx->dmCoeff,&cArrX,&cArrY,NULL);CHKERRQ(ierr);
   ierr = DMStagGet1DCoordinateLocationSlot(ctx->dmCoeff,DMSTAG_ELEMENT,&icenter);CHKERRQ(ierr);
@@ -453,8 +453,8 @@ static PetscErrorCode PopulateCoefficientData(Ctx ctx)
   for (ey = starty; ey<starty+ny+nDummy[1]; ++ey) {
     for (ex = startx; ex<startx+nx+nDummy[0]; ++ex) {
       coeffArr[ey][ex][ietaElement] = getEta(ctx,cArrX[ex][icenter],cArrY[ey][icenter]); // Note dummy value filled here, needlessly
-      coeffArr[ey][ex][ietaCorner]  = getEta(ctx,cArrX[ex][iprev],  cArrY[ey][iprev]);
-      coeffArr[ey][ex][irho]        = getRho(ctx,cArrX[ex][icenter],cArrY[ey][icenter]);
+      coeffArr[ey][ex][ietaCorner]  = getEta(ctx,cArrX[ex][iprev],cArrY[ey][iprev]);
+      coeffArr[ey][ex][irho]        = getRho(ctx,cArrX[ex][iprev],cArrY[ey][iprev]);
     }
   }
   ierr = DMStagRestore1DCoordinateArraysDOFRead(ctx->dmCoeff,&cArrX,&cArrY,NULL);CHKERRQ(ierr);
@@ -511,13 +511,13 @@ static PetscErrorCode DumpSolution(Ctx ctx,Vec x)
 
   ierr = DMStagVecSplitToDMDA(ctx->dmStokes,x,DMSTAG_ELEMENT,0,&daP,&vecP);CHKERRQ(ierr);
   ierr = PetscObjectSetName((PetscObject)vecP,"p (scaled)");CHKERRQ(ierr);
-  ierr = DMStagVecSplitToDMDA(ctx->dmCoeff,ctx->coeff,DMSTAG_DOWN_LEFT,0, &daEtaCorner, &vecEtaCorner);CHKERRQ(ierr);
+  ierr = DMStagVecSplitToDMDA(ctx->dmCoeff,ctx->coeff,DMSTAG_DOWN_LEFT,0,&daEtaCorner,&vecEtaCorner);CHKERRQ(ierr);
   ierr = PetscObjectSetName((PetscObject)vecEtaCorner,"eta");CHKERRQ(ierr);
-  ierr = DMStagVecSplitToDMDA(ctx->dmCoeff,ctx->coeff,DMSTAG_ELEMENT,  0, &daEtaElement,&vecEtaElement);CHKERRQ(ierr);
+  ierr = DMStagVecSplitToDMDA(ctx->dmCoeff,ctx->coeff,DMSTAG_ELEMENT,0,&daEtaElement,&vecEtaElement);CHKERRQ(ierr);
   ierr = PetscObjectSetName((PetscObject)vecEtaElement,"eta");CHKERRQ(ierr);
-  ierr = DMStagVecSplitToDMDA(ctx->dmCoeff,ctx->coeff,DMSTAG_ELEMENT,  1, &daRho,       &vecRho);CHKERRQ(ierr);
+  ierr = DMStagVecSplitToDMDA(ctx->dmCoeff,ctx->coeff,DMSTAG_DOWN_LEFT,1,&daRho,&vecRho);CHKERRQ(ierr);
   ierr = PetscObjectSetName((PetscObject)vecRho,"density");CHKERRQ(ierr);
-  ierr = DMStagVecSplitToDMDA(dmVelAvg,    velAvg,    DMSTAG_ELEMENT,  -3,&daVelAvg,    &vecVelAvg);CHKERRQ(ierr); /* note -3 : pad with zero */
+  ierr = DMStagVecSplitToDMDA(dmVelAvg,velAvg,DMSTAG_ELEMENT,-3,&daVelAvg,&vecVelAvg);CHKERRQ(ierr); /* note -3 : pad with zero */
   ierr = PetscObjectSetName((PetscObject)vecVelAvg,"Velocity (Averaged)");CHKERRQ(ierr);
 
   /* Dump element-based fields to a .vtr file */
@@ -527,7 +527,6 @@ static PetscErrorCode DumpSolution(Ctx ctx,Vec x)
     ierr = VecView(vecVelAvg,viewer);CHKERRQ(ierr);
     ierr = VecView(vecP,viewer);CHKERRQ(ierr);
     ierr = VecView(vecEtaElement,viewer);CHKERRQ(ierr);
-    ierr = VecView(vecRho,viewer);CHKERRQ(ierr);
     ierr = PetscViewerDestroy(&viewer);CHKERRQ(ierr);
   }
 
@@ -536,6 +535,7 @@ static PetscErrorCode DumpSolution(Ctx ctx,Vec x)
     PetscViewer viewer;
     ierr = PetscViewerVTKOpen(PetscObjectComm((PetscObject)daEtaCorner),"out_vertex.vtr",FILE_MODE_WRITE,&viewer);CHKERRQ(ierr);
     ierr = VecView(vecEtaCorner,viewer);CHKERRQ(ierr);
+    ierr = VecView(vecRho,viewer);CHKERRQ(ierr);
     ierr = PetscViewerDestroy(&viewer);CHKERRQ(ierr);
   }
 
