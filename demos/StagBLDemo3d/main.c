@@ -113,7 +113,7 @@ int main(int argc, char** argv)
   ctx->rho2 = 3300;
   ctx->eta1 = 1e20;
   ctx->eta2 = 1e22;
-  ctx->gy    = 10.0;
+  ctx->gy   = 10.0;
 
   // Create a Grid
   Nx = 20; Ny = 40; Nz = 20;
