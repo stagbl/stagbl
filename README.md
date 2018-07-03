@@ -9,8 +9,12 @@ See the Trello Board on the Bitbucket repository.
     export PETSC_DIR=yyy
     export PETSC_ARCH=xxx
     ./configure.py
+    cd demos/StagBLDemo2d
+    make
+    ./stagbldemo2d
+    paraview &
 
-TODO: briefest possible route from nothing to an image of a succesful solve.
+![stagbl2ddemo quickstart](documentation/resources/stagbl2demo_quickstart.png)
 
 ## Dependencies
 
