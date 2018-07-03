@@ -697,7 +697,7 @@ This would usually be done with direct array access, though. */
 static PetscErrorCode PopulateCoefficientData(Ctx ctx)
 {
   PetscErrorCode ierr;
-  PetscInt       N[3],nDummy[3]; // TODO change to nExtra
+  PetscInt       N[3],nExtra[3];
   PetscInt       ex,ey,ez,startx,starty,startz,nx,ny,nz,ietaCorner,ietaElement,irho,iprev,icenter;
   Vec            coeffLocal;
   PetscReal      **cArrX,**cArrY,**cArrZ;
@@ -705,7 +705,7 @@ static PetscErrorCode PopulateCoefficientData(Ctx ctx)
 
   PetscFunctionBeginUser;
   ierr = DMGetLocalVector(ctx->dmCoeff,&coeffLocal);CHKERRQ(ierr);
-  ierr = DMStagGetCorners(ctx->dmCoeff,&startx,&starty,&startz,&nx,&ny,&nz,&nDummy[0],&nDummy[1],&nDummy[2]);CHKERRQ(ierr);
+  ierr = DMStagGetCorners(ctx->dmCoeff,&startx,&starty,&startz,&nx,&ny,&nz,&nExtra[0],&nExtra[1],&nExtra[2]);CHKERRQ(ierr);
   ierr = DMStagGetGlobalSizes(ctx->dmCoeff,&N[0],&N[1],&N[2]);CHKERRQ(ierr);
   ierr = DMStagGetLocationSlot(ctx->dmCoeff,DMSTAG_BACK_DOWN_LEFT,0,&ietaCorner);CHKERRQ(ierr);
   ierr = DMStagGetLocationSlot(ctx->dmCoeff,DMSTAG_ELEMENT,0,&ietaElement);CHKERRQ(ierr);
@@ -717,9 +717,9 @@ static PetscErrorCode PopulateCoefficientData(Ctx ctx)
 
   ierr = DMStagVecGetArrayDOF(ctx->dmCoeff,coeffLocal,&coeffArr);CHKERRQ(ierr);
 
-  for (ez = startz; ez<startz+nz+nDummy[2]; ++ez) {
-    for (ey = starty; ey<starty+ny+nDummy[1]; ++ey) {
-      for (ex = startx; ex<startx+nx+nDummy[0]; ++ex) {
+  for (ez = startz; ez<startz+nz+nExtra[2]; ++ez) {
+    for (ey = starty; ey<starty+ny+nExtra[1]; ++ey) {
+      for (ex = startx; ex<startx+nx+nExtra[0]; ++ex) {
         coeffArr[ez][ey][ex][ietaElement] = getEta(ctx,cArrX[ex][icenter],cArrY[ey][icenter],cArrZ[ez][icenter]); // Note dummy value filled here, needlessly
         coeffArr[ez][ey][ex][ietaCorner]  = getEta(ctx,cArrX[ex][iprev],  cArrY[ey][iprev],cArrZ[ez][iprev]);
         coeffArr[ez][ey][ex][irho]        = getRho(ctx,cArrX[ex][icenter],cArrY[ey][icenter],cArrZ[ez][icenter]);
