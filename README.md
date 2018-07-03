@@ -6,6 +6,12 @@ See the Trello Board on the Bitbucket repository.
 
 ## Quickstart
 
+First, you need a working branch of PETSc which includes `DMStag`, obtainable with
+
+    git clone -b psanan/stag https://bitbucket.org/psanan/petsc
+    
+After it is configured,
+    
     export PETSC_DIR=yyy
     export PETSC_ARCH=xxx
     ./configure.py
@@ -14,7 +20,7 @@ See the Trello Board on the Bitbucket repository.
     ./stagbldemo2d
     paraview &
 
-![stagbl2ddemo quickstart](documentation/resources/stagbl2demo_quickstart.png)
+![stagbl2ddemo quickstart](documentation/resources/stagbl2demo_quickstart.pdf)
 
 ## Dependencies
 
