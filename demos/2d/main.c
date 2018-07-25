@@ -105,7 +105,7 @@ int main(int argc, char** argv)
       30,20,                                   /* Global element counts */
       PETSC_DECIDE,PETSC_DECIDE,               /* Determine parallel decomposition automatically */
       0,1,1,                                   /* dof: 0 per vertex, 1 per edge, 1 per face/element */
-      DMSTAG_GHOST_STENCIL_BOX,
+      DMSTAG_STENCIL_BOX,
       1,                                       /* elementwise stencil width */
       NULL,NULL,
       pdm);
@@ -448,9 +448,9 @@ static PetscErrorCode PopulateCoefficientData(Ctx ctx)
   ierr = DMStagGetLocationSlot(ctx->dmCoeff,DMSTAG_ELEMENT,0,&ietaElement);CHKERRQ(ierr);
   ierr = DMStagGetLocationSlot(ctx->dmCoeff,DMSTAG_ELEMENT,1,&irho);CHKERRQ(ierr);
 
-  ierr = DMStagGet1DCoordinateArraysDOFRead(ctx->dmCoeff,&cArrX,&cArrY,NULL);CHKERRQ(ierr);
-  ierr = DMStagGet1DCoordinateLocationSlot(ctx->dmCoeff,DMSTAG_ELEMENT,&icenter);CHKERRQ(ierr);
-  ierr = DMStagGet1DCoordinateLocationSlot(ctx->dmCoeff,DMSTAG_LEFT,&iprev);CHKERRQ(ierr);
+  ierr = DMStagGet1dCoordinateArraysDOFRead(ctx->dmCoeff,&cArrX,&cArrY,NULL);CHKERRQ(ierr);
+  ierr = DMStagGet1dCoordinateLocationSlot(ctx->dmCoeff,DMSTAG_ELEMENT,&icenter);CHKERRQ(ierr);
+  ierr = DMStagGet1dCoordinateLocationSlot(ctx->dmCoeff,DMSTAG_LEFT,&iprev);CHKERRQ(ierr);
 
   ierr = DMStagVecGetArrayDOF(ctx->dmCoeff,coeffLocal,&coeffArr);CHKERRQ(ierr);
 
@@ -461,7 +461,7 @@ static PetscErrorCode PopulateCoefficientData(Ctx ctx)
       coeffArr[ey][ex][irho]        = getRho(ctx,cArrX[ex][icenter],cArrY[ey][icenter]);
     }
   }
-  ierr = DMStagRestore1DCoordinateArraysDOFRead(ctx->dmCoeff,&cArrX,&cArrY,NULL);CHKERRQ(ierr);
+  ierr = DMStagRestore1dCoordinateArraysDOFRead(ctx->dmCoeff,&cArrX,&cArrY,NULL);CHKERRQ(ierr);
   ierr = DMStagVecRestoreArrayDOF(ctx->dmCoeff,coeffLocal,&coeffArr);CHKERRQ(ierr);
   ierr = DMCreateGlobalVector(ctx->dmCoeff,&ctx->coeff);CHKERRQ(ierr);
   ierr = DMLocalToGlobalBegin(ctx->dmCoeff,coeffLocal,INSERT_VALUES,ctx->coeff);CHKERRQ(ierr);
