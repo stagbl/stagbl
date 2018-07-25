@@ -14,16 +14,16 @@ See the Trello Board on the Bitbucket repository.
 
 First, you need a working branch of PETSc which includes `DMStag`, obtainable with
 
-    git clone -b psanan/stag https://bitbucket.org/psanan/petsc
-    
+    git clone -b psanan/dmstag https://bitbucket.org/psanan/petsc
+
 After it is configured,
-    
+
     export PETSC_DIR=yyy
     export PETSC_ARCH=xxx
     ./configure.py
     cd demos/StagBLDemo2d
     make
     ./stagbldemo2d
-    paraview & # open out_element.vtr 
+    paraview & # open out_element.vtr
 
 ![stagbl2ddemo quickstart](documentation/resources/stagbldemo2d_quickstart.pdf)
