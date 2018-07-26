@@ -20,7 +20,6 @@ typedef struct {
   Vec         coeff;
   PetscReal   xmax,ymax,xmin,ymin,hxCharacteristic,hyCharacteristic;
   PetscScalar eta1,eta2,rho1,rho2,gy,Kbound,Kcont,etaCharacteristic;
-  PetscBool   hdfOutput; /* as opposed to binary */
 } CtxData;
 typedef CtxData* Ctx;
 
@@ -99,7 +98,7 @@ int main(int argc, char** argv)
       30,20,                                   /* Global element counts */
       PETSC_DECIDE,PETSC_DECIDE,               /* Determine parallel decomposition automatically */
       0,1,1,                                   /* dof: 0 per vertex, 1 per edge, 1 per face/element */
-      DMSTAG_GHOST_STENCIL_BOX,
+      DMSTAG_STENCIL_BOX,
       1,                                       /* elementwise stencil width */
       NULL,NULL,
       pdm);
@@ -110,8 +109,6 @@ int main(int argc, char** argv)
   ierr = DMStagCreateCompatibleDMStag(ctx->dmStokes,2,0,1,0,&ctx->dmCoeff);CHKERRQ(ierr);
   ierr = DMSetUp(ctx->dmCoeff);CHKERRQ(ierr);
   ierr = DMStagSetUniformCoordinatesProduct(ctx->dmCoeff,0.0,ctx->xmax,0.0,ctx->ymax,0.0,0.0);CHKERRQ(ierr);
-
-  ierr = DMView(ctx->dmStokes,0);
 
   /* Get scaling constants, knowing grid spacing */
   {
@@ -444,9 +441,9 @@ static PetscErrorCode PopulateCoefficientData(Ctx ctx)
   ierr = DMStagGetLocationSlot(ctx->dmCoeff,DMSTAG_ELEMENT,0,&ietaElement);CHKERRQ(ierr);
   ierr = DMStagGetLocationSlot(ctx->dmCoeff,DMSTAG_DOWN_LEFT,1,&irho);CHKERRQ(ierr);
 
-  ierr = DMStagGet1DCoordinateArraysDOFRead(ctx->dmCoeff,&cArrX,&cArrY,NULL);CHKERRQ(ierr);
-  ierr = DMStagGet1DCoordinateLocationSlot(ctx->dmCoeff,DMSTAG_ELEMENT,&icenter);CHKERRQ(ierr);
-  ierr = DMStagGet1DCoordinateLocationSlot(ctx->dmCoeff,DMSTAG_LEFT,&iprev);CHKERRQ(ierr);
+  ierr = DMStagGet1dCoordinateArraysDOFRead(ctx->dmCoeff,&cArrX,&cArrY,NULL);CHKERRQ(ierr);
+  ierr = DMStagGet1dCoordinateLocationSlot(ctx->dmCoeff,DMSTAG_ELEMENT,&icenter);CHKERRQ(ierr);
+  ierr = DMStagGet1dCoordinateLocationSlot(ctx->dmCoeff,DMSTAG_LEFT,&iprev);CHKERRQ(ierr);
 
   ierr = DMStagVecGetArrayDOF(ctx->dmCoeff,coeffLocal,&coeffArr);CHKERRQ(ierr);
 
@@ -457,7 +454,7 @@ static PetscErrorCode PopulateCoefficientData(Ctx ctx)
       coeffArr[ey][ex][irho]        = getRho(ctx,cArrX[ex][iprev],cArrY[ey][iprev]);
     }
   }
-  ierr = DMStagRestore1DCoordinateArraysDOFRead(ctx->dmCoeff,&cArrX,&cArrY,NULL);CHKERRQ(ierr);
+  ierr = DMStagRestore1dCoordinateArraysDOFRead(ctx->dmCoeff,&cArrX,&cArrY,NULL);CHKERRQ(ierr);
   ierr = DMStagVecRestoreArrayDOF(ctx->dmCoeff,coeffLocal,&coeffArr);CHKERRQ(ierr);
   ierr = DMCreateGlobalVector(ctx->dmCoeff,&ctx->coeff);CHKERRQ(ierr);
   ierr = DMLocalToGlobalBegin(ctx->dmCoeff,coeffLocal,INSERT_VALUES,ctx->coeff);CHKERRQ(ierr);
