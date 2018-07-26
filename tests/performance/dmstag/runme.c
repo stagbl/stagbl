@@ -1,7 +1,9 @@
 static char help[] = "Perform some standard operations to compare DMStag and a collection of DMDAs\n";
 
 /* Proceeds by allowing the user to select one of a set of operations and whether to
-   do it with DMStag or with (a collection of) DMDA(s) */
+   do it with DMStag or with (a collection of) DMDA(s)
+
+   Note that, since this is a performance test, there is no output to stdout, by default.  */
 
 #include <petscdm.h>
 #include <petscdmstag.h>
@@ -10,10 +12,16 @@ static char help[] = "Perform some standard operations to compare DMStag and a c
 
 /* Supply one of these with -test  */
 typedef enum {
-  STAGTEST=0,
-  DATEST1=1,
-  DATEST2=2
+  STAGTEST = 0, /* Use DMStag */
+  DATEST1  = 1, /* Use DMDA with uniform blocksize */
+  DATEST2  = 2  /* Use 8 DMDAs */
 } Test;
+
+/* Supply one of these with -op */
+typedef enum {
+  OP_NONE = 0,
+  OP_CREATE_GLOBAL_VEC = 1
+} Op;
 
 int main(int argc,char **argv)
 {
@@ -21,7 +29,7 @@ int main(int argc,char **argv)
   DM             dm,dms[8];
   PetscInt       dof0,dof1,dof2,dof3,stencilWidth,Nx,Ny,Nz,i;
   PetscLogStage  creationStage,mainStage,destructionStage;
-  PetscInt       test;
+  PetscInt       test,op;
 
   /* Initialize and obtain parameters */
   ierr = PetscInitialize(&argc,&argv,(char*)0,help);if (ierr) return ierr;
@@ -33,7 +41,7 @@ int main(int argc,char **argv)
   dof2 = 1;
   dof3 = 1;
   stencilWidth = 1;
-  Nx = 30;
+  Nx = 100;
   ierr = PetscOptionsGetInt(NULL,NULL,"-Nx",&Nx,NULL);CHKERRQ(ierr);
   Ny = Nx;
   ierr = PetscOptionsGetInt(NULL,NULL,"-Ny",&Ny,NULL);CHKERRQ(ierr);
@@ -41,12 +49,14 @@ int main(int argc,char **argv)
   ierr = PetscOptionsGetInt(NULL,NULL,"-Nz",&Nz,NULL);CHKERRQ(ierr);
   test = STAGTEST;
   ierr = PetscOptionsGetInt(NULL,NULL,"-test",&test,NULL);CHKERRQ(ierr);
+  op = OP_NONE;
+  ierr = PetscOptionsGetInt(NULL,NULL,"-op",&op,NULL);CHKERRQ(ierr);
 
   /* STAGE : creation */
   // Note: we are only concerned with benchmarking well-balanced 3d problems for now
   ierr = PetscLogStagePush(creationStage);CHKERRQ(ierr);
   if (test == STAGTEST) {
-    ierr = DMStagCreate3d(PETSC_COMM_WORLD,DM_BOUNDARY_NONE,DM_BOUNDARY_NONE,DM_BOUNDARY_NONE,Nx,Ny,Nz,PETSC_DECIDE,PETSC_DECIDE,PETSC_DECIDE,dof0,dof1,dof2,dof3,DMSTAG_GHOST_STENCIL_BOX,stencilWidth,NULL,NULL,NULL,&dm);CHKERRQ(ierr);
+    ierr = DMStagCreate3d(PETSC_COMM_WORLD,DM_BOUNDARY_NONE,DM_BOUNDARY_NONE,DM_BOUNDARY_NONE,Nx,Ny,Nz,PETSC_DECIDE,PETSC_DECIDE,PETSC_DECIDE,dof0,dof1,dof2,dof3,DMSTAG_STENCIL_BOX,stencilWidth,NULL,NULL,NULL,&dm);CHKERRQ(ierr);
   ierr = DMSetFromOptions(dm);CHKERRQ(ierr); // Use sparingly (for debugging)! Tests should compare the same functionality, remember.
   ierr = DMSetUp(dm);CHKERRQ(ierr);
   } else if (test == DATEST1) {
@@ -80,11 +90,13 @@ int main(int argc,char **argv)
 
   /* STAGE: main operation */
   ierr = PetscLogStagePush(mainStage);CHKERRQ(ierr);
-  {
+  if (op == OP_NONE) {
+    /* Empty */
+  } else if (op == OP_CREATE_GLOBAL_VEC) {
     Vec x;
     ierr = DMCreateGlobalVector(dm,&x);CHKERRQ(ierr);
     ierr = VecDestroy(&x);CHKERRQ(ierr);
-  }
+  } else SETERRQ1(PETSC_COMM_WORLD,PETSC_ERR_ARG_OUTOFRANGE,"Unsupported op %D",op);CHKERRQ(ierr);
   ierr = PetscLogStagePop();CHKERRQ(ierr);
 
   /* STAGE: destruction */
