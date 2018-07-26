@@ -2,8 +2,6 @@
 #include <stdio.h>
 #include <petsc.h> // Note that we still have work to do guarding for the non-PETSc case (probably define STAGBL_HAVE_PETSC in a configured include file eventually)
 
-// Note: there is obviously going to be a lot of overlap between the 2d and 3d demos. For now, they are entirely separate, as independent miniapps, but in the future, it might evnetually make sense to make them share some source code.
-
 /* Shorter, more convenient names for DMStagLocation entries */
 #define BACK_DOWN_LEFT   DMSTAG_BACK_DOWN_LEFT
 #define BACK_DOWN        DMSTAG_BACK_DOWN
@@ -92,7 +90,7 @@ int main(int argc, char** argv)
   MPI_Comm_size(comm,&size);
   MPI_Comm_rank(comm,&rank);
   if (rank == 0) {
-    printf("=== StagBLDemo2d ===\n");
+    printf("=== StagBLDemo3d ===\n");
     printf("%d ranks\n",size);
   }
   MPI_Barrier(comm);
@@ -233,9 +231,8 @@ static PetscErrorCode CreateSystem(const Ctx ctx,Mat *pA,Vec *pRhs)
   ierr = DMGetLocalVector(ctx->dmCoeff,&coeffLocal);CHKERRQ(ierr);
   ierr = DMGlobalToLocalBegin(ctx->dmCoeff,ctx->coeff,INSERT_VALUES,coeffLocal);CHKERRQ(ierr);
   ierr = DMGlobalToLocalEnd(ctx->dmCoeff,ctx->coeff,INSERT_VALUES,coeffLocal);CHKERRQ(ierr);
-  // TODO these coeffs aren't used
 
-  // TODO the rst of this fucntion is bogus, from ex3
+  // TODO the rest of this function is a placeholder, from DMStag tutorial 3. To be replaced by an actual stokes sytem.
   for (ez = startz; ez<startz+nz; ++ez) { /* With DMStag, always iterate x fastest, y second fastest, z slowest */
     for (ey = starty; ey<starty+ny; ++ey) {
       for (ex = startx; ex<startx+nx; ++ex) {
