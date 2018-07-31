@@ -21,7 +21,7 @@ After it is configured,
     export PETSC_DIR=yyy
     export PETSC_ARCH=xxx
     ./configure.py
-    cd demos/StagBLDemo2d
+    cd demos/2d
     make
     ./stagbldemo2d
     paraview & # open out_element.vtr
