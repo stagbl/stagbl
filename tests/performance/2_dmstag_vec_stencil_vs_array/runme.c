@@ -17,11 +17,11 @@ typedef enum {
   TEST_STENCIL3   = 4,
 } Test;
 
+PetscErrorCode TestArrayDMDA(Vec);
 PetscErrorCode TestArray(Vec);
 PetscErrorCode TestStencil(Vec);
 PetscErrorCode TestStencil2(Vec);
 PetscErrorCode TestStencil3(Vec);
-PetscErrorCode TestArrayDMDA(Vec);
 
 int main(int argc,char **argv)
 {
@@ -65,9 +65,8 @@ int main(int argc,char **argv)
   ierr = PetscLogStagePop();CHKERRQ(ierr);
   /*****************************************************************************/
 
-
   if (test != TEST_ARRAY_DMDA) {
-    ierr = DMStagGetDOF(dm,&dof0,&dof1,&dof2,&dof2);CHKERRQ(ierr);
+    ierr = DMStagGetDOF(dm,&dof0,&dof1,&dof2,&dof3);CHKERRQ(ierr);
     if (dof0 != 1 || dof1 != 1 || dof2 != 1 || dof3 != 1) SETERRQ(PetscObjectComm((PetscObject)dm),PETSC_ERR_SUP,"Dof on all strata must be 1");
   }
 
@@ -223,13 +222,14 @@ PetscErrorCode TestStencil(Vec vec)
   PetscFunctionReturn(0);
 }
 
+#if 1
 PetscErrorCode TestStencil2(Vec vec)
 {
-  PetscErrorCode        ierr;
-  DM                    dm;
-  PetscInt              startx,starty,startz,nx,ny,nz,i,j,k;
-  DMStagStencil         pos[8]; /* Not appropriate if you change dof! */
-  PetscScalar           val[8];
+  PetscErrorCode ierr;
+  DM             dm;
+  PetscInt       startx,starty,startz,nx,ny,nz,i,j,k;
+  DMStagStencil  pos[8]; /* Not appropriate if you change dof! */
+  PetscScalar    val[8];
 
   PetscFunctionBeginUser;
   ierr = VecGetDM(vec,&dm);CHKERRQ(ierr);
@@ -253,6 +253,64 @@ PetscErrorCode TestStencil2(Vec vec)
   ierr = VecAssemblyEnd(vec);CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
+#else
+/* A marginally-faster variant */
+PetscErrorCode TestStencil2(Vec vec)
+{
+  PetscErrorCode ierr;
+  DM             dm;
+  PetscInt       startx,starty,startz,nx,ny,nz,i,j,k;
+  DMStagStencil  pos[8]; /* Not appropriate if you change dof! */
+  PetscScalar    val[8];
+
+  PetscFunctionBeginUser;
+  ierr = VecGetDM(vec,&dm);CHKERRQ(ierr);
+  ierr = DMStagGetCorners(dm,&startx,&starty,&startz,&nx,&ny,&nz,NULL,NULL,NULL);CHKERRQ(ierr);
+  pos[0].loc = DMSTAG_BACK_DOWN_LEFT; pos[0].c = 0;
+  pos[1].loc = DMSTAG_BACK_DOWN;      pos[1].c = 0;
+  pos[2].loc = DMSTAG_BACK_LEFT;      pos[2].c = 0;
+  pos[3].loc = DMSTAG_BACK;           pos[3].c = 0;
+  pos[4].loc = DMSTAG_DOWN_LEFT;      pos[4].c = 0;
+  pos[5].loc = DMSTAG_DOWN;           pos[5].c = 0;
+  pos[6].loc = DMSTAG_LEFT;           pos[6].c = 0;
+  pos[7].loc = DMSTAG_ELEMENT;        pos[7].c = 0;
+  for (k=startz; k<startz + nz; ++k) {
+    pos[0].k = k;
+    pos[1].k = k;
+    pos[2].k = k;
+    pos[3].k = k;
+    pos[4].k = k;
+    pos[5].k = k;
+    pos[6].k = k;
+    pos[7].k = k;
+    for (j=starty; j<starty + ny; ++j) {
+      pos[0].j = j;
+      pos[1].j = j;
+      pos[2].j = j;
+      pos[3].j = j;
+      pos[4].j = j;
+      pos[5].j = j;
+      pos[6].j = j;
+      pos[7].j = j;
+      for (i=startx; i<startx + nx; ++i) {
+        pos[0].i = i;  val[0] = i+j+k;
+        pos[1].i = i;  val[1] = i+j+k+1;
+        pos[2].i = i;  val[2] = i+j+k+2;
+        pos[3].i = i;  val[3] = i+j+k+3;
+        pos[4].i = i;  val[4] = i+j+k+4;
+        pos[5].i = i;  val[5] = i+j+k+5;
+        pos[6].i = i;  val[6] = i+j+k+6;
+        pos[7].i = i;  val[7] = i+j+k+7;
+        ierr = DMStagVecSetValuesStencil(dm,vec,8,pos,val,INSERT_VALUES);CHKERRQ(ierr);
+      }
+    }
+  }
+  ierr = VecAssemblyBegin(vec);CHKERRQ(ierr);
+  ierr = VecAssemblyEnd(vec);CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
+#endif
 
 PetscErrorCode TestStencil3(Vec vec)
 {
