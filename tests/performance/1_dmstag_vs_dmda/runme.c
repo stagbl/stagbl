@@ -3,11 +3,11 @@ static char help[] = "Perform some standard operations to compare DMStag and a c
 /* Proceeds by allowing the user to select one of a set of operations and whether to
    do it with DMStag or with (a collection of) DMDA(s)
 
-   Note that, since this is a performance test, there is no output to stdout, by default.  
-   
+   Note that, since this is a performance test, there is no output to stdout, by default
+   (Use -log_summary).
+
    Note that we don't call DMSetFromOptions() here, so DMStag/DMDA-specific command
-   line options won't work.
-*/
+   line options won't work.  */
 
 #include <petscdm.h>
 #include <petscdmstag.h>

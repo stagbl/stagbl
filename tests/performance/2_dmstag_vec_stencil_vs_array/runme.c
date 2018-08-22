@@ -1,5 +1,8 @@
 static char help[] = "Compare performance for stencil- and array-based vector entry access, using DMStag";
 
+/* Note: for the control case, with DMDA, the command line options are different!
+         Thus, use -Nx instead of -stag_grid_x etc. */
+
 #include <petscdm.h>
 #include <petscdmstag.h>
 #include <petscdmda.h>
@@ -7,16 +10,18 @@ static char help[] = "Compare performance for stencil- and array-based vector en
 
 /* Supply one of these with -test  */
 typedef enum {
-  TEST_ARRAY    = 0,
-  TEST_STENCIL  = 1,
-  TEST_STENCIL2 = 2, /* Probably the most typical stencil use */
-  TEST_STENCIL3 = 3
+  TEST_ARRAY_DMDA = 0, /* Control */
+  TEST_ARRAY      = 1,
+  TEST_STENCIL    = 2,
+  TEST_STENCIL2   = 3, /* Probably the most typical stencil use */
+  TEST_STENCIL3   = 4,
 } Test;
 
 PetscErrorCode TestArray(Vec);
 PetscErrorCode TestStencil(Vec);
 PetscErrorCode TestStencil2(Vec);
 PetscErrorCode TestStencil3(Vec);
+PetscErrorCode TestArrayDMDA(Vec);
 
 int main(int argc,char **argv)
 {
@@ -49,7 +54,11 @@ int main(int argc,char **argv)
 
   /***** STAGE : creation ******************************************************/
   ierr = PetscLogStagePush(creationStage);CHKERRQ(ierr);
-  ierr = DMStagCreate3d(PETSC_COMM_WORLD,DM_BOUNDARY_NONE,DM_BOUNDARY_NONE,DM_BOUNDARY_NONE,Nx,Ny,Nz,PETSC_DECIDE,PETSC_DECIDE,PETSC_DECIDE,dof0,dof1,dof2,dof3,DMSTAG_STENCIL_BOX,stencilWidth,NULL,NULL,NULL,&dm);CHKERRQ(ierr);
+  if (test == TEST_ARRAY_DMDA) {
+    ierr = DMDACreate3d(PETSC_COMM_WORLD,DM_BOUNDARY_NONE,DM_BOUNDARY_NONE,DM_BOUNDARY_NONE,DMDA_STENCIL_BOX,Nx,Ny,Nz,PETSC_DECIDE,PETSC_DECIDE,PETSC_DECIDE,dof0+3*dof1+3*dof2+dof3,stencilWidth,NULL,NULL,NULL,&dm);CHKERRQ(ierr);
+  } else {
+    ierr = DMStagCreate3d(PETSC_COMM_WORLD,DM_BOUNDARY_NONE,DM_BOUNDARY_NONE,DM_BOUNDARY_NONE,Nx,Ny,Nz,PETSC_DECIDE,PETSC_DECIDE,PETSC_DECIDE,dof0,dof1,dof2,dof3,DMSTAG_STENCIL_BOX,stencilWidth,NULL,NULL,NULL,&dm);CHKERRQ(ierr);
+  }
   ierr = DMSetFromOptions(dm);CHKERRQ(ierr);
   ierr = DMSetUp(dm);CHKERRQ(ierr);
   ierr = DMGetGlobalVector(dm,&vec);CHKERRQ(ierr);
@@ -57,9 +66,10 @@ int main(int argc,char **argv)
   /*****************************************************************************/
 
 
-  ierr = DMStagGetDOF(dm,&dof0,&dof1,&dof2,&dof2);CHKERRQ(ierr);
-  if (dof0 != 1 || dof1 != 1 || dof2 != 1 || dof3 != 1) SETERRQ(PetscObjectComm((PetscObject)dm),PETSC_ERR_SUP,"Dof on all strata must be 1");
-
+  if (test != TEST_ARRAY_DMDA) {
+    ierr = DMStagGetDOF(dm,&dof0,&dof1,&dof2,&dof2);CHKERRQ(ierr);
+    if (dof0 != 1 || dof1 != 1 || dof2 != 1 || dof3 != 1) SETERRQ(PetscObjectComm((PetscObject)dm),PETSC_ERR_SUP,"Dof on all strata must be 1");
+  }
 
   /* *** STAGE: main operation *************************************************/
   ierr = PetscLogStagePush(mainStage);CHKERRQ(ierr);
@@ -75,6 +85,9 @@ int main(int argc,char **argv)
       break;
     case TEST_STENCIL3:
       ierr = TestStencil3(vec); CHKERRQ(ierr);
+      break;
+    case TEST_ARRAY_DMDA:
+      ierr = TestArrayDMDA(vec); CHKERRQ(ierr);
       break;
     default: SETERRQ1(PETSC_COMM_WORLD,PETSC_ERR_ARG_OUTOFRANGE,"Unsupported test %D",test);CHKERRQ(ierr);
   }
@@ -92,6 +105,77 @@ int main(int argc,char **argv)
   /* Finalize */
   ierr = PetscFinalize();
   return ierr;
+}
+
+PetscErrorCode TestArrayDMDA(Vec vec)
+{
+  PetscErrorCode ierr;
+  DM                    dm;
+  Vec                   vecLocal;
+  PetscScalar           ****arr;
+  PetscInt              startx,starty,startz,nx,ny,nz,i,j,k,s;
+
+  PetscFunctionBeginUser;
+  ierr = VecGetDM(vec,&dm);CHKERRQ(ierr);
+  ierr = DMGetLocalVector(dm,&vecLocal);CHKERRQ(ierr);
+  ierr = DMDAGetCorners(dm,&startx,&starty,&startz,&nx,&ny,&nz);CHKERRQ(ierr);
+  ierr = DMDAVecGetArrayDOF(dm,vecLocal,&arr);CHKERRQ(ierr);
+  for (k=startz; k<startz + nz; ++k) {
+    for (j=starty; j<starty + ny; ++j) {
+      for (i=startx; i<startx + nx; ++i) {
+        for (s=0; s<8; ++s) {
+          arr[k][j][i][s] = i + j + k + s; /* No lookup for s! */
+        }
+      }
+    }
+  }
+  ierr = DMDAVecRestoreArrayDOF(dm,vecLocal,&arr);CHKERRQ(ierr);
+  ierr = DMLocalToGlobalBegin(dm,vecLocal,INSERT_VALUES,vec);CHKERRQ(ierr);
+  ierr = DMLocalToGlobalEnd(dm,vecLocal,INSERT_VALUES,vec);CHKERRQ(ierr);
+  ierr = DMRestoreLocalVector(dm,&vecLocal);CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TestArray(Vec vec)
+{
+  PetscErrorCode ierr;
+  DM                    dm;
+  Vec                   vecLocal;
+  PetscScalar           ****arr;
+  PetscInt              startx,starty,startz,nx,ny,nz,i,j,k,s;
+  DMStagStencilLocation loc[8];
+  PetscInt              slot[8];
+
+  PetscFunctionBeginUser;
+  ierr = VecGetDM(vec,&dm);CHKERRQ(ierr);
+  ierr = DMGetLocalVector(dm,&vecLocal);CHKERRQ(ierr);
+  ierr = DMStagGetCorners(dm,&startx,&starty,&startz,&nx,&ny,&nz,NULL,NULL,NULL);CHKERRQ(ierr);
+  loc[0] = DMSTAG_BACK_DOWN_LEFT;
+  loc[1] = DMSTAG_BACK_DOWN;
+  loc[2] = DMSTAG_BACK_LEFT;
+  loc[3] = DMSTAG_BACK;
+  loc[4] = DMSTAG_DOWN_LEFT;
+  loc[5] = DMSTAG_DOWN;
+  loc[6] = DMSTAG_LEFT;
+  loc[7] = DMSTAG_ELEMENT;
+  for (s=0; s<8; ++s) {
+    ierr = DMStagGetLocationSlot(dm,loc[s],0,&slot[s]);CHKERRQ(ierr);
+  }
+  ierr = DMStagVecGetArrayDOF(dm,vecLocal,&arr);CHKERRQ(ierr);
+  for (k=startz; k<startz + nz; ++k) {
+    for (j=starty; j<starty + ny; ++j) {
+      for (i=startx; i<startx + nx; ++i) {
+        for (s=0; s<8; ++s) {
+            arr[k][j][i][slot[s]] = i + j + k + s;
+        }
+      }
+    }
+  }
+  ierr = DMStagVecRestoreArrayDOF(dm,vecLocal,&arr);CHKERRQ(ierr);
+  ierr = DMLocalToGlobalBegin(dm,vecLocal,INSERT_VALUES,vec);CHKERRQ(ierr);
+  ierr = DMLocalToGlobalEnd(dm,vecLocal,INSERT_VALUES,vec);CHKERRQ(ierr);
+  ierr = DMRestoreLocalVector(dm,&vecLocal);CHKERRQ(ierr);
+  PetscFunctionReturn(0);
 }
 
 PetscErrorCode TestStencil(Vec vec)
@@ -204,47 +288,5 @@ PetscErrorCode TestStencil3(Vec vec)
   ierr = PetscFree(val);CHKERRQ(ierr);
   ierr = VecAssemblyBegin(vec);CHKERRQ(ierr);
   ierr = VecAssemblyEnd(vec);CHKERRQ(ierr);
-  PetscFunctionReturn(0);
-}
-
-PetscErrorCode TestArray(Vec vec)
-{
-  PetscErrorCode ierr;
-  DM                    dm;
-  Vec                   vecLocal;
-  PetscScalar           ****arr;
-  PetscInt              startx,starty,startz,nx,ny,nz,i,j,k,s;
-  DMStagStencilLocation loc[8];
-  PetscInt              slot[8];
-
-  PetscFunctionBeginUser;
-  ierr = VecGetDM(vec,&dm);CHKERRQ(ierr);
-  ierr = DMGetLocalVector(dm,&vecLocal);CHKERRQ(ierr);
-  ierr = DMStagGetCorners(dm,&startx,&starty,&startz,&nx,&ny,&nz,NULL,NULL,NULL);CHKERRQ(ierr);
-  loc[0] = DMSTAG_BACK_DOWN_LEFT;
-  loc[1] = DMSTAG_BACK_DOWN;
-  loc[2] = DMSTAG_BACK_LEFT;
-  loc[3] = DMSTAG_BACK;
-  loc[4] = DMSTAG_DOWN_LEFT;
-  loc[5] = DMSTAG_DOWN;
-  loc[6] = DMSTAG_LEFT;
-  loc[7] = DMSTAG_ELEMENT;
-  for (s=0; s<8; ++s) {
-    ierr = DMStagGetLocationSlot(dm,loc[s],0,&slot[s]);CHKERRQ(ierr);
-  }
-  ierr = DMStagVecGetArrayDOF(dm,vecLocal,&arr);CHKERRQ(ierr);
-  for (k=startz; k<startz + nz; ++k) {
-    for (j=starty; j<starty + ny; ++j) {
-      for (i=startx; i<startx + nx; ++i) {
-        for (s=0; s<8; ++s) {
-            arr[k][j][i][slot[s]] = i + j + k + s;
-        }
-      }
-    }
-  }
-  ierr = DMStagVecRestoreArrayDOF(dm,vecLocal,&arr);CHKERRQ(ierr);
-  ierr = DMLocalToGlobalBegin(dm,vecLocal,INSERT_VALUES,vec);CHKERRQ(ierr);
-  ierr = DMLocalToGlobalEnd(dm,vecLocal,INSERT_VALUES,vec);CHKERRQ(ierr);
-  ierr = DMRestoreLocalVector(dm,&vecLocal);CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
