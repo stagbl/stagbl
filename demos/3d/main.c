@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include <petsc.h> // Note that we still have work to do guarding for the non-PETSc case (probably define STAGBL_HAVE_PETSC in a configured include file eventually)
 
+// TODO add log stages
+
 /* Shorter, more convenient names for DMStagLocation entries */
 #define BACK_DOWN_LEFT   DMSTAG_BACK_DOWN_LEFT
 #define BACK_DOWN        DMSTAG_BACK_DOWN
