@@ -11,7 +11,7 @@ static char help[] = "Compare performance for stencil- and array-based vector en
 /* Supply one of these with -test  */
 typedef enum {
   TEST_ARRAY_DMDA = 0, /* Control */
-  TEST_ARRAY      = 1,
+  TEST_ARRAY      = 1, /* Typical array use */
   TEST_STENCIL    = 2,
   TEST_STENCIL2   = 3, /* Probably the most typical stencil use */
   TEST_STENCIL3   = 4,
@@ -73,6 +73,9 @@ int main(int argc,char **argv)
   /* *** STAGE: main operation *************************************************/
   ierr = PetscLogStagePush(mainStage);CHKERRQ(ierr);
   switch (test) {
+    case TEST_ARRAY_DMDA:
+      ierr = TestArrayDMDA(vec); CHKERRQ(ierr);
+      break;
     case TEST_ARRAY:
       ierr = TestArray(vec); CHKERRQ(ierr);
       break;
@@ -84,9 +87,6 @@ int main(int argc,char **argv)
       break;
     case TEST_STENCIL3:
       ierr = TestStencil3(vec); CHKERRQ(ierr);
-      break;
-    case TEST_ARRAY_DMDA:
-      ierr = TestArrayDMDA(vec); CHKERRQ(ierr);
       break;
     default: SETERRQ1(PETSC_COMM_WORLD,PETSC_ERR_ARG_OUTOFRANGE,"Unsupported test %D",test);CHKERRQ(ierr);
   }
@@ -109,10 +109,10 @@ int main(int argc,char **argv)
 PetscErrorCode TestArrayDMDA(Vec vec)
 {
   PetscErrorCode ierr;
-  DM                    dm;
-  Vec                   vecLocal;
-  PetscScalar           ****arr;
-  PetscInt              startx,starty,startz,nx,ny,nz,i,j,k,s;
+  DM             dm;
+  Vec            vecLocal;
+  PetscScalar    ****arr;
+  PetscInt       startx,starty,startz,nx,ny,nz,i,j,k,s;
 
   PetscFunctionBeginUser;
   ierr = VecGetDM(vec,&dm);CHKERRQ(ierr);
@@ -137,7 +137,7 @@ PetscErrorCode TestArrayDMDA(Vec vec)
 
 PetscErrorCode TestArray(Vec vec)
 {
-  PetscErrorCode ierr;
+  PetscErrorCode        ierr;
   DM                    dm;
   Vec                   vecLocal;
   PetscScalar           ****arr;
@@ -314,11 +314,11 @@ PetscErrorCode TestStencil2(Vec vec)
 
 PetscErrorCode TestStencil3(Vec vec)
 {
-  PetscErrorCode        ierr;
-  DM                    dm;
-  PetscInt              startx,starty,startz,nx,ny,nz,i,j,k,nEntries;
-  DMStagStencil         *pos;
-  PetscScalar           *val;
+  PetscErrorCode ierr;
+  DM             dm;
+  PetscInt       startx,starty,startz,nx,ny,nz,i,j,k,nEntries;
+  DMStagStencil  *pos;
+  PetscScalar    *val;
 
   PetscFunctionBeginUser;
   ierr = VecGetDM(vec,&dm);CHKERRQ(ierr);
