@@ -11,6 +11,7 @@
 #################################################################################
 import os
 import sys
+import json
 
 try:
     import argparse
@@ -53,6 +54,7 @@ def main():
 def configure(args):
     open(os.path.join(args.arch,'variables.mk'), 'w').write(variables(args))
     open(os.path.join(args.arch,'Makefile'), 'w').write(makefile(args))
+    dumpinfo(args)
     print('Configuration complete in: %s' % os.path.realpath(args.arch))
     print('To build:')
     print('make -j3 -C %s' % args.arch)
@@ -94,5 +96,14 @@ def makefile(args):
     m.append('include $(STAGBL_DIR)/stagbl.mk\n')
     return '\n'.join(m)
 
+def dumpinfo(args):
+    data = {}
+    data['command'] = ' '.join(sys.argv)
+    data['with_petsc'] = args.with_petsc
+    print(data)
+    with open(os.path.join(args.arch,'config.json'),'w') as f :
+        json.dump(data,f)
+
 if __name__ == "__main__" :
     main()
+
