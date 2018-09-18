@@ -1,4 +1,4 @@
-static char help[] = "Compare performance for stencil- and array-based vector entry access, using DMStag";
+static char help[] = "Compare performance for stencil- and array-based vector entry access, using DMStag. Typically, use with -log_view and -Nx <size> options";
 
 /* Note: for the control case, with DMDA, the command line options are different!
          Thus, use -Nx instead of -stag_grid_x etc. */
