@@ -2,6 +2,9 @@
 build
 arch-*
 
+# Testing harness
+pythontestharness
+
 # OS X
 *.DS_Store
 

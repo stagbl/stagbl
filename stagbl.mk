@@ -3,6 +3,8 @@
 
 OBJDIR ?= obj
 LIBDIR ?= lib
+BINDIR ?= bin
+TESTDIR ?= test
 
 all : library
 
@@ -47,3 +49,26 @@ srcs.d := $(srcs.o:%.o=%.d)
 $(srcs.d) : ;
 
 -include $(srcs.d)
+
+# Demo applications for testing and convenience. Since these are mainly
+# intended as standalone example of using the library, we use a phony target
+# to clean and rebuild them with their own makefiles, clumsily moving the resulting
+# binary.
+demos : library $(BINDIR)/.DIR
+	$(MAKE) -C $(STAGBL_DIR)/demos/2d clean
+	$(MAKE) -C $(STAGBL_DIR)/demos/2d
+	mv $(STAGBL_DIR)/demos/2d/stagbldemo2d $(BINDIR)
+	$(MAKE) -C $(STAGBL_DIR)/demos/3d clean
+	$(MAKE) -C $(STAGBL_DIR)/demos/3d
+	mv $(STAGBL_DIR)/demos/3d/stagbldemo3d $(BINDIR)
+
+.PHONY: demos
+
+# Tests
+test : demos $(TESTDIR)/.DIR
+	cd $(TESTDIR)	&& $(STAGBL_DIR)/tests/runTests.py -w pth.conf
+
+test_clean : $(TESTDIR)/.DIR
+	cd $(TESTDIR) && $(STAGBL_DIR)/tests/runTests.py -w pth.conf -p
+
+.PHONY: test test_clean

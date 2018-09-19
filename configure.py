@@ -58,6 +58,8 @@ def configure(args):
     print('Configuration complete in: %s' % os.path.realpath(args.arch))
     print('To build:')
     print('make -j3 -C %s' % args.arch)
+    print('To test:')
+    print('make -j3 -C %s test' % args.arch)
 
 def variables(args):
     if args.CC:
