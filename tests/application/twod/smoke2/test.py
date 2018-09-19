@@ -10,7 +10,7 @@ def test() :
         raise RuntimeError('STAGBL_ARCH not defined in environment')
     thisDir = os.path.split(os.path.abspath(__file__))[0]
     testName = os.path.relpath(thisDir,os.path.join(STAGBL_DIR,'tests')).replace(os.sep,'.')
-    ranks = 1
+    ranks = 2
     launch = os.path.join(STAGBL_DIR,STAGBL_ARCH,'bin','stagbldemo2d')
     expectedFile = os.path.join(thisDir,'expected')
 

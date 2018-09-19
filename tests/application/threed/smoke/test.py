@@ -11,7 +11,7 @@ def test() :
     thisDir = os.path.split(os.path.abspath(__file__))[0]
     testName = os.path.relpath(thisDir,os.path.join(STAGBL_DIR,'tests')).replace(os.sep,'.')
     ranks = 1
-    launch = os.path.join(STAGBL_DIR,STAGBL_ARCH,'bin','stagbldemo2d')
+    launch = os.path.join(STAGBL_DIR,STAGBL_ARCH,'bin','stagbldemo3d') + '-stag_grid_x 5 -stag_grid_y 5 -stag_grid_z 5'
     expectedFile = os.path.join(thisDir,'expected')
 
     # Do nothing (test will almost certainly pass)
