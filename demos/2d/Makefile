@@ -17,7 +17,7 @@ include $(STAGBL_DIR)/rules.mk
 STAGBL_LIB = -L$(STAGBL_DIR)/$(STAGBL_ARCH)/lib/ -lstagbl
 
 $(EXNAME) : main.o
-	$(STAGBL_LINK) $< $(STAGBL_LIB)  $(PETSC_LIB)
+	$(STAGBL_LINK) $< $(STAGBL_LIB) $(PETSC_LIB)
 
 clean :
 	rm -f  $(EXNAME)
