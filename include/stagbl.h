@@ -2,9 +2,9 @@
 #define STAGBL_H_
 
 // Hard-coding for now (later put in generated header)
-#define STAGBL_HAVE_PETSC
+#define STAGBL_WITH_PETSC
 
-#if defined(STAGBL_HAVE_PETSC)
+#if defined(STAGBL_WITH_PETSC)
 #include <petsc.h>
 #endif
 #include <mpi.h>
@@ -19,7 +19,7 @@ void StagBLGridCreate(StagBLGrid*);
 void StagBLGridDestroy(StagBLGrid*);
 
 // StagBLGrid impls
-#if defined (STAGBL_HAVE_PETSC)
+#if defined (STAGBL_WITH_PETSC)
 #define STAGBLGRIDPETSC "petsc"
 void StagBLGridCreate_PETSc(StagBLGrid);
 void StagBLGridPETScGetDMPointer(StagBLGrid,DM**);
@@ -32,7 +32,7 @@ void StagBLArrayCreate(StagBLArray*);
 void StagBLArrayDestroy(StagBLArray*);
 
 // StagBLArray impls
-#if defined (STAGBL_HAVE_PETSC)
+#if defined (STAGBL_WITH_PETSC)
 #define STAGBLARRAYPETSC "petsc"
 void StagBLArrayCreate_PETSc(StagBLArray);
 void StagBLArrayPETScGetVecPointer(StagBLArray,Vec**);
@@ -45,7 +45,7 @@ void StagBLOperatorCreate(StagBLOperator*);
 void StagBLOperatorDestroy(StagBLOperator*);
 
 // StagBLOperator impls
-#if defined (STAGBL_HAVE_PETSC)
+#if defined (STAGBL_WITH_PETSC)
 #define STAGBLOPERATORPETSC "petsc"
 void StagBLOperatorCreate_PETSc(StagBLOperator);
 void StagBLOperatorPETScGetMatPointer(StagBLOperator,Mat**);
@@ -58,7 +58,7 @@ void StagBLLinearSolverCreate(StagBLLinearSolver*);
 void StagBLLinearSolverDestroy(StagBLLinearSolver*);
 
 // StagBLLinearSolver impls
-#if defined (STAGBL_HAVE_PETSC)
+#if defined (STAGBL_WITH_PETSC)
 #define STAGBLLINEARSOLVERPETSC "petsc"
 void StagBLLinearSolverCreate_PETSc(StagBLLinearSolver);
 void StagBLLinearSolverPETScGetKSPPointer(StagBLLinearSolver,KSP**);
