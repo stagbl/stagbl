@@ -76,7 +76,12 @@ def variables(args):
          'STAGBL_LDFLAGS = %s' % args.LDFLAGS,
          'STAGBL_LDLIBS = %s' % args.LDLIBS,
          'SRCDIR = %s' % os.path.abspath(os.path.dirname(__name__)),
-         'STAGBL_DIR = %s' % os.path.abspath(os.path.dirname(__name__)),] # the same as SRCDIR
+         'STAGBL_DIR = %s' % os.path.abspath(os.path.dirname(__name__)), # the same as SRCDIR
+         ]
+    if args.with_petsc :
+        m.append('STAGBL_LIB = -L$(STAGBL_DIR)/$(STAGBL_ARCH)/lib -lstagbl $(PETSC_LIB)')
+    else :
+        m.append('STAGBL_LIB = -L$(STAGBL_DIR)/$(STAGBL_ARCH)/lib -lstagbl')
     if args.with_petsc:
         if not args.petsc_dir:
             raise RuntimeError('PETSC_DIR must be provided if using PETSc')

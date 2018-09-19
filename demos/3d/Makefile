@@ -13,11 +13,8 @@ include $(STAGBL_DIR)/rules.mk
 %.o: %.c
 	$(STAGBL_COMPILE.c) $< -o $@
 
-STAGBL_LIB = -L$(STAGBL_DIR)/$(STAGBL_ARCH)/lib/ -lstagbl
-
-# Note: it's not great that I have to include the PETSc lib here. Would be better to have things like this in variables.mk already
 $(EXNAME) : main.o
-	$(STAGBL_LINK) $< $(STAGBL_LIB) $(PETSC_LIB)
+	$(STAGBL_LINK) $< $(STAGBL_LIB)
 
 clean :
 	rm -f  $(EXNAME)

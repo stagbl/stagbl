@@ -39,7 +39,7 @@ $(OBJDIR)/%.o: $(SRCDIR)/%.c | $$(@D)/.DIR
 .PHONY: all clean print
 
 clean:
-	rm -rf $(OBJDIR) $(LIBDIR)
+	rm -rf $(OBJDIR) $(LIBDIR) $(BINDIR) $(TESTDIR)
 
 srcs.c := $(libstagbl-y.c)
 srcs.o := $(call srctoobj,$(srcs.c))
@@ -64,8 +64,21 @@ demos : library $(BINDIR)/.DIR
 
 .PHONY: demos
 
-# Tests
-test : demos $(TESTDIR)/.DIR
+# Additional Test Executables
+tests : \
+	$(BINDIR)/test_dmstag_vs_dmda \
+	$(BINDIR)/test_dmstag_vec_stencil_vs_array
+
+# TODO this sucks: hard-coded paths
+$(BINDIR)/test_dmstag_vs_dmda : $(OBJDIR)/src/tests/performance/test_dmstag_vs_dmda.o library | $$(@D)/.DIR
+	$(STAGBL_LINK) $< $(STAGBL_LIB)
+$(BINDIR)/test_dmstag_vec_stencil_vs_array : $(OBJDIR)/src/tests/performance/test_dmstag_vec_stencil_vs_array.o library | $$(@D)/.DIR
+	$(STAGBL_LINK) $< $(STAGBL_LIB)
+
+.PHONY : tests
+
+# Run tests
+test : tests demos $(TESTDIR)/.DIR
 	cd $(TESTDIR)	&& STAGBL_DIR=$(STAGBL_DIR) STAGBL_ARCH=$(STAGBL_ARCH) $(STAGBL_DIR)/tests/runTests.py -w pth.conf
 
 test_clean : $(TESTDIR)/.DIR
