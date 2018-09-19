@@ -21,7 +21,6 @@ include $(STAGBL_DIR)/rules.mk
 libstagbl-y.c :=
 include $(SRCDIR)/local.mk
 
-
 # Build libstagbl from sources here
 libstagbl = $(LIBDIR)/libstagbl.$(AR_LIB_SUFFIX)
 libstagbl : $(libstagbl)
@@ -44,8 +43,7 @@ srcs.c := $(libstagbl-y.c)
 srcs.o := $(call srctoobj,$(srcs.c))
 srcs.d := $(srcs.o:%.o=%.d)
 # Tell make that srcs.d are all up to date.  Without this, the include
-# below has quadratic complexity, taking more than one second for a
-# do-nothing build of PETSc (much worse for larger projects)
+# below has quadratic complexity
 $(srcs.d) : ;
 
 -include $(srcs.d)
