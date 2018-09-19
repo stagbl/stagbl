@@ -11,12 +11,13 @@ def test() :
     thisDir = os.path.split(os.path.abspath(__file__))[0]
     testName = os.path.relpath(thisDir,os.path.join(STAGBL_DIR,'tests')).replace(os.sep,'.')
     ranks = 1
-    launch = os.path.join(STAGBL_DIR,STAGBL_ARCH,'bin','test_dmstag_vs_dmda')
+    launch = os.path.join(STAGBL_DIR,STAGBL_ARCH,'bin','test_dmstag_vs_dmda') + ' -log_view -test 1 '
     expectedFile = os.path.join(thisDir,'expected')
 
-    # Do nothing (test will almost certainly pass)
+    # Check that time doesn't change too much
     def comparefunc(t) :
-        pass
+        tol = 1.0e-1
+        t.compareFloatingPointAbsolute('1:        Creation:',tol)
 
     t = pth.pthUnitTest(testName,ranks,launch,expectedFile)
     t.setUseSandbox()
