@@ -102,7 +102,6 @@ def dumpinfo(args):
     data = {}
     data['command'] = ' '.join(sys.argv)
     data['with_petsc'] = args.with_petsc
-    print(data)
     with open(os.path.join(args.arch,'config.json'),'w') as f :
         json.dump(data,f)
 
