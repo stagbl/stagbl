@@ -66,9 +66,9 @@ demos : library $(BINDIR)/.DIR
 
 # Tests
 test : demos $(TESTDIR)/.DIR
-	cd $(TESTDIR)	&& $(STAGBL_DIR)/tests/runTests.py -w pth.conf
+	cd $(TESTDIR)	&& STAGBL_DIR=$(STAGBL_DIR) STAGBL_ARCH=$(STAGBL_ARCH) $(STAGBL_DIR)/tests/runTests.py -w pth.conf
 
 test_clean : $(TESTDIR)/.DIR
-	cd $(TESTDIR) && $(STAGBL_DIR)/tests/runTests.py -w pth.conf -p
+	cd $(TESTDIR)	&& STAGBL_DIR=$(STAGBL_DIR) STAGBL_ARCH=$(STAGBL_ARCH) $(STAGBL_DIR)/tests/runTests.py -w pth.conf -p
 
 .PHONY: test test_clean
