@@ -69,7 +69,6 @@ int main(int argc,char **argv)
   } else if (test == DATEST2) {
     i = 0;
     ierr = DMDACreate3d(PETSC_COMM_WORLD,DM_BOUNDARY_NONE,DM_BOUNDARY_NONE,DM_BOUNDARY_NONE,DMDA_STENCIL_BOX,Nx,Ny,Nz,PETSC_DECIDE,PETSC_DECIDE,PETSC_DECIDE,dof0,stencilWidth,NULL,NULL,NULL,&dms[i]);CHKERRQ(ierr);
-    ierr = DMSetFromOptions(dms[i]);CHKERRQ(ierr);
     ierr = DMSetUp(dms[i]);CHKERRQ(ierr);
     for (i=1; i<4; ++i) {
       ierr = DMDACreate3d(PETSC_COMM_WORLD,DM_BOUNDARY_NONE,DM_BOUNDARY_NONE,DM_BOUNDARY_NONE,DMDA_STENCIL_BOX,Nx,Ny,Nz,PETSC_DECIDE,PETSC_DECIDE,PETSC_DECIDE,dof1,stencilWidth,NULL,NULL,NULL,&dms[i]);CHKERRQ(ierr);
@@ -102,7 +101,6 @@ int main(int argc,char **argv)
     ierr = VecDestroy(&x);CHKERRQ(ierr);
     ierr = PetscLogStagePop();CHKERRQ(ierr);
   } else if (op == OP_LOCAL_TO_GLOBAL) {
-    if (test == STAGTEST || test == DATEST1) {
       Vec local,global;
       ierr = DMCreateGlobalVector(dm,&global);CHKERRQ(ierr);
       ierr = DMCreateLocalVector(dm,&local);CHKERRQ(ierr);
@@ -112,27 +110,7 @@ int main(int argc,char **argv)
       ierr = PetscLogStagePop();CHKERRQ(ierr);
       ierr = VecDestroy(&global);CHKERRQ(ierr);
       ierr = VecDestroy(&local);CHKERRQ(ierr);
-    } else if (test == DATEST2) {
-      Vec local[8],global[8];
-      for (i=0; i<8; ++i) {
-        ierr = DMCreateGlobalVector(dm,&global[i]);CHKERRQ(ierr);
-        ierr = DMCreateLocalVector(dm,&local[i]);CHKERRQ(ierr);
-      }
-      ierr = PetscLogStagePush(mainStage);CHKERRQ(ierr);
-      for (i=0; i<8; ++i) {
-        ierr = DMLocalToGlobalBegin(dm,local[i],INSERT_VALUES,global[i]);CHKERRQ(ierr);
-      }
-      for (i=0; i<8; ++i) {
-        ierr = DMLocalToGlobalEnd(dm,local[i],INSERT_VALUES,global[i]);CHKERRQ(ierr);
-      }
-      ierr = PetscLogStagePop();CHKERRQ(ierr);
-      for (i=0; i<8; ++i) {
-        ierr = VecDestroy(&global[i]);CHKERRQ(ierr);
-        ierr = VecDestroy(&local[i]);CHKERRQ(ierr);
-      }
-    } else SETERRQ1(PETSC_COMM_WORLD,PETSC_ERR_ARG_OUTOFRANGE,"Unsupported test %D",test);CHKERRQ(ierr);
   } else if (op == OP_GLOBAL_TO_LOCAL) {
-    if (test == STAGTEST || test == DATEST1) {
       Vec local,global;
       ierr = DMCreateGlobalVector(dm,&global);CHKERRQ(ierr);
       ierr = DMCreateLocalVector(dm,&local);CHKERRQ(ierr);
@@ -142,25 +120,6 @@ int main(int argc,char **argv)
       ierr = PetscLogStagePop();CHKERRQ(ierr);
       ierr = VecDestroy(&global);CHKERRQ(ierr);
       ierr = VecDestroy(&local);CHKERRQ(ierr);
-    } else if (test == DATEST2) {
-      Vec local[8],global[8];
-      for (i=0; i<8; ++i) {
-        ierr = DMCreateGlobalVector(dm,&global[i]);CHKERRQ(ierr);
-        ierr = DMCreateLocalVector(dm,&local[i]);CHKERRQ(ierr);
-      }
-      ierr = PetscLogStagePush(mainStage);CHKERRQ(ierr);
-      for (i=0; i<8; ++i) {
-        ierr = DMGlobalToLocalBegin(dm,global[i],INSERT_VALUES,local[i]);CHKERRQ(ierr);
-      }
-      for (i=0; i<8; ++i) {
-        ierr = DMGlobalToLocalEnd(dm,global[i],INSERT_VALUES,local[i]);CHKERRQ(ierr);
-      }
-      ierr = PetscLogStagePop();CHKERRQ(ierr);
-      for (i=0; i<8; ++i) {
-        ierr = VecDestroy(&global[i]);CHKERRQ(ierr);
-        ierr = VecDestroy(&local[i]);CHKERRQ(ierr);
-      }
-    } else SETERRQ1(PETSC_COMM_WORLD,PETSC_ERR_ARG_OUTOFRANGE,"Unsupported test %D",test);CHKERRQ(ierr);
   } else SETERRQ1(PETSC_COMM_WORLD,PETSC_ERR_ARG_OUTOFRANGE,"Unsupported op %D",op);CHKERRQ(ierr);
 
   /* STAGE: destruction */
