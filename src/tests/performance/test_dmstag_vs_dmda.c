@@ -23,8 +23,10 @@ typedef enum {
 
 /* Supply one of these with -op */
 typedef enum {
-  OP_NONE = 0,
-  OP_CREATE_GLOBAL_VEC = 1
+  OP_NONE              = 0,
+  OP_CREATE_GLOBAL_VEC = 1,
+  OP_LOCAL_TO_GLOBAL   = 2,
+  OP_GLOBAL_TO_LOCAL   = 3,
 } Op;
 
 int main(int argc,char **argv)
@@ -87,15 +89,79 @@ int main(int argc,char **argv)
   ierr = PetscLogStagePop();CHKERRQ(ierr);
 
   /* STAGE: main operation */
-  ierr = PetscLogStagePush(mainStage);CHKERRQ(ierr);
+  /* Note: the log stage does NOT necessarily cover everything here,
+           e.g. if timing scatters, we don't time creating the vectors */
   if (op == OP_NONE) {
+    ierr = PetscLogStagePush(mainStage);CHKERRQ(ierr);
     /* Empty */
+    ierr = PetscLogStagePop();CHKERRQ(ierr);
   } else if (op == OP_CREATE_GLOBAL_VEC) {
     Vec x;
+    ierr = PetscLogStagePush(mainStage);CHKERRQ(ierr);
     ierr = DMCreateGlobalVector(dm,&x);CHKERRQ(ierr);
     ierr = VecDestroy(&x);CHKERRQ(ierr);
+    ierr = PetscLogStagePop();CHKERRQ(ierr);
+  } else if (op == OP_LOCAL_TO_GLOBAL) {
+    if (test == STAGTEST || test == DATEST1) {
+      Vec local,global;
+      ierr = DMCreateGlobalVector(dm,&global);CHKERRQ(ierr);
+      ierr = DMCreateLocalVector(dm,&local);CHKERRQ(ierr);
+      ierr = PetscLogStagePush(mainStage);CHKERRQ(ierr);
+      ierr = DMLocalToGlobalBegin(dm,local,INSERT_VALUES,global);CHKERRQ(ierr);
+      ierr = DMLocalToGlobalEnd(dm,local,INSERT_VALUES,global);CHKERRQ(ierr);
+      ierr = PetscLogStagePop();CHKERRQ(ierr);
+      ierr = VecDestroy(&global);CHKERRQ(ierr);
+      ierr = VecDestroy(&local);CHKERRQ(ierr);
+    } else if (test == DATEST2) {
+      Vec local[8],global[8];
+      for (i=0; i<8; ++i) {
+        ierr = DMCreateGlobalVector(dm,&global[i]);CHKERRQ(ierr);
+        ierr = DMCreateLocalVector(dm,&local[i]);CHKERRQ(ierr);
+      }
+      ierr = PetscLogStagePush(mainStage);CHKERRQ(ierr);
+      for (i=0; i<8; ++i) {
+        ierr = DMLocalToGlobalBegin(dm,local[i],INSERT_VALUES,global[i]);CHKERRQ(ierr);
+      }
+      for (i=0; i<8; ++i) {
+        ierr = DMLocalToGlobalEnd(dm,local[i],INSERT_VALUES,global[i]);CHKERRQ(ierr);
+      }
+      ierr = PetscLogStagePop();CHKERRQ(ierr);
+      for (i=0; i<8; ++i) {
+        ierr = VecDestroy(&global[i]);CHKERRQ(ierr);
+        ierr = VecDestroy(&local[i]);CHKERRQ(ierr);
+      }
+    } else SETERRQ1(PETSC_COMM_WORLD,PETSC_ERR_ARG_OUTOFRANGE,"Unsupported test %D",test);CHKERRQ(ierr);
+  } else if (op == OP_GLOBAL_TO_LOCAL) {
+    if (test == STAGTEST || test == DATEST1) {
+      Vec local,global;
+      ierr = DMCreateGlobalVector(dm,&global);CHKERRQ(ierr);
+      ierr = DMCreateLocalVector(dm,&local);CHKERRQ(ierr);
+      ierr = PetscLogStagePush(mainStage);CHKERRQ(ierr);
+      ierr = DMGlobalToLocalBegin(dm,global,INSERT_VALUES,local);CHKERRQ(ierr);
+      ierr = DMGlobalToLocalEnd(dm,global,INSERT_VALUES,local);CHKERRQ(ierr);
+      ierr = PetscLogStagePop();CHKERRQ(ierr);
+      ierr = VecDestroy(&global);CHKERRQ(ierr);
+      ierr = VecDestroy(&local);CHKERRQ(ierr);
+    } else if (test == DATEST2) {
+      Vec local[8],global[8];
+      for (i=0; i<8; ++i) {
+        ierr = DMCreateGlobalVector(dm,&global[i]);CHKERRQ(ierr);
+        ierr = DMCreateLocalVector(dm,&local[i]);CHKERRQ(ierr);
+      }
+      ierr = PetscLogStagePush(mainStage);CHKERRQ(ierr);
+      for (i=0; i<8; ++i) {
+        ierr = DMGlobalToLocalBegin(dm,global[i],INSERT_VALUES,local[i]);CHKERRQ(ierr);
+      }
+      for (i=0; i<8; ++i) {
+        ierr = DMGlobalToLocalEnd(dm,global[i],INSERT_VALUES,local[i]);CHKERRQ(ierr);
+      }
+      ierr = PetscLogStagePop();CHKERRQ(ierr);
+      for (i=0; i<8; ++i) {
+        ierr = VecDestroy(&global[i]);CHKERRQ(ierr);
+        ierr = VecDestroy(&local[i]);CHKERRQ(ierr);
+      }
+    } else SETERRQ1(PETSC_COMM_WORLD,PETSC_ERR_ARG_OUTOFRANGE,"Unsupported test %D",test);CHKERRQ(ierr);
   } else SETERRQ1(PETSC_COMM_WORLD,PETSC_ERR_ARG_OUTOFRANGE,"Unsupported op %D",op);CHKERRQ(ierr);
-  ierr = PetscLogStagePop();CHKERRQ(ierr);
 
   /* STAGE: destruction */
   ierr = PetscLogStagePush(destructionStage);CHKERRQ(ierr);
