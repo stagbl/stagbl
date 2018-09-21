@@ -6,7 +6,7 @@ StagBL's tests are organized here. This directory includes
 1. Unit and integration tests
 2. Scripts for running the test suite
 
-The test suite itself includes the unit and integration tests here as well as runs of StagBLDemo[2d,3d].
+The test suite relies on executables defined in main library source as well as on StagBLDemo[2d,3d].
 
 ## Design
 
