@@ -1,9 +1,6 @@
 static char help[] = "For a toy matrix-free operator, compare DMStag and a collection of DMDAs\n";
 
-/* Proceeds by allowing the user to select one of a set of operations and whether to
-   do it with DMStag or with (a collection of) DMDA(s)
-
-   Note that, since this is a performance test, there is no output to stdout, by default
+/* Note that, since this is a performance test, there is no output to stdout, by default
    (Use -log_summary).
 
    Note that we don't call DMSetFromOptions() here, so DMStag/DMDA-specific command
@@ -34,6 +31,7 @@ int main(int argc,char **argv)
   PetscInt       dof0,dof1,dof2,dof3,stencilWidth,Nx,Ny,Nz,i;
   PetscLogStage  creationStage,mainStage,destructionStage;
   PetscInt       test;
+  Vec            in,out;
 
   /* Initialize and obtain parameters */
   ierr = PetscInitialize(&argc,&argv,(char*)0,help);if (ierr) return ierr;
@@ -81,7 +79,6 @@ int main(int argc,char **argv)
   /* Note that the log stage does NOT include creating and destroying the vectors
      and that the usual global<-->local transfers are also not included  (both of
      these should be individually testable in test_dmstag_vs_dmda.c) */
-  Vec in,out;
   ierr = DMCreateLocalVector(dm,&in);CHKERRQ(ierr);
   ierr = VecDuplicate(in,&out);CHKERRQ(ierr);
   ierr = PetscLogStagePush(mainStage);CHKERRQ(ierr);
@@ -129,17 +126,17 @@ PetscErrorCode ApplyStag(DM dm,Vec in,Vec out)
   ierr = DMStagGetCorners(dm,&start[0],&start[1],&start[2],&n[0],&n[1],&n[2],NULL,NULL,NULL);CHKERRQ(ierr);
   ierr = DMStagGetGlobalSizes(dm,&N[0],&N[1],&N[2]);CHKERRQ(ierr);
   /* for convenience, only process internal elements */
+  for (d=0; d<3; ++d) end[d] = start[d]+n[d] == N[d] ? N[d]-1 : start[d]+n[d];
   for (d=0; d<3; ++d) start[d] = start[d] == 0 ? 1 : start[d];
-  for (d=0; d<3; ++d) end[d] = start[d]+n[d] == N[d] ? start[d]+n[d] : start[d]+n[d]-2;
   ierr = DMStagGetLocationSlot(dm,DMSTAG_ELEMENT,0,&p);CHKERRQ(ierr);
   ierr = DMStagGetLocationSlot(dm,DMSTAG_LEFT,0,&vx);CHKERRQ(ierr);
   ierr = DMStagGetLocationSlot(dm,DMSTAG_DOWN,0,&vy);CHKERRQ(ierr);
   ierr = DMStagGetLocationSlot(dm,DMSTAG_BACK,0,&vz);CHKERRQ(ierr);
   ierr = DMStagVecGetArrayDOFRead(dm,in,&arrIn);CHKERRQ(ierr);
   ierr = DMStagVecGetArrayDOF(dm,out,&arrOut);CHKERRQ(ierr);
-  for (i=start[0]; i<end[0]; ++i) {
+  for (k=start[2]; k<end[2]; ++k) {
     for (j=start[1]; j<end[1]; ++j) {
-      for (k=start[2]; k<end[2]; ++k) {
+      for (i=start[0]; i<end[0]; ++i) {
         arrOut[k][j][i][vy] = arrIn[k][j][i][p] + arrIn[k][j+1][i][p];
         arrOut[k][j][i][vx] = arrIn[k][j][i][p] + arrIn[k][j][i+1][p];
         arrOut[k][j][i][p] =
@@ -165,8 +162,8 @@ PetscErrorCode ApplyDA1(DM dm,Vec in,Vec out)
   ierr = DMDAGetCorners(dm,&start[0],&start[1],&start[2],&n[0],&n[1],&n[2]);CHKERRQ(ierr);
   ierr = DMDAGetInfo(dm,NULL,&N[0],&N[1],&N[2],NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL);CHKERRQ(ierr);
   /* for convenience, only process internal elements */
+  for (d=0; d<3; ++d) end[d] = start[d]+n[d] == N[d] ? N[d]-1 : start[d]+n[d];
   for (d=0; d<3; ++d) start[d] = start[d] == 0 ? 1 : start[d];
-  for (d=0; d<3; ++d) end[d] = start[d]+n[d] == N[d] ? start[d]+n[d] : start[d]+n[d]-2;
   vy = 0;
   vx = 1;
   p  = 2;
