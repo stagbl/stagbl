@@ -69,11 +69,14 @@ demos : library $(BINDIR)/.DIR
 tests : \
 	$(BINDIR)/test_dmstag_vs_dmda \
 	$(BINDIR)/test_dmstag_vs_dmda_mf_op \
+	$(BINDIR)/test_dmstag_vs_dmda_matstencil \
 	$(BINDIR)/test_dmstag_vec_stencil_vs_array
 
 $(BINDIR)/test_dmstag_vs_dmda : $(OBJDIR)/src/tests/performance/test_dmstag_vs_dmda.o library | $$(@D)/.DIR
 	$(STAGBL_LINK) $< $(STAGBL_LIB)
 $(BINDIR)/test_dmstag_vs_dmda_mf_op : $(OBJDIR)/src/tests/performance/test_dmstag_vs_dmda_mf_op.o library | $$(@D)/.DIR
+	$(STAGBL_LINK) $< $(STAGBL_LIB)
+$(BINDIR)/test_dmstag_vs_dmda_matstencil : $(OBJDIR)/src/tests/performance/test_dmstag_vs_dmda_matstencil.o library | $$(@D)/.DIR
 	$(STAGBL_LINK) $< $(STAGBL_LIB)
 $(BINDIR)/test_dmstag_vec_stencil_vs_array : $(OBJDIR)/src/tests/performance/test_dmstag_vec_stencil_vs_array.o library | $$(@D)/.DIR
 	$(STAGBL_LINK) $< $(STAGBL_LIB)
