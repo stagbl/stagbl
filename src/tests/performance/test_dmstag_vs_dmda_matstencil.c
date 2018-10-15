@@ -130,11 +130,19 @@ PetscErrorCode AssembleStag(DM dm,Mat A)
   ierr = DMStagGetGlobalSizes(dm,&N[0],&N[1],&N[2]);CHKERRQ(ierr);
   /* for convenience, only process internal elements */
   for (d=0; d<3; ++d) end[d]   = start[d]+n[d] == N[d] ? N[d]-2 : start[d]+n[d];
-  //!!! TODO when I had this as -1 instead of -2, the error message was very uninformative! It should have said that we referred to the wrong element, but it says some garbage about components...
   for (d=0; d<3; ++d) start[d] = start[d] == 0 ? 1 : start[d];
+  row.c = 0;
+  col[0].c = 0;
+  col[1].c = 0;
+  col[2].c = 0;
+  col[3].c = 0;
+  col[4].c = 0;
+  col[5].c = 0;
+  col[6].c = 0;
   for (k=start[2]; k<end[2]; ++k) {
     for (j=start[1]; j<end[1]; ++j) {
       for (i=start[0]; i<end[0]; ++i) {
+
         /* vy */
         row.i = i; row.j = j; row.k = k; row.loc = DMSTAG_DOWN;
         col[0].i = i; col[0].j = j  ; col[0].k = k; col[0].loc = DMSTAG_ELEMENT; v[0] = 1.0;
