@@ -4,6 +4,8 @@ STAGBL_ARCH ?= $(PETSC_ARCH)
 
 EXNAME = stagbldemo2d
 
+OBJ = main.o system2.o ctx.o
+
 all : $(EXNAME)
 
 # For ease of compatibility, use the same makefiles that libstagbl uses
@@ -13,12 +15,12 @@ include $(STAGBL_DIR)/rules.mk
 %.o: %.c
 	$(STAGBL_COMPILE.c) $< -o $@
 
-$(EXNAME) : main.o
-	$(STAGBL_LINK) $< $(STAGBL_LIB)
+$(EXNAME) : $(OBJ)
+	$(STAGBL_LINK) $^ $(STAGBL_LIB)
 
 clean :
-	rm -f  $(EXNAME)
-	rm -f  main.o main.d
+	rm -f $(EXNAME)
+	rm -f $(OBJ)
 	rm -rf $(EXNAME).dSYM
 
 .PHONY : all clean

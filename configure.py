@@ -10,8 +10,14 @@
 # end up in. This allows multiple parallel builds.                              #
 #################################################################################
 import os
+import errno
 import sys
-import json
+
+try :
+    import json
+except ImportError:
+    print("""ERROR: Could not import json""")
+    sys.exit(1)
 
 try:
     import argparse
@@ -23,7 +29,7 @@ def mkdir_p(path):
     try:
         os.makedirs(path)
     except OSError as exc:
-        if exc.errno == os.errno.EEXIST:
+        if exc.errno == errno.EEXIST:
             pass
         else: raise
 
@@ -44,7 +50,7 @@ def main():
     cf.add_argument('--LDFLAGS', help='Flags to pass to linker', default=os.environ.get('LDFLAGS',''))
     cf.add_argument('--LDLIBS', help='Libraries to pass to linker', default=os.environ.get('LDLIBS',''))
     args = parser.parse_args()
-    if args.arch is None:
+    if not args.arch:
         args.arch = args.petsc_arch
     if not args.arch:
         args.arch = 'build'
@@ -112,4 +118,3 @@ def dumpinfo(args):
 
 if __name__ == "__main__" :
     main()
-

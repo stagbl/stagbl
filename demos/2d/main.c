@@ -1,6 +1,8 @@
 #include "stagbl.h"
 #include <stdio.h>
 #include <petsc.h> // Note that we still have work to do guarding for the non-PETSc case (probably define STAGBL_HAVE_PETSC in a configured include file eventually)
+#include "system2.h"
+#include "ctx.h"
 
 /* Shorter, more convenient names for DMStagLocation entries */
 #define DOWN_LEFT  DMSTAG_DOWN_LEFT
@@ -13,15 +15,6 @@
 #define UP         DMSTAG_UP
 #define UP_RIGHT   DMSTAG_UP_RIGHT
 
-/* An application context */
-typedef struct {
-  MPI_Comm    comm;
-  DM          dmStokes,dmCoeff;
-  Vec         coeff;
-  PetscReal   xmax,ymax,xmin,ymin,hxCharacteristic,hyCharacteristic;
-  PetscScalar eta1,eta2,rho1,rho2,gy,Kbound,Kcont,etaCharacteristic;
-} CtxData;
-typedef CtxData* Ctx;
 
 /* Helper functions */
 static PetscErrorCode PopulateCoefficientData(Ctx);
@@ -29,6 +22,8 @@ static PetscErrorCode CreateSystem(const Ctx,Mat*,Vec*);
 static PetscErrorCode DumpSolution(Ctx,Vec);
 
 /* Coefficient/forcing Functions */
+#if 0
+/* Sinker */
 static PetscReal getRho(Ctx ctx,PetscReal x, PetscReal y) {
   const PetscReal d = ctx->xmax-ctx->xmin;
   const PetscReal xx = x/d - 0.5;
@@ -41,6 +36,25 @@ static PetscReal getEta(Ctx ctx,PetscReal x, PetscReal y) {
   const PetscReal yy = y/d - 0.5;
   return (xx*xx + yy*yy) > 0.3*0.3 ? ctx->eta1 : ctx->eta2;
 }
+#else
+/* Vertical layers */
+PetscReal getRho(Ctx ctx,PetscReal x,PetscReal y)
+{
+  if (x + 0.0*y < (ctx->xmax-ctx->xmin)/2.0) {
+    return ctx->rho1;
+  } else {
+    return ctx->rho2;
+  }
+}
+PetscReal getEta(Ctx ctx,PetscReal x,PetscReal y)
+{
+  if (x  + 0.0*y < (ctx->xmax-ctx->xmin)/2.0) {
+    return ctx->eta1;
+  } else {
+    return ctx->eta2;
+  }
+}
+#endif
 
 int main(int argc, char** argv)
 {
@@ -51,7 +65,7 @@ int main(int argc, char** argv)
   StagBLLinearSolver solver;
   MPI_Comm           comm;
 
-  Ctx            ctx;
+  Ctx                ctx;
 
   PetscErrorCode ierr;
   DM             *pdm;
@@ -61,6 +75,7 @@ int main(int argc, char** argv)
   Mat            matA;
   KSP            *pksp;
   KSP            ksp;
+  int            system;
 
   /* Initialize MPI and print a message */
   MPI_Init(&argc,&argv);
@@ -76,6 +91,10 @@ int main(int argc, char** argv)
   /* Initialize StagBL (which will initialize PETSc if needbe) */
   StagBLInitialize(argc,argv,comm);
 
+  /* Accept argument for system type */
+  system = 1;
+  ierr = PetscOptionsGetInt(NULL,NULL,"-system",&system,NULL);CHKERRQ(ierr);
+
   /* Populate application context */
   ierr = PetscMalloc1(1,&ctx);CHKERRQ(ierr);
   ctx->comm = PETSC_COMM_WORLD;
@@ -87,7 +106,7 @@ int main(int argc, char** argv)
   ctx->rho2 = 3300;
   ctx->eta1 = 1e20;
   ctx->eta2 = 1e22;
-  ctx->gy    = 10.0;
+  ctx->gy   = 10.0;
 
   /* Create a Grid */
   StagBLGridCreate(&grid);
@@ -110,7 +129,7 @@ int main(int argc, char** argv)
   ierr = DMSetUp(ctx->dmCoeff);CHKERRQ(ierr);
   ierr = DMStagSetUniformCoordinatesProduct(ctx->dmCoeff,0.0,ctx->xmax,0.0,ctx->ymax,0.0,0.0);CHKERRQ(ierr);
 
-  /* Get scaling constants, knowing grid spacing */
+  /* Get scaling constants and node to pin, knowing grid dimensions */
   {
     PetscInt N[2];
     PetscReal hxAvgInv;
@@ -121,6 +140,8 @@ int main(int argc, char** argv)
     hxAvgInv = 2.0/(ctx->hxCharacteristic + ctx->hyCharacteristic);
     ctx->Kcont = ctx->etaCharacteristic*hxAvgInv;
     ctx->Kbound = ctx->etaCharacteristic*hxAvgInv*hxAvgInv;
+    if (N[1] < 2) SETERRQ(comm,PETSC_ERR_SUP,"Not implemented for a single elemnent in the y direction");
+    ctx->pinx = 1; ctx->piny = 0;
   }
 
   /* Populate coefficient data */
@@ -136,8 +157,13 @@ int main(int argc, char** argv)
   vecx = *pvecx;
 
   StagBLArrayPETScGetVecPointer(b,&pvecb);
+
   StagBLOperatorPETScGetMatPointer(A,&pmatA);
-  ierr = CreateSystem(ctx,pmatA,pvecb);CHKERRQ(ierr);
+  if (system == 1) {
+    ierr = CreateSystem(ctx,pmatA,pvecb);CHKERRQ(ierr);
+  } else if (system == 2) {
+    ierr = CreateSystem2(ctx,pmatA,pvecb);CHKERRQ(ierr);
+  } else SETERRQ1(ctx->comm,PETSC_ERR_SUP,"Unsupported system type %D",system);
   matA = *pmatA;
   vecb = *pvecb;
 
@@ -157,6 +183,14 @@ int main(int argc, char** argv)
     if (reason < 0) SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_CONV_FAILED,"Linear solve failed");CHKERRQ(ierr);
   }
 
+  /* Debug - dump rhs (should make it easier with StagBL to dump systems..) */
+  {
+    PetscViewer viewer;
+    PetscViewerBinaryOpen(PETSC_COMM_WORLD,"rhs.petscbin",FILE_MODE_WRITE,&viewer);CHKERRQ(ierr);
+    ierr = VecView(vecb,viewer);CHKERRQ(ierr);
+    ierr = PetscViewerDestroy(&viewer);CHKERRQ(ierr);
+  }
+
   /* Dump solution by converting to DMDAs and dumping */
   ierr = DumpSolution(ctx,vecx);CHKERRQ(ierr);
 
@@ -174,14 +208,14 @@ int main(int argc, char** argv)
 
 static PetscErrorCode CreateSystem(const Ctx ctx,Mat *pA,Vec *pRhs)
 {
-  PetscErrorCode ierr;
-  PetscInt       N[2];
-  PetscInt       ex,ey,startx,starty,nx,ny;
-  Mat            A;
-  Vec            rhs;
-  PetscReal      hx,hy;
+  PetscErrorCode  ierr;
+  PetscInt        N[2];
+  PetscInt        ex,ey,startx,starty,nx,ny;
+  Mat             A;
+  Vec             rhs;
+  PetscReal       hx,hy;
   const PetscBool pinPressure = PETSC_TRUE;
-  Vec            coeffLocal;
+  Vec             coeffLocal;
 
   PetscFunctionBeginUser;
   ierr = DMCreateMatrix(ctx->dmStokes,pA);CHKERRQ(ierr);
@@ -256,8 +290,8 @@ static PetscErrorCode CreateSystem(const Ctx ctx,Mat *pA,Vec *pRhs)
           col[3].i = ex+1; col[3].j  = ey  ; col[3].loc  = DOWN;     col[3].c  = 0; valA[3]  =        etaRight / (hx*hx);
           col[4].i = ex  ; col[4].j  = ey-1; col[4].loc  = LEFT;     col[4].c  = 0; valA[4]  =        etaLeft  / (hx*hy); /* down left x edge */
           col[5].i = ex  ; col[5].j  = ey-1; col[5].loc  = RIGHT;    col[5].c  = 0; valA[5]  = -      etaRight / (hx*hy); /* down right x edge */
-          col[6].i = ex  ; col[6].j  = ey  ; col[6].loc  = LEFT;     col[6].c  = 0; valA[6]  =        etaRight / (hx*hy); /* up left x edge */
-          col[7].i = ex  ; col[7].j  = ey  ; col[7].loc  = RIGHT;    col[7].c  = 0; valA[7]  = -      etaRight / (hx*hy); /* up right x edge */
+          col[6].i = ex  ; col[6].j  = ey  ; col[6].loc  = LEFT;     col[6].c  = 0; valA[6]  = -      etaLeft  / (hx*hy); /* up left x edge */
+          col[7].i = ex  ; col[7].j  = ey  ; col[7].loc  = RIGHT;    col[7].c  = 0; valA[7]  =        etaRight / (hx*hy); /* up right x edge */
           col[8].i = ex  ; col[8].j  = ey-1; col[8].loc  = ELEMENT;  col[8].c  = 0; valA[8]  =  ctx->Kcont / hy;
           col[9].i = ex  ; col[9].j = ey   ; col[9].loc = ELEMENT;   col[9].c  = 0; valA[9]  = -ctx->Kcont / hy;
         } else if (ex == N[0]-1) {
@@ -271,8 +305,8 @@ static PetscErrorCode CreateSystem(const Ctx ctx,Mat *pA,Vec *pRhs)
           /* No right element */
           col[4].i = ex  ; col[4].j  = ey-1; col[4].loc  = LEFT;     col[4].c  = 0; valA[4]  =        etaLeft  / (hx*hy); /* down left x edge */
           col[5].i = ex  ; col[5].j  = ey-1; col[5].loc  = RIGHT;    col[5].c  = 0; valA[5]  = -      etaRight / (hx*hy); /* down right x edge */
-          col[6].i = ex  ; col[6].j  = ey  ; col[6].loc  = LEFT;     col[6].c  = 0; valA[7]  =        etaRight / (hx*hy); /* up left x edge */
-          col[7].i = ex  ; col[7].j  = ey  ; col[7].loc  = RIGHT;    col[7].c  = 0; valA[7]  = -      etaRight / (hx*hy); /* up right x edge */
+          col[6].i = ex  ; col[6].j  = ey  ; col[6].loc  = LEFT;     col[6].c  = 0; valA[7]  = -      etaLeft  / (hx*hy); /* up left x edge */
+          col[7].i = ex  ; col[7].j  = ey  ; col[7].loc  = RIGHT;    col[7].c  = 0; valA[7]  =        etaRight / (hx*hy); /* up right x edge */
           col[8].i = ex  ; col[8].j  = ey-1; col[8].loc  = ELEMENT;  col[8].c  = 0; valA[8]  =  ctx->Kcont / hy;
           col[9].i = ex  ; col[9].j = ey   ; col[9].loc = ELEMENT;   col[9].c  = 0; valA[9]  = -ctx->Kcont / hy;
         } else {
@@ -286,8 +320,8 @@ static PetscErrorCode CreateSystem(const Ctx ctx,Mat *pA,Vec *pRhs)
           col[4].i = ex+1; col[4].j  = ey  ; col[4].loc  = DOWN;     col[4].c  = 0; valA[4]  =        etaRight / (hx*hx);
           col[5].i = ex  ; col[5].j  = ey-1; col[5].loc  = LEFT;     col[5].c  = 0; valA[5]  =        etaLeft  / (hx*hy); /* down left x edge */
           col[6].i = ex  ; col[6].j  = ey-1; col[6].loc  = RIGHT;    col[6].c  = 0; valA[6]  = -      etaRight / (hx*hy); /* down right x edge */
-          col[7].i = ex  ; col[7].j  = ey  ; col[7].loc  = LEFT;     col[7].c  = 0; valA[7]  =        etaRight / (hx*hy); /* up left x edge */
-          col[8].i = ex  ; col[8].j  = ey  ; col[8].loc  = RIGHT;    col[8].c  = 0; valA[8]  = -      etaRight / (hx*hy); /* up right x edge */
+          col[7].i = ex  ; col[7].j  = ey  ; col[7].loc  = LEFT;     col[7].c  = 0; valA[7]  = -      etaLeft  / (hx*hy); /* up left x edge */
+          col[8].i = ex  ; col[8].j  = ey  ; col[8].loc  = RIGHT;    col[8].c  = 0; valA[8]  =        etaRight / (hx*hy); /* up right x edge */
           col[9].i = ex  ; col[9].j  = ey-1; col[9].loc  = ELEMENT;  col[9].c  = 0; valA[9]  =  ctx->Kcont / hy;
           col[10].i = ex ; col[10].j = ey  ; col[10].loc = ELEMENT; col[10].c  = 0; valA[10] = -ctx->Kcont / hy;
         }
@@ -345,8 +379,8 @@ static PetscErrorCode CreateSystem(const Ctx ctx,Mat *pA,Vec *pRhs)
           col[3].i  = ex+1; col[3].j  = ey  ; col[3].loc  = LEFT;    col[3].c   = 0; valA[3]  =  2.0 * etaRight / (hx*hx);
           col[4].i  = ex-1; col[4].j  = ey  ; col[4].loc  = DOWN;    col[4].c   = 0; valA[4]  =        etaDown  / (hx*hy); /* down left */
           col[5].i  = ex  ; col[5].j  = ey  ; col[5].loc  = DOWN;    col[5].c   = 0; valA[5]  = -      etaDown  / (hx*hy); /* down right */
-          col[6].i  = ex-1; col[6].j  = ey  ; col[6].loc  = UP;      col[6].c   = 0; valA[6]  =        etaUp    / (hx*hy); /* up left */
-          col[7].i  = ex  ; col[7].j  = ey  ; col[7].loc  = UP;      col[7].c   = 0; valA[7]  = -      etaUp    / (hx*hy); /* up right */
+          col[6].i  = ex-1; col[6].j  = ey  ; col[6].loc  = UP;      col[6].c   = 0; valA[6]  = -      etaUp    / (hx*hy); /* up left */
+          col[7].i  = ex  ; col[7].j  = ey  ; col[7].loc  = UP;      col[7].c   = 0; valA[7]  =        etaUp    / (hx*hy); /* up right */
           col[8].i  = ex-1; col[8].j  = ey  ; col[8].loc  = ELEMENT; col[8].c   = 0; valA[8]  =  ctx->Kcont / hx;
           col[9].i = ex   ; col[9].j  = ey  ; col[9].loc  = ELEMENT; col[9].c   = 0; valA[9]  = -ctx->Kcont / hx;
           valRhs = 0.0;
@@ -361,8 +395,8 @@ static PetscErrorCode CreateSystem(const Ctx ctx,Mat *pA,Vec *pRhs)
           col[3].i  = ex+1; col[3].j  = ey  ; col[3].loc  = LEFT;    col[3].c   = 0; valA[3]  =  2.0 * etaRight / (hx*hx);
           col[4].i  = ex-1; col[4].j  = ey  ; col[4].loc  = DOWN;    col[4].c   = 0; valA[4]  =        etaDown  / (hx*hy); /* down left */
           col[5].i  = ex  ; col[5].j  = ey  ; col[5].loc  = DOWN;    col[5].c   = 0; valA[5]  = -      etaDown  / (hx*hy); /* down right */
-          col[6].i  = ex-1; col[6].j  = ey  ; col[6].loc  = UP;      col[6].c   = 0; valA[6]  =        etaUp    / (hx*hy); /* up left */
-          col[7].i  = ex  ; col[7].j  = ey  ; col[7].loc  = UP;      col[7].c   = 0; valA[7]  = -      etaUp    / (hx*hy); /* up right */
+          col[6].i  = ex-1; col[6].j  = ey  ; col[6].loc  = UP;      col[6].c   = 0; valA[6]  = -      etaUp    / (hx*hy); /* up left */
+          col[7].i  = ex  ; col[7].j  = ey  ; col[7].loc  = UP;      col[7].c   = 0; valA[7]  =        etaUp    / (hx*hy); /* up right */
           col[8].i  = ex-1; col[8].j  = ey  ; col[8].loc  = ELEMENT; col[8].c   = 0; valA[8]  =  ctx->Kcont / hx;
           col[9].i = ex   ; col[9].j  = ey   ; col[9].loc = ELEMENT;  col[9].c  = 0; valA[9]  = -ctx->Kcont / hx;
           valRhs = 0.0;
@@ -377,8 +411,8 @@ static PetscErrorCode CreateSystem(const Ctx ctx,Mat *pA,Vec *pRhs)
           col[4].i  = ex+1; col[4].j  = ey  ; col[4].loc  = LEFT;    col[4].c   = 0; valA[4]  =  2.0 * etaRight / (hx*hx);
           col[5].i  = ex-1; col[5].j  = ey  ; col[5].loc  = DOWN;    col[5].c   = 0; valA[5]  =        etaDown  / (hx*hy); /* down left */
           col[6].i  = ex  ; col[6].j  = ey  ; col[6].loc  = DOWN;    col[6].c   = 0; valA[6]  = -      etaDown  / (hx*hy); /* down right */
-          col[7].i  = ex-1; col[7].j  = ey  ; col[7].loc  = UP;      col[7].c   = 0; valA[7]  =        etaUp    / (hx*hy); /* up left */
-          col[8].i  = ex  ; col[8].j  = ey  ; col[8].loc  = UP;      col[8].c   = 0; valA[8]  = -      etaUp    / (hx*hy); /* up right */
+          col[7].i  = ex-1; col[7].j  = ey  ; col[7].loc  = UP;      col[7].c   = 0; valA[7]  = -      etaUp    / (hx*hy); /* up left */
+          col[8].i  = ex  ; col[8].j  = ey  ; col[8].loc  = UP;      col[8].c   = 0; valA[8]  =        etaUp    / (hx*hy); /* up right */
           col[9].i  = ex-1; col[9].j  = ey  ; col[9].loc  = ELEMENT; col[9].c   = 0; valA[9]  =  ctx->Kcont / hx;
           col[10].i = ex  ; col[10].j = ey  ; col[10].loc = ELEMENT; col[10].c  = 0; valA[10] = -ctx->Kcont / hx;
           valRhs = 0.0;
@@ -390,7 +424,7 @@ static PetscErrorCode CreateSystem(const Ctx ctx,Mat *pA,Vec *pRhs)
       /* P equation : u_x + v_y = 0
          Note that this includes an explicit zero on the diagonal. This is only needed for
          direct solvers (not required if using an iterative solver and setting the constant-pressure nullspace) */
-      if (pinPressure && ex == 0 && ey == 0) { /* Pin the first pressure node to zero, if requested */
+      if (pinPressure && ex == ctx->pinx && ey == ctx->piny) { /* Pin a pressure node to zero, if requested */
         DMStagStencil row;
         PetscScalar valA,valRhs;
         row.i = ex; row.j = ey; row.loc = ELEMENT; row.c = 0;
@@ -538,6 +572,14 @@ static PetscErrorCode DumpSolution(Ctx ctx,Vec x)
     ierr = PetscViewerVTKOpen(PetscObjectComm((PetscObject)daEtaCorner),"out_vertex.vtr",FILE_MODE_WRITE,&viewer);CHKERRQ(ierr);
     ierr = VecView(vecEtaCorner,viewer);CHKERRQ(ierr);
     ierr = VecView(vecRho,viewer);CHKERRQ(ierr);
+    ierr = PetscViewerDestroy(&viewer);CHKERRQ(ierr);
+  }
+
+  /* Dump velavg to regular binary view */
+  {
+    PetscViewer viewer;
+    PetscViewerBinaryOpen(PetscObjectComm((PetscObject)daVelAvg),"velavg.petscbin",FILE_MODE_WRITE,&viewer);CHKERRQ(ierr);
+    ierr = VecView(vecVelAvg,viewer);CHKERRQ(ierr);
     ierr = PetscViewerDestroy(&viewer);CHKERRQ(ierr);
   }
 

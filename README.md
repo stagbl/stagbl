@@ -12,9 +12,9 @@ See the Trello Board on the Bitbucket repository.
 
 ## Quickstart
 
-First, you need a working branch of PETSc which includes `DMStag`, obtainable with
+First, you need a working branch of PETSc which includes `DMStag`, currently "master":
 
-    git clone -b psanan/dmstag https://bitbucket.org/psanan/petsc
+    git clone -b master https://bitbucket.org/petsc/petsc petsc-master
 
 After it is configured,
 
@@ -23,7 +23,7 @@ After it is configured,
     ./configure.py
     cd demos/2d
     make
-    ./stagbldemo2d
+    ./stagbldemo2d                     # -pc_type lu -pc_factor_mat_solver_type umfpack
     paraview & # open out_element.vtr
 
 ![stagbl2ddemo quickstart](documentation/resources/stagbldemo2d_quickstart.pdf)

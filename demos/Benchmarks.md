@@ -23,6 +23,7 @@ The "Ref"s here correspond to this Bibtex file: https://bitbucket.org/psanan/pds
 
 ## Blankenbach 1989
 Ref: BlankenBachEtAl1989
+Note: a similar most-basic case and asymptotic analysis is discussed in VynnyckyMasuda2013
 
 ## Travis et al. 1990
 Ref: TravisEtAl1990

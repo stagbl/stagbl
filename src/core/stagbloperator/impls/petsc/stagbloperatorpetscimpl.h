@@ -1,5 +1,5 @@
 #if !defined(STAGBLOPERATORPETSCIMPL_H_)
-#define STAGBLARRAYPETSCIMPL_H_
+#define STAGBLOPERATORPETSCIMPL_H_
 
 #include "stagbl.h"
 #include <petsc.h>
