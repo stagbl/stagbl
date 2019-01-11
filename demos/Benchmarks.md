@@ -7,6 +7,7 @@ a picture from StagBL, and links to data from other packages performing the benc
 
 This table also needs to be something easily exportable for presentations and other material.
 
+TODO: add benchmarks from Chapter 16 of \cite{Gerya2009}
 TODO: add papers from Section 4.3 of http://jupiter.ethz.ch/~pjt/papers/tackley2008pepi_yinyang.pdf
 TODO: add the papers from R. Davies in this email: https://mail.google.com/mail/u/0/#all/155e3912031c3d18
 
