@@ -20,10 +20,10 @@ After it is configured, with --download-suitesparse
 
     export PETSC_DIR=yyy
     export PETSC_ARCH=xxx
-    ./configure.py
+    ./configure.py         # follow instructions to make
     cd demos/2d
     make
     ./stagbldemo2 -pc_type lu -pc_factor_mat_solver_type umfpack
-    paraview & # open out_element.vtr
+    paraview &             # open out_element.vtr
 
 ![stagbl2ddemo quickstart](documentation/resources/stagbldemo2d_quickstart.pdf)

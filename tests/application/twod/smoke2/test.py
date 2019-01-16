@@ -11,7 +11,7 @@ def test() :
     thisDir = os.path.split(os.path.abspath(__file__))[0]
     testName = os.path.relpath(thisDir,os.path.join(STAGBL_DIR,'tests')).replace(os.sep,'.')
     ranks = 2
-    launch = os.path.join(STAGBL_DIR,STAGBL_ARCH,'bin','stagbldemo2d')
+    launch = os.path.join(STAGBL_DIR,STAGBL_ARCH,'bin','stagbldemo2d') + ' -pc_type lu -pc_factor_mat_solver_type mumps'
     expectedFile = os.path.join(thisDir,'expected')
 
     # Do nothing (test will almost certainly pass)
