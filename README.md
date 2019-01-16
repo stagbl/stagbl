@@ -16,7 +16,7 @@ First, you need a working branch of PETSc's master branch
 
     git clone -b master https://bitbucket.org/petsc/petsc petsc-master
 
-After it is configured, with --download-suitesparse
+After it is configured, with `--download-suitesparse`,
 
     export PETSC_DIR=yyy
     export PETSC_ARCH=xxx
