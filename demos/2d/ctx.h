@@ -10,6 +10,8 @@ typedef struct {
   PetscReal   xmax,ymax,xmin,ymin,hxCharacteristic,hyCharacteristic;
   PetscScalar eta1,eta2,rho1,rho2,gy,Kbound,Kcont,etaCharacteristic;
   PetscInt    pinx,piny;
+  PetscReal (*getEta)(void*,PetscReal,PetscReal);
+  PetscReal (*getRho)(void*,PetscReal,PetscReal);
 } CtxData;
 typedef CtxData* Ctx;
 

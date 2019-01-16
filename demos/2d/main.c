@@ -22,39 +22,41 @@ static PetscErrorCode CreateSystem(const Ctx,Mat*,Vec*);
 static PetscErrorCode DumpSolution(Ctx,Vec);
 
 /* Coefficient/forcing Functions */
-#if 0
+
 /* Sinker */
-static PetscReal getRho(Ctx ctx,PetscReal x, PetscReal y) {
+static PetscReal getRho_sinker(void *ptr,PetscReal x, PetscReal y) {
+  Ctx ctx = (Ctx) ptr;
   const PetscReal d = ctx->xmax-ctx->xmin;
   const PetscReal xx = x/d - 0.5;
   const PetscReal yy = y/d - 0.5;
   return (xx*xx + yy*yy) > 0.3*0.3 ? ctx->rho1 : ctx->rho2;
 }
-static PetscReal getEta(Ctx ctx,PetscReal x, PetscReal y) {
+static PetscReal getEta_sinker(void *ptr,PetscReal x, PetscReal y) {
+  Ctx ctx = (Ctx) ptr;
   const PetscReal d = ctx->xmax-ctx->xmin;
   const PetscReal xx = x/d - 0.5;
   const PetscReal yy = y/d - 0.5;
   return (xx*xx + yy*yy) > 0.3*0.3 ? ctx->eta1 : ctx->eta2;
 }
-#else
 /* Vertical layers */
-PetscReal getRho(Ctx ctx,PetscReal x,PetscReal y)
+PetscReal getRho_gerya72(void *ptr,PetscReal x,PetscReal y)
 {
+  Ctx ctx = (Ctx) ptr;
   if (x + 0.0*y < (ctx->xmax-ctx->xmin)/2.0) {
     return ctx->rho1;
   } else {
     return ctx->rho2;
   }
 }
-PetscReal getEta(Ctx ctx,PetscReal x,PetscReal y)
+PetscReal getEta_gerya72(void *ptr,PetscReal x,PetscReal y)
 {
+  Ctx ctx = (Ctx) ptr;
   if (x  + 0.0*y < (ctx->xmax-ctx->xmin)/2.0) {
     return ctx->eta1;
   } else {
     return ctx->eta2;
   }
 }
-#endif
 
 int main(int argc, char** argv)
 {
@@ -76,6 +78,7 @@ int main(int argc, char** argv)
   KSP            *pksp;
   KSP            ksp;
   int            system;
+  int            structure;
 
   /* Initialize MPI and print a message */
   MPI_Init(&argc,&argv);
@@ -95,6 +98,10 @@ int main(int argc, char** argv)
   system = 1;
   ierr = PetscOptionsGetInt(NULL,NULL,"-system",&system,NULL);CHKERRQ(ierr);
 
+  /* Accept argument for coefficient structure */
+  structure = 1;
+  ierr = PetscOptionsGetInt(NULL,NULL,"-structure",&structure,NULL);CHKERRQ(ierr);
+
   /* Populate application context */
   ierr = PetscMalloc1(1,&ctx);CHKERRQ(ierr);
   ctx->comm = PETSC_COMM_WORLD;
@@ -107,6 +114,18 @@ int main(int argc, char** argv)
   ctx->eta1 = 1e20;
   ctx->eta2 = 1e22;
   ctx->gy   = 10.0;
+
+  switch (structure) {
+    case 1:
+      ctx->getEta = getEta_gerya72;
+      ctx->getRho = getRho_gerya72;
+      break;
+    case 2:
+      ctx->getEta = getEta_sinker;
+      ctx->getRho = getRho_sinker;
+      break;
+    default: SETERRQ1(comm,PETSC_ERR_ARG_OUTOFRANGE,"Unsupported viscosity structure %d",structure);
+  }
 
   /* Create a Grid */
   StagBLGridCreate(&grid);
@@ -483,9 +502,9 @@ static PetscErrorCode PopulateCoefficientData(Ctx ctx)
 
   for (ey = starty; ey<starty+ny+nDummy[1]; ++ey) {
     for (ex = startx; ex<startx+nx+nDummy[0]; ++ex) {
-      coeffArr[ey][ex][ietaElement] = getEta(ctx,cArrX[ex][icenter],cArrY[ey][icenter]); // Note dummy value filled here, needlessly
-      coeffArr[ey][ex][ietaCorner]  = getEta(ctx,cArrX[ex][iprev],cArrY[ey][iprev]);
-      coeffArr[ey][ex][irho]        = getRho(ctx,cArrX[ex][iprev],cArrY[ey][iprev]);
+      coeffArr[ey][ex][ietaElement] = ctx->getEta(ctx,cArrX[ex][icenter],cArrY[ey][icenter]); // Note dummy value filled here, needlessly
+      coeffArr[ey][ex][ietaCorner]  = ctx->getEta(ctx,cArrX[ex][iprev],cArrY[ey][iprev]);
+      coeffArr[ey][ex][irho]        = ctx->getRho(ctx,cArrX[ex][iprev],cArrY[ey][iprev]);
     }
   }
   ierr = DMStagRestore1dCoordinateArraysDOFRead(ctx->dmCoeff,&cArrX,&cArrY,NULL);CHKERRQ(ierr);
