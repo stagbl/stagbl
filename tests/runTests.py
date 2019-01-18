@@ -41,6 +41,7 @@ if not os.path.exists(chkpath) :
 sys.path.append(os.path.join(STAGBL_DIR,'pythontestharness','lib'))  # overrides
 try :
   import pyTestHarness.harness as pth_harness
+  import pyTestHarness.test as pth_test
 except Exception as errorMessage :
   if not sys.exc_info()[-1].tb_next :     # Check that the traceback has depth 1
     traceback.print_exc()
@@ -52,6 +53,11 @@ except Exception as errorMessage :
     print('********************')
     sys.exit(1)
   raise
+
+# Define a subclass of pyTestHarness.Test
+class StagBLTest(pth_test.Test) :
+    def __init__(self) :
+        pth_test.Test.__init__(self)
 
 #  Interpret any child directory containing 'test.py' as defining as a test
 #  with a name defined as the relative path to the containing directory.
