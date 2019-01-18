@@ -11,15 +11,14 @@
 
 import os
 import sys
-import json
 
 thisDir = os.path.dirname(os.path.abspath(__file__))
 
-# STAGBL_DIR and STAGBL_ARCH are used to make easily-copyable tests
 STAGBL_DIR = os.getenv('STAGBL_DIR')
 if not STAGBL_DIR :
     print('You must define STAGBL_DIR in your environment. Exiting.')
     sys.exit(1)
+
 STAGBL_ARCH = os.getenv('STAGBL_ARCH')
 if not STAGBL_ARCH :
     print('You must define STAGBL_ARCH in your environment. Exiting.')
@@ -27,10 +26,6 @@ if not STAGBL_ARCH :
 if os.path.join(STAGBL_DIR,'tests') != thisDir :
     print('STAGBL_DIR is not set correctly in your environment. Exiting.')
     sys.exit(1)
-
-# TODO load JSON
-
-# TODO update "bin" to something from that json 
 
 chkpath = os.path.join(STAGBL_DIR,STAGBL_ARCH,'bin')
 if not os.path.exists(chkpath) :
@@ -54,13 +49,8 @@ except Exception as errorMessage :
     sys.exit(1)
   raise
 
-# Define a subclass of pyTestHarness.Test
-class StagBLTest(pth_test.Test) :
-    def __init__(self) :
-        pth_test.Test.__init__(self)
-
 #  Interpret any child directory containing 'test.py' as defining as a test
-#  with a name defined as the relative path to the containing directory.
+#  with a name defined by the relative path to the containing directory.
 allTests = []
 for (root, dirs, files) in os.walk(thisDir) :
     if 'test.py' in files :

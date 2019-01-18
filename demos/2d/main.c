@@ -174,6 +174,7 @@ int main(int argc, char** argv)
   StagBLArrayPETScGetVecPointer(x,&pvecx);
   ierr = DMCreateGlobalVector(ctx->dmStokes,pvecx);
   vecx = *pvecx;
+  ierr = PetscObjectSetName((PetscObject)vecx,"solution");CHKERRQ(ierr);
 
   StagBLArrayPETScGetVecPointer(b,&pvecb);
 
@@ -603,6 +604,19 @@ static PetscErrorCode DumpSolution(Ctx ctx,Vec x)
   }
 
   /* Edge-based fields could similarly be dumped */
+
+  /* For testing, option to dump the solution to an ASCII file */
+  {
+    PetscBool debug_ascii_dump = PETSC_FALSE;
+    ierr = PetscOptionsGetBool(NULL,NULL,"-debug_ascii_dump",&debug_ascii_dump,NULL);CHKERRQ(ierr);
+    if (debug_ascii_dump) {
+      PetscViewer viewer;
+      PetscViewerASCIIOpen(PetscObjectComm((PetscObject)daVelAvg),"x.matlabascii.txt",&viewer);CHKERRQ(ierr);
+      PetscViewerPushFormat(viewer,PETSC_VIEWER_ASCII_MATLAB);
+      ierr = VecView(x,viewer);CHKERRQ(ierr);
+      ierr = PetscViewerDestroy(&viewer);CHKERRQ(ierr);
+    }
+  }
 
   /* Destroy DMDAs and Vecs */
   ierr = VecDestroy(&vecVelAvg);CHKERRQ(ierr);
