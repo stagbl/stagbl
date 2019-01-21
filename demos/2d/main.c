@@ -159,7 +159,7 @@ int main(int argc, char** argv)
     hxAvgInv = 2.0/(ctx->hxCharacteristic + ctx->hyCharacteristic);
     ctx->Kcont = ctx->etaCharacteristic*hxAvgInv;
     ctx->Kbound = ctx->etaCharacteristic*hxAvgInv*hxAvgInv;
-    if (N[1] < 2) SETERRQ(comm,PETSC_ERR_SUP,"Not implemented for a single elemnent in the y direction");
+    if (N[0] < 2) SETERRQ(comm,PETSC_ERR_SUP,"Not implemented for a single element in the x direction");
     ctx->pinx = 1; ctx->piny = 0;
   }
 
