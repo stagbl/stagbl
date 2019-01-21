@@ -407,18 +407,18 @@ static PetscErrorCode CreateSystem(const Ctx ctx,Mat *pA,Vec *pRhs)
         } else if (ey == N[1]-1) {
           /* Top boundary x velocity stencil */
           nEntries = 10;
-          row.i     = ex  ; row.j     = ey  ; row.loc     = LEFT;    row.c      = 0;
-          col[0].i  = ex  ; col[0].j  = ey  ; col[0].loc  = LEFT;    col[0].c   = 0; valA[0]  = -2.0 * (etaLeft + etaRight) / (hx*hx) -(etaDown) / (hy*hy);
-          col[1].i  = ex  ; col[1].j  = ey-1; col[1].loc  = LEFT;    col[1].c   = 0; valA[1]  =        etaDown  / (hy*hy);
+          row.i     = ex  ; row.j     = ey  ; row.loc     = LEFT;    row.c     = 0;
+          col[0].i  = ex  ; col[0].j  = ey  ; col[0].loc  = LEFT;    col[0].c  = 0; valA[0]  = -2.0 * (etaLeft + etaRight) / (hx*hx) -(etaDown) / (hy*hy);
+          col[1].i  = ex  ; col[1].j  = ey-1; col[1].loc  = LEFT;    col[1].c  = 0; valA[1]  =        etaDown  / (hy*hy);
           /* Missing element above */
-          col[2].i  = ex-1; col[2].j  = ey  ; col[2].loc  = LEFT;    col[2].c   = 0; valA[2]  =  2.0 * etaLeft  / (hx*hx);
-          col[3].i  = ex+1; col[3].j  = ey  ; col[3].loc  = LEFT;    col[3].c   = 0; valA[3]  =  2.0 * etaRight / (hx*hx);
-          col[4].i  = ex-1; col[4].j  = ey  ; col[4].loc  = DOWN;    col[4].c   = 0; valA[4]  =        etaDown  / (hx*hy); /* down left */
-          col[5].i  = ex  ; col[5].j  = ey  ; col[5].loc  = DOWN;    col[5].c   = 0; valA[5]  = -      etaDown  / (hx*hy); /* down right */
-          col[6].i  = ex-1; col[6].j  = ey  ; col[6].loc  = UP;      col[6].c   = 0; valA[6]  = -      etaUp    / (hx*hy); /* up left */
-          col[7].i  = ex  ; col[7].j  = ey  ; col[7].loc  = UP;      col[7].c   = 0; valA[7]  =        etaUp    / (hx*hy); /* up right */
-          col[8].i  = ex-1; col[8].j  = ey  ; col[8].loc  = ELEMENT; col[8].c   = 0; valA[8]  =  ctx->Kcont / hx;
-          col[9].i = ex   ; col[9].j  = ey   ; col[9].loc = ELEMENT;  col[9].c  = 0; valA[9]  = -ctx->Kcont / hx;
+          col[2].i  = ex-1; col[2].j  = ey  ; col[2].loc  = LEFT;    col[2].c  = 0; valA[2]  =  2.0 * etaLeft  / (hx*hx);
+          col[3].i  = ex+1; col[3].j  = ey  ; col[3].loc  = LEFT;    col[3].c  = 0; valA[3]  =  2.0 * etaRight / (hx*hx);
+          col[4].i  = ex-1; col[4].j  = ey  ; col[4].loc  = DOWN;    col[4].c  = 0; valA[4]  =        etaDown  / (hx*hy); /* down left */
+          col[5].i  = ex  ; col[5].j  = ey  ; col[5].loc  = DOWN;    col[5].c  = 0; valA[5]  = -      etaDown  / (hx*hy); /* down right */
+          col[6].i  = ex-1; col[6].j  = ey  ; col[6].loc  = UP;      col[6].c  = 0; valA[6]  = -      etaUp    / (hx*hy); /* up left */
+          col[7].i  = ex  ; col[7].j  = ey  ; col[7].loc  = UP;      col[7].c  = 0; valA[7]  =        etaUp    / (hx*hy); /* up right */
+          col[8].i  = ex-1; col[8].j  = ey  ; col[8].loc  = ELEMENT; col[8].c  = 0; valA[8]  =  ctx->Kcont / hx;
+          col[9].i  = ex  ; col[9].j  = ey   ; col[9].loc = ELEMENT; col[9].c  = 0; valA[9]  = -ctx->Kcont / hx;
           valRhs = 0.0;
         } else {
           /* U_x interior equation */
