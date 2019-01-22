@@ -12,7 +12,7 @@ def test() :
 
     def comparefunc(t) :
         """ compare all lines not skipped by 'keywords' below """
-        t.compareFloatingPointRelative('',1e-12)
+        t.compareFloatingPointRelative('',1e-8,1e-11)
 
     t.appendKeywords('%')
     t.appendKeywords('[')

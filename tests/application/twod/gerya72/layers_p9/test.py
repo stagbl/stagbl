@@ -4,7 +4,7 @@ def test() :
             'stagbldemo2d',
             9,
             [
-                '-pc_type lu -pc_factor_mat_solver_type mumps', 
+                '-pc_type lu -pc_factor_mat_solver_type mumps',
                 '-debug_ascii_dump',
             ],
             'x.matlabascii.txt'
@@ -12,7 +12,7 @@ def test() :
 
     def comparefunc(t) :
         """ compare all lines not skipped by 'keywords' below """
-        t.compareFloatingPointRelative('',1e-12)
+        t.compareFloatingPointRelative('',1e-8,1e-11)
 
     t.appendKeywords('%')
     t.appendKeywords('[')
