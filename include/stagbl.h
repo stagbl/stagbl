@@ -4,6 +4,15 @@
 // Hard-coding for now (later put in generated header)
 #define STAGBL_WITH_PETSC
 
+// Data Types
+#if defined(STAGBL_WITH_PETSC)
+#define StagBLInt PetscInt
+#define StagBLReal PetscReal
+#else
+#define StagBLInt int
+#define StagBLReal double
+#endif
+
 #if defined(STAGBL_WITH_PETSC)
 #include <petsc.h>
 #endif
