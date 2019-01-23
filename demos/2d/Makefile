@@ -1,10 +1,13 @@
 # Expects STAGBL_DIR and STAGBL_ARCH to be set
 STAGBL_DIR ?= ../..
 STAGBL_ARCH ?= $(PETSC_ARCH)
+ifeq ($(STAGBL_ARCH),)
+STAGBL_ARCH:=build
+endif
 
 EXNAME = stagbldemo2d
 
-OBJ = main.o system2.o ctx.o
+OBJ = main.o ctx.o dump.o system.o system2.o
 
 all : $(EXNAME)
 
