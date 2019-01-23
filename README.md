@@ -1,6 +1,13 @@
 ![StagBL Logo](documentation/resources/logo/logo.pdf)
 # StagBL
 
+StagBL is a C library designed to allow optimized, massively-parallel solvers
+for geodynamics application codes based on finite-volume methods on regular,
+orthogonal grids, usually coupled to a particle-based advection scheme.
+
+It aims to be as lightweight as possible while still providing access to modern
+solvers.
+
 StagBL is in the initial heavy development phase. Everything and anything may change.
 See the Trello Board on the Bitbucket repository.
 
