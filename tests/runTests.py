@@ -11,6 +11,7 @@
 
 import os
 import sys
+import traceback
 
 thisDir = os.path.dirname(os.path.abspath(__file__))
 
