@@ -4,8 +4,8 @@
 #include "stagbl.h"
 
 struct _p_StagBLOperatorOps {
-  void (*create)(StagBLOperator);
-  void (*destroy)(StagBLOperator);
+  StagBLErrorCode (*create)(StagBLOperator);
+  StagBLErrorCode (*destroy)(StagBLOperator);
 };
 
 typedef struct _p_StagBLOperatorOps *StagBLOperatorOps;

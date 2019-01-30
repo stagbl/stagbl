@@ -2,7 +2,7 @@
 #include "stagblgridpetscimpl.h"
 #include <stdlib.h>
 
-void StagBLGridDestroy_PETSc(StagBLGrid stagblgrid)
+StagBLErrorCode StagBLGridDestroy_PETSc(StagBLGrid stagblgrid)
 {
   StagBLGrid_PETSc *data = (StagBLGrid_PETSc*) stagblgrid->data;
   if (data->dm) {
@@ -10,19 +10,25 @@ void StagBLGridDestroy_PETSc(StagBLGrid stagblgrid)
   }
   free(stagblgrid->data);
   stagblgrid->data = NULL;
+
+  return 0;
 }
 
-void StagBLGridCreate_PETSc(StagBLGrid stagblgrid)
+StagBLErrorCode StagBLGridCreate_PETSc(StagBLGrid stagblgrid)
 {
   StagBLGrid_PETSc *data;
   stagblgrid->data = (void*) malloc(sizeof(StagBLGrid_PETSc));
   data = (StagBLGrid_PETSc*) stagblgrid->data;
   data->dm = NULL;
   stagblgrid->ops->destroy = StagBLGridDestroy_PETSc;
+
+  return 0;
 }
 
-void StagBLGridPETScGetDMPointer(StagBLGrid stagblgrid,DM **dm)
+StagBLErrorCode StagBLGridPETScGetDMPointer(StagBLGrid stagblgrid,DM **dm)
 {
   StagBLGrid_PETSc * const data = (StagBLGrid_PETSc*) stagblgrid->data;
   *dm = &(data->dm);
+
+  return 0;
 }

@@ -1,7 +1,7 @@
 #include "stagbloperatorimpl.h"
 #include <stdlib.h>
 
-void StagBLOperatorCreate(StagBLOperator *stagbloperator)
+StagBLErrorCode StagBLOperatorCreate(StagBLOperator *stagbloperator)
 {
   *stagbloperator = malloc(sizeof(struct _p_StagBLOperator));
   (*stagbloperator)->ops = calloc(1,sizeof(struct _p_StagBLOperatorOps));
@@ -10,9 +10,11 @@ void StagBLOperatorCreate(StagBLOperator *stagbloperator)
   (*stagbloperator)->type = STAGBLOPERATORPETSC;
   (*stagbloperator)->ops->create = StagBLOperatorCreate_PETSc; // Sets other ops
   ((*stagbloperator)->ops->create)(*stagbloperator);
+
+  return 0;
 }
 
-void StagBLOperatorDestroy(StagBLOperator *stagbloperator)
+StagBLErrorCode StagBLOperatorDestroy(StagBLOperator *stagbloperator)
 {
   if ((*stagbloperator)->ops->destroy) {
     ((*stagbloperator)->ops->destroy)(*stagbloperator);
@@ -20,4 +22,6 @@ void StagBLOperatorDestroy(StagBLOperator *stagbloperator)
   free((*stagbloperator)->ops);
   free(*stagbloperator);
   *stagbloperator = NULL;
+
+  return 0;
 }

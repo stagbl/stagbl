@@ -1,7 +1,7 @@
 #include "stagblgridimpl.h"
 #include <stdlib.h>
 
-void StagBLGridCreate(StagBLGrid *stagblgrid)
+StagBLErrorCode StagBLGridCreate(StagBLGrid *stagblgrid)
 {
   *stagblgrid = malloc(sizeof(struct _p_StagBLGrid));
   (*stagblgrid)->ops = calloc(1,sizeof(struct _p_StagBLGridOps));
@@ -10,9 +10,11 @@ void StagBLGridCreate(StagBLGrid *stagblgrid)
   (*stagblgrid)->type = STAGBLGRIDPETSC;
   (*stagblgrid)->ops->create = StagBLGridCreate_PETSc; // Sets other ops
   ((*stagblgrid)->ops->create)(*stagblgrid);
+
+  return 0;
 }
 
-void StagBLGridDestroy(StagBLGrid *stagblgrid)
+StagBLErrorCode StagBLGridDestroy(StagBLGrid *stagblgrid)
 {
   if ((*stagblgrid)->ops->destroy) {
     ((*stagblgrid)->ops->destroy)(*stagblgrid);
@@ -20,4 +22,6 @@ void StagBLGridDestroy(StagBLGrid *stagblgrid)
   free((*stagblgrid)->ops);
   free(*stagblgrid);
   *stagblgrid = NULL;
+
+  return 0;
 }

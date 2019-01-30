@@ -4,8 +4,8 @@
 #include "stagbl.h"
 
 struct _p_StagBLLinearSolverOps {
-  void (*create)(StagBLLinearSolver);
-  void (*destroy)(StagBLLinearSolver);
+  StagBLErrorCode (*create)(StagBLLinearSolver);
+  StagBLErrorCode (*destroy)(StagBLLinearSolver);
 };
 
 typedef struct _p_StagBLLinearSolverOps *StagBLLinearSolverOps;

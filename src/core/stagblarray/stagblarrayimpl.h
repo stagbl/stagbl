@@ -4,8 +4,8 @@
 #include "stagbl.h"
 
 struct _p_StagBLArrayOps {
-  void (*create)(StagBLArray);
-  void (*destroy)(StagBLArray);
+  StagBLErrorCode (*create)(StagBLArray);
+  StagBLErrorCode (*destroy)(StagBLArray);
 };
 
 typedef struct _p_StagBLArrayOps *StagBLArrayOps;

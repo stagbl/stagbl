@@ -117,26 +117,19 @@ int main(int argc, char** argv)
     default: SETERRQ1(comm,PETSC_ERR_ARG_OUTOFRANGE,"Unsupported viscosity structure %d",structure);
   }
 
-  /* Create a Grid */
-  StagBLGridCreate(&grid);
+  /* Create a Grid
+     We call a helper function from "stokes" to create an interlaced p-v
+     grid of the correct size. Note that the choice of whether to create a single
+     grid with both pressure and velocity, or two grids, must be made early, 
+     as this affects data layout. This single-grid choice is appropriate for
+     monolithic mulitigrid or direct solution, whereas two grids would be appropriated
+     for segregated or Approximate block factorization based solvers. */
+  StagBLGridCreateStokes2DBox(comm,30,20,0.0,ctx->xmax,0.0,ctx->ymax,&grid);
+
+
+  // TODO remove this escape hatch logic from main..
   StagBLGridPETScGetDMPointer(grid,&pdm);
-  ierr = DMStagCreate2d(
-      comm,
-      DM_BOUNDARY_NONE,DM_BOUNDARY_NONE,
-      30,20,                                   /* Global element counts */
-      PETSC_DECIDE,PETSC_DECIDE,               /* Determine parallel decomposition automatically */
-      0,1,1,                                   /* dof: 0 per vertex, 1 per edge, 1 per face/element */
-      DMSTAG_STENCIL_BOX,
-      1,                                       /* elementwise stencil width */
-      NULL,NULL,
-      pdm);
   ctx->dmStokes = *pdm;
-  ierr = DMSetFromOptions(ctx->dmStokes);CHKERRQ(ierr);
-  ierr = DMSetUp(ctx->dmStokes);CHKERRQ(ierr);
-  ierr = DMStagSetUniformCoordinatesProduct(ctx->dmStokes,0.0,ctx->xmax,0.0,ctx->ymax,0.0,0.0);CHKERRQ(ierr);
-  ierr = DMStagCreateCompatibleDMStag(ctx->dmStokes,2,0,1,0,&ctx->dmCoeff);CHKERRQ(ierr);
-  ierr = DMSetUp(ctx->dmCoeff);CHKERRQ(ierr);
-  ierr = DMStagSetUniformCoordinatesProduct(ctx->dmCoeff,0.0,ctx->xmax,0.0,ctx->ymax,0.0,0.0);CHKERRQ(ierr);
 
   /* Get scaling constants and node to pin, knowing grid dimensions */
   {
@@ -153,8 +146,16 @@ int main(int argc, char** argv)
     ctx->pinx = 1; ctx->piny = 0;
   }
 
+  // TODO we call a high-level StagBLArray function to create coefficient fields
+  StagBLGridPETScGetDMPointer(grid,&pdm);
+  ierr = DMStagCreateCompatibleDMStag(ctx->dmStokes,2,0,1,0,&ctx->dmCoeff);CHKERRQ(ierr);
+  ierr = DMSetUp(ctx->dmCoeff);CHKERRQ(ierr);
+  ierr = DMStagSetUniformCoordinatesProduct(ctx->dmCoeff,0.0,ctx->xmax,0.0,ctx->ymax,0.0,0.0);CHKERRQ(ierr);
   /* Populate coefficient data */
   ierr = PopulateCoefficientData(ctx);CHKERRQ(ierr);
+
+  // TODO we call a helper function in "stokes" to create a StagBLResidual object
+  // encapsulating an assembled Stokes system with given BCs, based on computed coefficient fields.
 
   /* Create a system */
   StagBLOperatorCreate(&A);
@@ -177,6 +178,8 @@ int main(int argc, char** argv)
   matA = *pmatA;
   vecb = *pvecb;
 
+  // TODO we call a function to create the default solver for the created StagBLREsidual function,
+  // set any additional options we'd like, and set up
   /* Solve the system (you will likely want to specify a solver from the command line) */
   StagBLLinearSolverCreate(&solver);
   StagBLLinearSolverPETScGetKSPPointer(solver,&pksp);
@@ -193,6 +196,7 @@ int main(int argc, char** argv)
     if (reason < 0) SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_CONV_FAILED,"Linear solve failed");CHKERRQ(ierr);
   }
 
+  // TODO we take advantage of the "escape hatch" and use some convenient PETSc functions to dump the solution
   /* Dump solution by converting to DMDAs and dumping */
   ierr = DumpSolution(ctx,vecx);CHKERRQ(ierr);
 

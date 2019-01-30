@@ -1,7 +1,7 @@
 #include "stagblarrayimpl.h"
 #include <stdlib.h>
 
-void StagBLArrayCreate(StagBLArray *stagblarray)
+StagBLErrorCode StagBLArrayCreate(StagBLArray *stagblarray)
 {
   *stagblarray = malloc(sizeof(struct _p_StagBLArray));
   (*stagblarray)->ops = calloc(1,sizeof(struct _p_StagBLArrayOps));
@@ -10,9 +10,11 @@ void StagBLArrayCreate(StagBLArray *stagblarray)
   (*stagblarray)->type = STAGBLARRAYPETSC;
   (*stagblarray)->ops->create = StagBLArrayCreate_PETSc; // Sets other ops
   ((*stagblarray)->ops->create)(*stagblarray);
+
+  return 0;
 }
 
-void StagBLArrayDestroy(StagBLArray *stagblarray)
+StagBLErrorCode StagBLArrayDestroy(StagBLArray *stagblarray)
 {
   if ((*stagblarray)->ops->destroy) {
     ((*stagblarray)->ops->destroy)(*stagblarray);
@@ -20,4 +22,6 @@ void StagBLArrayDestroy(StagBLArray *stagblarray)
   free((*stagblarray)->ops);
   free(*stagblarray);
   *stagblarray = NULL;
+
+  return 0;
 }

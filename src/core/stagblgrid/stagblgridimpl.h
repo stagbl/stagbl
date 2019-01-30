@@ -4,8 +4,8 @@
 #include "stagbl.h"
 
 struct _p_StagBLGridOps {
-  void (*create)(StagBLGrid);
-  void (*destroy)(StagBLGrid);
+  StagBLErrorCode (*create)(StagBLGrid);
+  StagBLErrorCode (*destroy)(StagBLGrid);
 };
 
 typedef struct _p_StagBLGridOps *StagBLGridOps;

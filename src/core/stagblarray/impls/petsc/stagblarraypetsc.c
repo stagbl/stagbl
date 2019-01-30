@@ -2,7 +2,7 @@
 #include "stagblarraypetscimpl.h"
 #include <stdlib.h>
 
-void StagBLArrayDestroy_PETSc(StagBLArray stagblarray)
+StagBLErrorCode StagBLArrayDestroy_PETSc(StagBLArray stagblarray)
 {
   StagBLArray_PETSc *data= (StagBLArray_PETSc*) stagblarray->data;
   if (data->vec) {
@@ -10,19 +10,25 @@ void StagBLArrayDestroy_PETSc(StagBLArray stagblarray)
   }
   free(stagblarray->data);
   stagblarray->data = NULL;
+
+  return 0;
 }
 
-void StagBLArrayCreate_PETSc(StagBLArray stagblarray)
+StagBLErrorCode StagBLArrayCreate_PETSc(StagBLArray stagblarray)
 {
   StagBLArray_PETSc *data;
   stagblarray->data = (void*) malloc(sizeof(StagBLArray_PETSc));
   data = (StagBLArray_PETSc*) stagblarray->data;
   data->vec = NULL;
   stagblarray->ops->destroy = StagBLArrayDestroy_PETSc;
+
+  return 0;
 }
 
-void StagBLArrayPETScGetVecPointer(StagBLArray stagblarray,Vec **vec)
+StagBLErrorCode StagBLArrayPETScGetVecPointer(StagBLArray stagblarray,Vec **vec)
 {
   StagBLArray_PETSc * const data = (StagBLArray_PETSc*) stagblarray->data;
   *vec = &(data->vec);
+
+  return 0;
 }

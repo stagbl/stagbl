@@ -2,7 +2,7 @@
 #include "stagbloperatorpetscimpl.h"
 #include <stdlib.h>
 
-void StagBLOperatorDestroy_PETSc(StagBLOperator stagbloperator)
+StagBLErrorCode StagBLOperatorDestroy_PETSc(StagBLOperator stagbloperator)
 {
   StagBLOperator_PETSc *data = (StagBLOperator_PETSc*) stagbloperator->data;
 
@@ -11,9 +11,11 @@ void StagBLOperatorDestroy_PETSc(StagBLOperator stagbloperator)
   }
   free(stagbloperator->data);
   stagbloperator->data = NULL;
+
+  return 0;
 }
 
-void StagBLOperatorCreate_PETSc(StagBLOperator stagbloperator)
+StagBLErrorCode StagBLOperatorCreate_PETSc(StagBLOperator stagbloperator)
 {
   StagBLOperator_PETSc *data;
 
@@ -21,10 +23,14 @@ void StagBLOperatorCreate_PETSc(StagBLOperator stagbloperator)
   data = (StagBLOperator_PETSc*) stagbloperator->data;
   data->mat = NULL;
   stagbloperator->ops->destroy = StagBLOperatorDestroy_PETSc;
+
+  return 0;
 }
 
-void StagBLOperatorPETScGetMatPointer(StagBLOperator stagbloperator,Mat **mat)
+StagBLErrorCode StagBLOperatorPETScGetMatPointer(StagBLOperator stagbloperator,Mat **mat)
 {
   StagBLOperator_PETSc * const data = (StagBLOperator_PETSc*) stagbloperator->data;
   *mat = &(data->mat);
+
+  return 0;
 }
