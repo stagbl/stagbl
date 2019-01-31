@@ -23,6 +23,14 @@
 StagBLErrorCode StagBLInitialize(int,char**,MPI_Comm);
 StagBLErrorCode StagBLFinalize();
 
+// Errors
+void StagBLErrorFileLine(MPI_Comm,const char*,const char*,long int);
+#if defined(STAGBL_WITH_PETSC)
+#define StagBLError(comm,msg) SETERRQ3(comm,PETSC_ERR_LIB,"StagBL Error at %s:%ld: %s",__FILE__,__LINE__,msg);
+#else
+#define StagBLError(comm,msg) StagBLErrorFileLine(comm,msg,__FILE__,__LINE__)
+#endif
+
 // StagBLGrid
 struct _p_StagBLGrid;
 typedef struct _p_StagBLGrid *StagBLGrid;
