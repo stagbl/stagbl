@@ -1,4 +1,4 @@
-#include "stagblgridimpl.h"
+#include "stagbl/private/stagblgridimpl.h"
 #include <stdlib.h>
 
 StagBLErrorCode StagBLGridCreate(StagBLGrid *stagblgrid)

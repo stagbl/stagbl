@@ -1,4 +1,4 @@
-#include "stagblarrayimpl.h"
+#include "stagbl/private/stagblarrayimpl.h"
 #include <stdlib.h>
 
 StagBLErrorCode StagBLArrayCreate(StagBLArray *stagblarray)

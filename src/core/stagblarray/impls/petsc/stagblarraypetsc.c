@@ -1,4 +1,4 @@
-#include "../../stagblarrayimpl.h"
+#include "stagbl/private/stagblarrayimpl.h"
 #include "stagblarraypetscimpl.h"
 #include <stdlib.h>
 
