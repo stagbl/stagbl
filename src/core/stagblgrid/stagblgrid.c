@@ -33,6 +33,14 @@ StagBLErrorCode StagBLGridCreateStagBLArray(StagBLGrid grid,StagBLArray *array)
   return 0;
 } 
 
+StagBLErrorCode StagBLGridCreateStagBLSystem(StagBLGrid grid,StagBLSystem *system)
+{
+  StagBLErrorCode ierr;
+  // TODO this is basically a placeholder, createing a generic system
+  ierr = StagBLSystemCreate(system);CHKERRQ(ierr);
+  return 0;
+} 
+
 StagBLErrorCode StagBLGridDestroy(StagBLGrid *stagblgrid)
 {
   if ((*stagblgrid)->ops->destroy) {

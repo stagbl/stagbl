@@ -50,14 +50,14 @@ StagBLReal getEta_gerya72(void *ptr,StagBLReal x,StagBLReal y)
 
 int main(int argc, char** argv)
 {
-  StagBLErrorCode    ierr;
-  int                rank,size;
-  StagBLArray        x,b;
-  StagBLOperator     A;
-  StagBLLinearSolver solver;
-  MPI_Comm           comm;
-  StagBLInt          system,structure;
-  Ctx                ctx;
+  StagBLErrorCode ierr;
+  int             rank,size;
+  StagBLArray     x;
+  StagBLSystem    system;
+  StagBLSolver    solver;
+  MPI_Comm        comm;
+  StagBLInt       systemtype,structure;
+  Ctx             ctx;
 
   // TODO remove all this petsc-dependence
   Vec            *pvecx,*pvecb;
@@ -82,7 +82,7 @@ int main(int argc, char** argv)
   StagBLInitialize(argc,argv,comm);
 
   /* Accept argument for system type and coefficient structure */
-  ierr = GetIntArg("-system",1,&system);CHKERRQ(ierr);
+  ierr = GetIntArg("-system",1,&systemtype);CHKERRQ(ierr);
   ierr = GetIntArg("-structure",1,&structure);CHKERRQ(ierr);
 
   /* Populate application context */
@@ -154,15 +154,14 @@ int main(int argc, char** argv)
   /* Coefficient data */
   ierr = PopulateCoefficientData(ctx);CHKERRQ(ierr);
 
-  // TODO we call a helper function in "stokes" to create a StagBLSystem object
-  // encapsulating an assembled Stokes system with given BCs, based on computed coefficient fields.
-  // TODO StagBLSystemCreateStokesExplicit(stokesGrid,coefficientArray,&stokesSystem);
-  // TODO this requires some thought as to how to best pass the coefficientarray - I don't like making the user remember which slot is for what so they need to be labelled somehow....
-
   /* Create a system */
-  StagBLOperatorCreate(&A);
-  ierr = StagBLGridCreateStagBLArray(ctx->coeffGrid,&x);CHKERRQ(ierr);
-  ierr = StagBLGridCreateStagBLArray(ctx->coeffGrid,&b);CHKERRQ(ierr);
+  ierr = StagBLGridCreateStagBLSystem(ctx->stokesGrid,&system);CHKERRQ(ierr);
+
+  ierr = StagBLGridCreateStagBLArray(ctx->stokesGrid,&x);CHKERRQ(ierr);
+
+  // TODO move this escape hatching in to system building calls
+  ierr = StagBLSystemPETScGetMatPointer(system,&pmatA);CHKERRQ(ierr);
+  ierr = StagBLSystemPETScGetVecPointer(system,&pvecb);CHKERRQ(ierr);
 
   {
     DM dmStokes;
@@ -174,12 +173,9 @@ int main(int argc, char** argv)
   vecx = *pvecx;
   ierr = PetscObjectSetName((PetscObject)vecx,"solution");CHKERRQ(ierr);
 
-  StagBLArrayPETScGetGlobalVecPointer(b,&pvecb);
-
-  StagBLOperatorPETScGetMatPointer(A,&pmatA);
-  if (system == 1) {
+  if (systemtype == 1) {
     ierr = CreateSystem(ctx,pmatA,pvecb);CHKERRQ(ierr);
-  } else if (system == 2) {
+  } else if (systemtype == 2) {
     ierr = CreateSystem2(ctx,pmatA,pvecb);CHKERRQ(ierr);
   } else SETERRQ1(ctx->comm,PETSC_ERR_SUP,"Unsupported system type %D",system);
   matA = *pmatA;
@@ -192,8 +188,8 @@ int main(int argc, char** argv)
   // TODO StagBLSolverSolve(solver,...);
 
   /* Solve the system (you will likely want to specify a solver from the command line) */
-  StagBLLinearSolverCreate(&solver);
-  StagBLLinearSolverPETScGetKSPPointer(solver,&pksp);
+  StagBLSolverCreate(&solver);
+  StagBLSolverPETScGetKSPPointer(solver,&pksp);
 
   ierr = VecDuplicate(vecb,pvecx);CHKERRQ(ierr);
   ierr = KSPCreate(ctx->comm,pksp);CHKERRQ(ierr);
@@ -212,9 +208,8 @@ int main(int argc, char** argv)
 
   /* Free data */
   ierr = StagBLArrayDestroy(&x);CHKERRQ(ierr);
-  ierr = StagBLArrayDestroy(&b);CHKERRQ(ierr);
-  ierr = StagBLOperatorDestroy(&A);CHKERRQ(ierr);
-  ierr = StagBLLinearSolverDestroy(&solver);CHKERRQ(ierr);
+  ierr = StagBLSystemDestroy(&system);CHKERRQ(ierr);
+  ierr = StagBLSolverDestroy(&solver);CHKERRQ(ierr);
   ierr = StagBLGridDestroy(&ctx->stokesGrid);CHKERRQ(ierr);
   ierr = StagBLGridDestroy(&ctx->coeffGrid);CHKERRQ(ierr);
 

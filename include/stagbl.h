@@ -41,10 +41,19 @@ typedef struct _p_StagBLGrid *StagBLGrid;
 struct _p_StagBLArray;
 typedef struct _p_StagBLArray *StagBLArray;
 
+// StagBLSystem Data
+struct _p_StagBLSystem;
+typedef struct _p_StagBLSystem *StagBLSystem;
+
+// StagBLSolver Data
+struct _p_StagBLSolver;
+typedef struct _p_StagBLSolver *StagBLSolver;
+
 // StagBLGrid Functions
 StagBLErrorCode StagBLGridCreate(StagBLGrid*);
 StagBLErrorCode StagBLGridCreateCompatibleStagBLGrid(StagBLGrid,StagBLInt,StagBLInt,StagBLInt,StagBLInt,StagBLGrid*);
 StagBLErrorCode StagBLGridCreateStagBLArray(StagBLGrid,StagBLArray*);
+StagBLErrorCode StagBLGridCreateStagBLSystem(StagBLGrid,StagBLSystem*);
 StagBLErrorCode StagBLGridDestroy(StagBLGrid*);
 
 // StagBLGrid impls
@@ -65,36 +74,30 @@ StagBLErrorCode StagBLArrayDestroy(StagBLArray*);
 StagBLErrorCode StagBLArrayCreate_PETSc(StagBLArray);
 StagBLErrorCode StagBLArrayPETScGetLocalVec(StagBLArray,Vec*);
 StagBLErrorCode StagBLArrayPETScGetLocalVecPointer(StagBLArray,Vec**);
-StagBLErrorCode StagBLArrayPETScGetGlobalVecPointer(StagBLArray,Vec**); // TODO get rid of this if possible - We don't like global vecs!
+StagBLErrorCode StagBLArrayPETScGetGlobalVecPointer(StagBLArray,Vec**);
 #endif
 
+// StagBLSystem Functions
+StagBLErrorCode StagBLSystemCreate(StagBLSystem*);
+StagBLErrorCode StagBLSystemDestroy(StagBLSystem*);
 
-// TODO Operator and LinearSolver are going to be replaced with System and Solver
-
-// StagBLOperator
-struct _p_StagBLOperator;
-typedef struct _p_StagBLOperator *StagBLOperator;
-StagBLErrorCode StagBLOperatorCreate(StagBLOperator*);
-StagBLErrorCode StagBLOperatorDestroy(StagBLOperator*);
-
-// StagBLOperator impls
+// StagBLSystem impls
 #if defined (STAGBL_WITH_PETSC)
-#define STAGBLOPERATORPETSC "petsc"
-StagBLErrorCode StagBLOperatorCreate_PETSc(StagBLOperator);
-StagBLErrorCode StagBLOperatorPETScGetMatPointer(StagBLOperator,Mat**);
+#define STAGBLSYSTEMPETSC "petsc"
+StagBLErrorCode StagBLSystemCreate_PETSc(StagBLSystem);
+StagBLErrorCode StagBLSystemPETScGetMatPointer(StagBLSystem,Mat**);
+StagBLErrorCode StagBLSystemPETScGetVecPointer(StagBLSystem,Vec**);
 #endif
 
-// StagBLLinearSolver
-struct _p_StagBLLinearSolver;
-typedef struct _p_StagBLLinearSolver *StagBLLinearSolver;
-StagBLErrorCode StagBLLinearSolverCreate(StagBLLinearSolver*);
-StagBLErrorCode StagBLLinearSolverDestroy(StagBLLinearSolver*);
+// StagBLSolver Functions
+StagBLErrorCode StagBLSolverCreate(StagBLSolver*);
+StagBLErrorCode StagBLSolverDestroy(StagBLSolver*);
 
-// StagBLLinearSolver impls
+// StagBLSolver impls
 #if defined (STAGBL_WITH_PETSC)
-#define STAGBLLINEARSOLVERPETSC "petsc"
-StagBLErrorCode StagBLLinearSolverCreate_PETSc(StagBLLinearSolver);
-StagBLErrorCode StagBLLinearSolverPETScGetKSPPointer(StagBLLinearSolver,KSP**);
+#define STAGBLSOLVERPETSC "petsc"
+StagBLErrorCode StagBLSolverCreate_PETSc(StagBLSolver);
+StagBLErrorCode StagBLSolverPETScGetKSPPointer(StagBLSolver,KSP**);
 #endif
 
 // Stokes

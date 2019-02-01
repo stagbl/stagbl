@@ -25,4 +25,3 @@ StagBLErrorCode StagBLGridCreateStokes2DBox(MPI_Comm comm, StagBLInt nx,StagBLIn
   ierr = DMStagSetUniformCoordinatesProduct(dmStokes,xmin,xmax,ymin,ymax,0.0,0.0);CHKERRQ(ierr);
   return 0;
 }
-
