@@ -8,8 +8,6 @@
 #include <petsc.h> // TODO REMOVE THIS INCLUDE
 #include <mpi.h>
 
-// TODO make the Ctx PETSc-independent, if possible, rather using the escape hatches to pull out PETSc objects as needed.
-
 /* Helper functions */
 static PetscErrorCode PopulateCoefficientData(Ctx);
 
@@ -54,7 +52,7 @@ int main(int argc, char** argv)
 {
   StagBLErrorCode    ierr;
   int                rank,size;
-  StagBLArray        coeffArray,x,b;
+  StagBLArray        x,b;
   StagBLOperator     A;
   StagBLLinearSolver solver;
   MPI_Comm           comm;
@@ -154,9 +152,6 @@ int main(int argc, char** argv)
  }
 
   /* Coefficient data */
-  ierr = StagBLGridCreateStagBLArray(ctx->coeffGrid,&coeffArray);CHKERRQ(ierr);
-
-  // TODO replace this with something that directly populates the *local* PETSc vec (escape hatching for now the need for a function which looks at coefficients)
   ierr = PopulateCoefficientData(ctx);CHKERRQ(ierr);
 
   // TODO we call a helper function in "stokes" to create a StagBLSystem object
@@ -228,24 +223,28 @@ int main(int argc, char** argv)
   return 0;
 }
 
-/* Here, we demonstrate getting coordinates from a vector by using DMStagStencil.
-This would usually be done with direct array access, though. */
 static PetscErrorCode PopulateCoefficientData(Ctx ctx)
 {
   PetscErrorCode ierr;
-  PetscInt       N[2],nDummy[2];
+  PetscInt       N[2];
   PetscInt       ex,ey,startx,starty,nx,ny,ietaCorner,ietaElement,irho,iprev,icenter;
   DM             dmCoeff;
+  Vec            *pcoeffLocal;
   Vec            coeffLocal;
   PetscReal      **cArrX,**cArrY;
   PetscReal      ***coeffArr;
 
   PetscFunctionBeginUser;
 
-  ierr = StagBLGridPETScGetDM(ctx->coeffGrid,&dmCoeff);CHKERRQ(ierr);
+  ierr = StagBLGridCreateStagBLArray(ctx->coeffGrid,&ctx->coeffArray);CHKERRQ(ierr);
 
-  ierr = DMGetLocalVector(dmCoeff,&coeffLocal);CHKERRQ(ierr);
-  ierr = DMStagGetCorners(dmCoeff,&startx,&starty,NULL,&nx,&ny,NULL,&nDummy[0],&nDummy[1],NULL);CHKERRQ(ierr);
+  /* Escape Hatch */
+  ierr = StagBLGridPETScGetDM(ctx->coeffGrid,&dmCoeff);CHKERRQ(ierr);
+  ierr = StagBLArrayPETScGetLocalVecPointer(ctx->coeffArray,&pcoeffLocal);CHKERRQ(ierr);
+
+  ierr = DMCreateLocalVector(dmCoeff,pcoeffLocal);CHKERRQ(ierr);
+  coeffLocal = *pcoeffLocal;
+  ierr = DMStagGetGhostCorners(dmCoeff,&startx,&starty,NULL,&nx,&ny,NULL);CHKERRQ(ierr); /* Iterate over all local elements */
   ierr = DMStagGetGlobalSizes(dmCoeff,&N[0],&N[1],NULL);CHKERRQ(ierr);
   ierr = DMStagGetLocationSlot(dmCoeff,DMSTAG_DOWN_LEFT,0,&ietaCorner);CHKERRQ(ierr);
   ierr = DMStagGetLocationSlot(dmCoeff,DMSTAG_ELEMENT,0,&ietaElement);CHKERRQ(ierr);
@@ -257,18 +256,14 @@ static PetscErrorCode PopulateCoefficientData(Ctx ctx)
 
   ierr = DMStagVecGetArrayDOF(dmCoeff,coeffLocal,&coeffArr);CHKERRQ(ierr);
 
-  for (ey = starty; ey<starty+ny+nDummy[1]; ++ey) {
-    for (ex = startx; ex<startx+nx+nDummy[0]; ++ex) {
-      coeffArr[ey][ex][ietaElement] = ctx->getEta(ctx,cArrX[ex][icenter],cArrY[ey][icenter]); // Note dummy value filled here, needlessly
+  for (ey = starty; ey<starty+ny; ++ey) {
+    for (ex = startx; ex<startx+nx; ++ex) {
+      coeffArr[ey][ex][ietaElement] = ctx->getEta(ctx,cArrX[ex][icenter],cArrY[ey][icenter]);
       coeffArr[ey][ex][ietaCorner]  = ctx->getEta(ctx,cArrX[ex][iprev],cArrY[ey][iprev]);
       coeffArr[ey][ex][irho]        = ctx->getRho(ctx,cArrX[ex][iprev],cArrY[ey][iprev]);
     }
   }
   ierr = DMStagRestore1dCoordinateArraysDOFRead(dmCoeff,&cArrX,&cArrY,NULL);CHKERRQ(ierr);
   ierr = DMStagVecRestoreArrayDOF(dmCoeff,coeffLocal,&coeffArr);CHKERRQ(ierr);
-  ierr = DMCreateGlobalVector(dmCoeff,&ctx->coeff);CHKERRQ(ierr);
-  ierr = DMLocalToGlobalBegin(dmCoeff,coeffLocal,INSERT_VALUES,ctx->coeff);CHKERRQ(ierr);
-  ierr = DMLocalToGlobalEnd(dmCoeff,coeffLocal,INSERT_VALUES,ctx->coeff);CHKERRQ(ierr);
-  ierr = DMRestoreLocalVector(dmCoeff,&coeffLocal);CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }

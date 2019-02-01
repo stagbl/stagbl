@@ -8,12 +8,14 @@ PetscErrorCode DumpSolution(Ctx ctx,Vec x)
   Vec            velAvg;
   DM             daVelAvg,daP,daEtaElement,daEtaCorner,daRho;
   Vec            vecVelAvg,vecP,vecEtaElement,vecEtaCorner,vecRho;
+  Vec            vecCoeff,vecCoeffLocal;
 
   PetscFunctionBeginUser;
 
   /* Use the "escape hatch" */
   ierr = StagBLGridPETScGetDM(ctx->stokesGrid,&dmStokes);CHKERRQ(ierr);
   ierr = StagBLGridPETScGetDM(ctx->coeffGrid,&dmCoeff);CHKERRQ(ierr);
+  ierr = StagBLArrayPETScGetLocalVec(ctx->coeffArray,&vecCoeffLocal);CHKERRQ(ierr);
 
   /* For convenience, create a new DM and Vec which will hold averaged velocities
      Note that this could also be accomplished with direct array access, using
@@ -53,16 +55,23 @@ PetscErrorCode DumpSolution(Ctx ctx,Vec x)
     ierr = DMRestoreLocalVector(dmVelAvg,&velAvgLocal);CHKERRQ(ierr);
   }
 
+  /* Create a global coefficient vector (otherwise not needed) */
+  ierr = DMGetGlobalVector(dmCoeff,&vecCoeff);CHKERRQ(ierr);
+  ierr = DMLocalToGlobal(dmCoeff,vecCoeffLocal,INSERT_VALUES,vecCoeff);CHKERRQ(ierr);
+
+  /* Split to DMDAs */
   ierr = DMStagVecSplitToDMDA(dmStokes,x,DMSTAG_ELEMENT,0,&daP,&vecP);CHKERRQ(ierr);
   ierr = PetscObjectSetName((PetscObject)vecP,"p (scaled)");CHKERRQ(ierr);
-  ierr = DMStagVecSplitToDMDA(dmCoeff,ctx->coeff,DMSTAG_DOWN_LEFT,0,&daEtaCorner,&vecEtaCorner);CHKERRQ(ierr);
+  ierr = DMStagVecSplitToDMDA(dmCoeff,vecCoeff,DMSTAG_DOWN_LEFT,0,&daEtaCorner,&vecEtaCorner);CHKERRQ(ierr);
   ierr = PetscObjectSetName((PetscObject)vecEtaCorner,"eta");CHKERRQ(ierr);
-  ierr = DMStagVecSplitToDMDA(dmCoeff,ctx->coeff,DMSTAG_ELEMENT,0,&daEtaElement,&vecEtaElement);CHKERRQ(ierr);
+  ierr = DMStagVecSplitToDMDA(dmCoeff,vecCoeff,DMSTAG_ELEMENT,0,&daEtaElement,&vecEtaElement);CHKERRQ(ierr);
   ierr = PetscObjectSetName((PetscObject)vecEtaElement,"eta");CHKERRQ(ierr);
-  ierr = DMStagVecSplitToDMDA(dmCoeff,ctx->coeff,DMSTAG_DOWN_LEFT,1,&daRho,&vecRho);CHKERRQ(ierr);
+  ierr = DMStagVecSplitToDMDA(dmCoeff,vecCoeff,DMSTAG_DOWN_LEFT,1,&daRho,&vecRho);CHKERRQ(ierr);
   ierr = PetscObjectSetName((PetscObject)vecRho,"density");CHKERRQ(ierr);
   ierr = DMStagVecSplitToDMDA(dmVelAvg,velAvg,DMSTAG_ELEMENT,-3,&daVelAvg,&vecVelAvg);CHKERRQ(ierr); /* note -3 : pad with zero */
   ierr = PetscObjectSetName((PetscObject)vecVelAvg,"Velocity (Averaged)");CHKERRQ(ierr);
+
+  ierr = DMRestoreLocalVector(dmCoeff,&vecCoeff);CHKERRQ(ierr);
 
   /* Dump element-based fields to a .vtr file */
   {

@@ -26,6 +26,7 @@ PetscErrorCode CreateSystem2(const Ctx ctx,Mat *pA,Vec *pRhs)
   /* Use the "escape hatch" */
   ierr = StagBLGridPETScGetDM(ctx->stokesGrid,&dmStokes);CHKERRQ(ierr);
   ierr = StagBLGridPETScGetDM(ctx->coeffGrid,&dmCoeff);CHKERRQ(ierr);
+  ierr = StagBLArrayPETScGetLocalVec(ctx->coeffArray,&coeffLocal);CHKERRQ(ierr);
 
   ierr = DMCreateMatrix(dmStokes,pA);CHKERRQ(ierr);
   A = *pA;
@@ -35,8 +36,6 @@ PetscErrorCode CreateSystem2(const Ctx ctx,Mat *pA,Vec *pRhs)
   ierr = DMStagGetGlobalSizes(dmStokes,&N[0],&N[1],NULL);CHKERRQ(ierr);
   hx = ctx->hxCharacteristic;
   hy = ctx->hyCharacteristic;
-  ierr = DMGetLocalVector(dmCoeff,&coeffLocal);CHKERRQ(ierr);
-  ierr = DMGlobalToLocal(dmCoeff,ctx->coeff,INSERT_VALUES,coeffLocal);CHKERRQ(ierr);
 
   /* Loop over all elements at once */
   for (ey = starty; ey<starty+ny; ++ey) { /* With DMStag, always iterate x fastest, y second fastest, z slowest */
@@ -233,7 +232,6 @@ PetscErrorCode CreateSystem2(const Ctx ctx,Mat *pA,Vec *pRhs)
       }
     }
   }
-  ierr = DMRestoreLocalVector(dmCoeff,&coeffLocal);CHKERRQ(ierr);
   ierr = MatAssemblyBegin(A,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
   ierr = VecAssemblyBegin(rhs);CHKERRQ(ierr);
   ierr = MatAssemblyEnd(A,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);

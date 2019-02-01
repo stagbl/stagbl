@@ -12,9 +12,6 @@ typedef struct {
   StagBLInt   pinx,piny;
   StagBLReal (*getEta)(void*,StagBLReal,StagBLReal);
   StagBLReal (*getRho)(void*,StagBLReal,StagBLReal);
-
-  Vec coeff; // TODO get rid of this!
-  
 } CtxData;
 typedef CtxData* Ctx;
 
