@@ -2,12 +2,10 @@
 #include "dump.h"
 #include "system.h"
 #include "system2.h"
-#include "stagbl.h"
+#include <stagbl.h>
 #include <stdio.h>
 #include <petsc.h> // TODO REMOVE THIS INCLUDE
 #include <mpi.h>
-/* Note: This example application still uses PETSc for some tasks, but it is work in progress to properly hide everything behind the StagBL interface.. */
-
 
 // TODO make the Ctx PETSc-independent, if possible, rather using the escape hatches to pull out PETSc objects as needed.
 
