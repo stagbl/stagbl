@@ -26,9 +26,11 @@ StagBLErrorCode StagBLFinalize();
 // Errors
 void StagBLErrorFileLine(MPI_Comm,const char*,const char*,long int);
 #if defined(STAGBL_WITH_PETSC)
-#define StagBLError(comm,msg) SETERRQ3(comm,PETSC_ERR_LIB,"StagBL Error at %s:%ld: %s",__FILE__,__LINE__,msg);
+#define StagBLError(comm,msg) SETERRQ1(comm,PETSC_ERR_LIB,"StagBL Error: %s",msg);
 #else
 #define StagBLError(comm,msg) StagBLErrorFileLine(comm,msg,__FILE__,__LINE__)
+// Note: this check could be disabled in opt mode (though almost certainly not a real performance concern, one comparison with zero)
+#define CHKERRQ(ierr) do {if(ierr) {StagBLError(MPI_COMM_SELF,"StagBL Error Check failed");}} while(0)
 #endif
 
 // StagBLGrid Data
