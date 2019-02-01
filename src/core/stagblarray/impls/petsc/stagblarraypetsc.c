@@ -27,6 +27,13 @@ StagBLErrorCode StagBLArrayCreate_PETSc(StagBLArray stagblarray)
   return 0;
 }
 
+StagBLErrorCode StagBLArrayPETScGetLocalVec(StagBLArray stagblarray,Vec *vec)
+{
+  StagBLArray_PETSc * const data = (StagBLArray_PETSc*) stagblarray->data;
+  *vec = data->vecLocal;
+  return 0;
+}
+
 StagBLErrorCode StagBLArrayPETScGetLocalVecPointer(StagBLArray stagblarray,Vec **vec)
 {
   StagBLArray_PETSc * const data = (StagBLArray_PETSc*) stagblarray->data;

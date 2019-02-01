@@ -63,6 +63,7 @@ StagBLErrorCode StagBLArrayDestroy(StagBLArray*);
 #if defined (STAGBL_WITH_PETSC)
 #define STAGBLARRAYPETSC "petsc"
 StagBLErrorCode StagBLArrayCreate_PETSc(StagBLArray);
+StagBLErrorCode StagBLArrayPETScGetLocalVec(StagBLArray,Vec*);
 StagBLErrorCode StagBLArrayPETScGetLocalVecPointer(StagBLArray,Vec**);
 StagBLErrorCode StagBLArrayPETScGetGlobalVecPointer(StagBLArray,Vec**); // TODO get rid of this if possible - We don't like global vecs!
 #endif
