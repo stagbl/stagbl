@@ -65,6 +65,7 @@ Implementations:
  - UTOPIA
 
 ### StagBLSolver
+Holds an immutable refernce to a StagBLSystem.
 
 This knows how to take an initial guess (could be implicit zero) of an array,
 and compute a lower-residual update with respect to a StagBLSystem.
