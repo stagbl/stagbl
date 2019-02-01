@@ -10,3 +10,6 @@ pythontestharness
 
 # vim
 .*.swp
+
+# Misc temporary files
+*.tmp
