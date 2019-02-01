@@ -37,7 +37,7 @@ Implementations:
 Note: the composite implementations use DMComposite when all members also use PETSc
 
 ### StagBLArray
-A distributed array, plus a reference to a StagBLGrid.
+A distributed array, plus an immutable reference to a StagBLGrid.
 
 At any given time, it may store explicit representations of local and/or global
 data, and maintains state as to which are "up to date".

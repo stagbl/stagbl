@@ -8,6 +8,9 @@
 #include <mpi.h>
 /* Note: This example application still uses PETSc for some tasks, but it is work in progress to properly hide everything behind the StagBL interface.. */
 
+
+// TODO make the Ctx PETSc-independent, if possible, rather using the escape hatches to pull out PETSc objects as needed.
+
 /* Helper functions */
 static PetscErrorCode PopulateCoefficientData(Ctx);
 
@@ -50,23 +53,25 @@ StagBLReal getEta_gerya72(void *ptr,StagBLReal x,StagBLReal y)
 
 int main(int argc, char** argv)
 {
+  StagBLErrorCode    ierr;
   int                rank,size;
-  StagBLGrid         grid;
-  StagBLArray        x,b;
+  StagBLGrid         stokesGrid,coeffGrid;
+  StagBLArray        coeffArray,x,b;
   StagBLOperator     A;
   StagBLLinearSolver solver;
   MPI_Comm           comm;
 
   Ctx                ctx;
 
-  PetscErrorCode ierr;
-  DM             *pdm;
+  // TODO remove all this petsc-dependence
+  DM             *pdm,*pdmCoeff;
   Vec            *pvecx,*pvecb;
   Vec            vecx,vecb;
   Mat            *pmatA;
   Mat            matA;
   KSP            *pksp;
   KSP            ksp;
+
   int            system;
   int            structure;
 
@@ -84,6 +89,7 @@ int main(int argc, char** argv)
   /* Initialize StagBL (which will initialize PETSc if needbe) */
   StagBLInitialize(argc,argv,comm);
 
+  // TODO split out this argument processing into its own file/function (since we're using PETSc, but just for convenience)
   /* Accept argument for system type */
   system = 1;
   ierr = PetscOptionsGetInt(NULL,NULL,"-system",&system,NULL);CHKERRQ(ierr);
@@ -94,7 +100,7 @@ int main(int argc, char** argv)
 
   /* Populate application context */
   ierr = PetscMalloc1(1,&ctx);CHKERRQ(ierr);
-  ctx->comm = PETSC_COMM_WORLD;
+  ctx->comm = comm;
   ctx->xmin = 0.0;
   ctx->xmax = 1e6;
   ctx->ymin = 0.0;
@@ -124,11 +130,11 @@ int main(int argc, char** argv)
      as this affects data layout. This single-grid choice is appropriate for
      monolithic mulitigrid or direct solution, whereas two grids would be appropriated
      for segregated or Approximate block factorization based solvers. */
-  StagBLGridCreateStokes2DBox(comm,30,20,0.0,ctx->xmax,0.0,ctx->ymax,&grid);
+  StagBLGridCreateStokes2DBox(comm,30,20,0.0,ctx->xmax,0.0,ctx->ymax,&stokesGrid);
 
 
   // TODO remove this escape hatch logic from main..
-  StagBLGridPETScGetDMPointer(grid,&pdm);
+  ierr = StagBLGridPETScGetDMPointer(stokesGrid,&pdm);CHKERRQ(ierr);
   ctx->dmStokes = *pdm;
 
   /* Get scaling constants and node to pin, knowing grid dimensions */
@@ -146,28 +152,40 @@ int main(int argc, char** argv)
     ctx->pinx = 1; ctx->piny = 0;
   }
 
-  // TODO we call a high-level StagBLArray function to create coefficient fields
-  StagBLGridPETScGetDMPointer(grid,&pdm);
-  ierr = DMStagCreateCompatibleDMStag(ctx->dmStokes,2,0,1,0,&ctx->dmCoeff);CHKERRQ(ierr);
-  ierr = DMSetUp(ctx->dmCoeff);CHKERRQ(ierr);
+  /* Create another, compatible grid to represent coefficients */
+ {
+   const StagBLInt dofPerVertex  = 2;
+   const StagBLInt dofPerElement = 1;
+   StagBLGridCreateCompatibleStagBLGrid(stokesGrid,dofPerVertex,0,dofPerElement,0,&coeffGrid);
+ }
+
+  ierr = StagBLGridPETScGetDMPointer(coeffGrid,&pdmCoeff);CHKERRQ(ierr);
+  ctx->dmCoeff = *pdmCoeff;
+  // TODO by default set this same coordinate DM
   ierr = DMStagSetUniformCoordinatesProduct(ctx->dmCoeff,0.0,ctx->xmax,0.0,ctx->ymax,0.0,0.0);CHKERRQ(ierr);
   /* Populate coefficient data */
+
+  ierr = StagBLGridCreateStagBLArray(coeffGrid,&coeffArray);CHKERRQ(ierr);
+
+  // TODO replace this with something that directly populates the *local* PETSc vec (escape hatching for now the need for a function which looks at coefficients)
   ierr = PopulateCoefficientData(ctx);CHKERRQ(ierr);
 
-  // TODO we call a helper function in "stokes" to create a StagBLResidual object
+  // TODO we call a helper function in "stokes" to create a StagBLSystem object
   // encapsulating an assembled Stokes system with given BCs, based on computed coefficient fields.
+  // TODO StagBLSystemCreateStokesExplicit(stokesGrid,coefficientArray,&stokesSystem);
+  // TODO this requires some thought as to how to best pass the coefficientarray - I don't like making the user remember which slot is for what so they need to be labelled somehow....
 
   /* Create a system */
   StagBLOperatorCreate(&A);
-  StagBLArrayCreate(&x);
-  StagBLArrayCreate(&b);
+  ierr = StagBLGridCreateStagBLArray(coeffGrid,&x);CHKERRQ(ierr);
+  ierr = StagBLGridCreateStagBLArray(coeffGrid,&b);CHKERRQ(ierr);
 
-  StagBLArrayPETScGetVecPointer(x,&pvecx);
+  StagBLArrayPETScGetGlobalVecPointer(x,&pvecx);
   ierr = DMCreateGlobalVector(ctx->dmStokes,pvecx);
   vecx = *pvecx;
   ierr = PetscObjectSetName((PetscObject)vecx,"solution");CHKERRQ(ierr);
 
-  StagBLArrayPETScGetVecPointer(b,&pvecb);
+  StagBLArrayPETScGetGlobalVecPointer(b,&pvecb);
 
   StagBLOperatorPETScGetMatPointer(A,&pmatA);
   if (system == 1) {
@@ -178,8 +196,12 @@ int main(int argc, char** argv)
   matA = *pmatA;
   vecb = *pvecb;
 
-  // TODO we call a function to create the default solver for the created StagBLREsidual function,
+  // TODO we call a function to create the default solver for the created StagBLSystem function,
   // set any additional options we'd like, and set up
+
+  // TODO StagBLSystemCreateStagBLSolver(stokesSystem,&solver);
+  // TODO StagBLSolverSolve(solver,...);
+
   /* Solve the system (you will likely want to specify a solver from the command line) */
   StagBLLinearSolverCreate(&solver);
   StagBLLinearSolverPETScGetKSPPointer(solver,&pksp);
@@ -196,7 +218,6 @@ int main(int argc, char** argv)
     if (reason < 0) SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_CONV_FAILED,"Linear solve failed");CHKERRQ(ierr);
   }
 
-  // TODO we take advantage of the "escape hatch" and use some convenient PETSc functions to dump the solution
   /* Dump solution by converting to DMDAs and dumping */
   ierr = DumpSolution(ctx,vecx);CHKERRQ(ierr);
 
@@ -205,7 +226,8 @@ int main(int argc, char** argv)
   StagBLArrayDestroy(&b);
   StagBLOperatorDestroy(&A);
   StagBLLinearSolverDestroy(&solver);
-  StagBLGridDestroy(&grid);
+  StagBLGridDestroy(&stokesGrid);
+  StagBLGridDestroy(&coeffGrid);
 
   StagBLFinalize();
 

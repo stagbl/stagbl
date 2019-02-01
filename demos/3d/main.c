@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include <petsc.h> // Note that we still have work to do guarding for the non-PETSc case (probably define STAGBL_HAVE_PETSC in a configured include file eventually)
 
+// Note: This is not a complete demo yet. It is mainly here to test 3d grid functionality.
+
 // TODO add log stages
 
 /* Shorter, more convenient names for DMStagLocation entries */
@@ -165,14 +167,14 @@ int main(int argc, char** argv)
 
   // Create a system
   StagBLOperatorCreate(&A);
-  StagBLArrayCreate(&x);
-  StagBLArrayCreate(&b);
+  StagBLGridCreateStagBLArray(grid,&x);
+  StagBLGridCreateStagBLArray(grid,&b);
 
-  StagBLArrayPETScGetVecPointer(x,&pvecx);
+  StagBLArrayPETScGetGlobalVecPointer(x,&pvecx);
   ierr = DMCreateGlobalVector(ctx->dmStokes,pvecx);
   vecx = *pvecx;
 
-  StagBLArrayPETScGetVecPointer(b,&pvecb);
+  StagBLArrayPETScGetGlobalVecPointer(b,&pvecb);
   StagBLOperatorPETScGetMatPointer(A,&pmatA);
   ierr = CreateSystem(ctx,pmatA,pvecb);CHKERRQ(ierr);
   matA = *pmatA;

@@ -10,7 +10,35 @@ StagBLErrorCode StagBLGridDestroy_PETSc(StagBLGrid stagblgrid)
   }
   free(stagblgrid->data);
   stagblgrid->data = NULL;
+  return 0;
+}
 
+StagBLErrorCode StagBLGridCreateCompatibleStagBLGrid_PETSc(StagBLGrid grid,StagBLInt dof0,StagBLInt dof1,StagBLInt dof2,StagBLInt dof3,StagBLGrid *newgrid)
+{
+  StagBLGrid_PETSc *data,*dataNew;
+  PetscErrorCode   ierr;
+
+  data = (StagBLGrid_PETSc*) grid->data;
+  StagBLGridCreate(newgrid);
+  dataNew = (StagBLGrid_PETSc*) (*newgrid)->data;
+  ierr = DMStagCreateCompatibleDMStag(data->dm,dof0,dof1,dof2,dof3,&(dataNew->dm));CHKERRQ(ierr);
+  ierr = DMSetUp(dataNew->dm);CHKERRQ(ierr);
+  // TODO need to have the same coordinate DM (but DONT want to copy data - share reference possible?)
+  return 0;
+}
+
+StagBLErrorCode StagBLGridCreateStagBLArray_PETSc(StagBLGrid grid,StagBLArray *array)
+{
+  StagBLErrorCode  ierr;
+
+  ierr = StagBLArrayCreate(grid,array);CHKERRQ(ierr); // The default type is PETSc, so we do nothing special for now
+  return 0;
+}
+
+StagBLErrorCode StagBLGridPETScGetDMPointer(StagBLGrid stagblgrid,DM **dm)
+{
+  StagBLGrid_PETSc * const data = (StagBLGrid_PETSc*) stagblgrid->data;
+  *dm = &(data->dm);
   return 0;
 }
 
@@ -20,15 +48,8 @@ StagBLErrorCode StagBLGridCreate_PETSc(StagBLGrid stagblgrid)
   stagblgrid->data = (void*) malloc(sizeof(StagBLGrid_PETSc));
   data = (StagBLGrid_PETSc*) stagblgrid->data;
   data->dm = NULL;
-  stagblgrid->ops->destroy = StagBLGridDestroy_PETSc;
-
-  return 0;
-}
-
-StagBLErrorCode StagBLGridPETScGetDMPointer(StagBLGrid stagblgrid,DM **dm)
-{
-  StagBLGrid_PETSc * const data = (StagBLGrid_PETSc*) stagblgrid->data;
-  *dm = &(data->dm);
-
+  stagblgrid->ops->createcompatiblestagblgrid = StagBLGridCreateCompatibleStagBLGrid_PETSc;
+  stagblgrid->ops->createstagblarray          = StagBLGridCreateStagBLArray_PETSc;
+  stagblgrid->ops->destroy                    = StagBLGridDestroy_PETSc;
   return 0;
 }

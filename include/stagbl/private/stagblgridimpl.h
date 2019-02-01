@@ -5,6 +5,8 @@
 
 struct _p_StagBLGridOps {
   StagBLErrorCode (*create)(StagBLGrid);
+  StagBLErrorCode (*createcompatiblestagblgrid)(StagBLGrid,StagBLInt,StagBLInt,StagBLInt,StagBLInt,StagBLGrid*);
+  StagBLErrorCode (*createstagblarray)(StagBLGrid,StagBLArray*);
   StagBLErrorCode (*destroy)(StagBLGrid);
 };
 

@@ -13,8 +13,9 @@ typedef struct _p_StagBLArrayOps *StagBLArrayOps;
 struct _p_StagBLArray
 {
   StagBLArrayOps ops;
-  const char    *type;
-  void          *data;
+  StagBLGrid     grid;
+  const char     *type;
+  void           *data;
 };
 
 #endif

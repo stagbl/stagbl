@@ -31,10 +31,18 @@ void StagBLErrorFileLine(MPI_Comm,const char*,const char*,long int);
 #define StagBLError(comm,msg) StagBLErrorFileLine(comm,msg,__FILE__,__LINE__)
 #endif
 
-// StagBLGrid
+// StagBLGrid Data
 struct _p_StagBLGrid;
 typedef struct _p_StagBLGrid *StagBLGrid;
+
+// StagBLArray Data
+struct _p_StagBLArray;
+typedef struct _p_StagBLArray *StagBLArray;
+
+// StagBLGrid Functions
 StagBLErrorCode StagBLGridCreate(StagBLGrid*);
+StagBLErrorCode StagBLGridCreateCompatibleStagBLGrid(StagBLGrid,StagBLInt,StagBLInt,StagBLInt,StagBLInt,StagBLGrid*);
+StagBLErrorCode StagBLGridCreateStagBLArray(StagBLGrid,StagBLArray*);
 StagBLErrorCode StagBLGridDestroy(StagBLGrid*);
 
 // StagBLGrid impls
@@ -44,18 +52,20 @@ StagBLErrorCode StagBLGridCreate_PETSc(StagBLGrid); // TODO this and similar fun
 StagBLErrorCode StagBLGridPETScGetDMPointer(StagBLGrid,DM**);
 #endif
 
-// StagBLArray
-struct _p_StagBLArray;
-typedef struct _p_StagBLArray *StagBLArray;
-StagBLErrorCode StagBLArrayCreate(StagBLArray*);
+// StagBLArray Functions
+StagBLErrorCode StagBLArrayCreate(StagBLGrid,StagBLArray*); // TODO this needn't be public (or even exist?) because we can only create StagBLArrays from StagBLGrids
 StagBLErrorCode StagBLArrayDestroy(StagBLArray*);
 
 // StagBLArray impls
 #if defined (STAGBL_WITH_PETSC)
 #define STAGBLARRAYPETSC "petsc"
 StagBLErrorCode StagBLArrayCreate_PETSc(StagBLArray);
-StagBLErrorCode StagBLArrayPETScGetVecPointer(StagBLArray,Vec**);
+StagBLErrorCode StagBLArrayPETScGetLocalVecPointer(StagBLArray,Vec**);
+StagBLErrorCode StagBLArrayPETScGetGlobalVecPointer(StagBLArray,Vec**); // TODO get rid of this if possible - We don't like global vecs!
 #endif
+
+
+// TODO Operator and LinearSolver are going to be replaced with System and Solver
 
 // StagBLOperator
 struct _p_StagBLOperator;
