@@ -73,12 +73,14 @@ StagBLErrorCode StagBLArrayDestroy(StagBLArray*);
 #define STAGBLARRAYPETSC "petsc"
 StagBLErrorCode StagBLArrayCreate_PETSc(StagBLArray);
 StagBLErrorCode StagBLArrayPETScGetLocalVec(StagBLArray,Vec*);
+StagBLErrorCode StagBLArrayPETScGetGlobalVec(StagBLArray,Vec*);
 StagBLErrorCode StagBLArrayPETScGetLocalVecPointer(StagBLArray,Vec**);
 StagBLErrorCode StagBLArrayPETScGetGlobalVecPointer(StagBLArray,Vec**);
 #endif
 
 // StagBLSystem Functions
 StagBLErrorCode StagBLSystemCreate(StagBLSystem*);
+StagBLErrorCode StagBLSystemCreateStagBLSolver(StagBLSystem,StagBLSolver*);
 StagBLErrorCode StagBLSystemDestroy(StagBLSystem*);
 
 // StagBLSystem impls
