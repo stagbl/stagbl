@@ -3,6 +3,7 @@
 PetscErrorCode DumpSolution(Ctx ctx,Vec x)
 {
   PetscErrorCode ierr;
+  DM             dmStokes,dmCoeff;
   DM             dmVelAvg;
   Vec            velAvg;
   DM             daVelAvg,daP,daEtaElement,daEtaCorner,daRho;
@@ -10,10 +11,14 @@ PetscErrorCode DumpSolution(Ctx ctx,Vec x)
 
   PetscFunctionBeginUser;
 
+  /* Use the "escape hatch" */
+  ierr = StagBLGridPETScGetDM(ctx->stokesGrid,&dmStokes);CHKERRQ(ierr);
+  ierr = StagBLGridPETScGetDM(ctx->coeffGrid,&dmCoeff);CHKERRQ(ierr);
+
   /* For convenience, create a new DM and Vec which will hold averaged velocities
      Note that this could also be accomplished with direct array access, using
      DMStagVecGetArrayDOF() and related functions */
-  ierr = DMStagCreateCompatibleDMStag(ctx->dmStokes,0,0,2,0,&dmVelAvg); /* 2 dof per element */
+  ierr = DMStagCreateCompatibleDMStag(dmStokes,0,0,2,0,&dmVelAvg); /* 2 dof per element */
   ierr = DMSetUp(dmVelAvg);CHKERRQ(ierr);
   ierr = DMStagSetUniformCoordinatesExplicit(dmVelAvg,0.0,ctx->xmax,0.0,ctx->ymax,0.0,0.0);CHKERRQ(ierr);
   ierr = DMCreateGlobalVector(dmVelAvg,&velAvg);CHKERRQ(ierr);
@@ -23,38 +28,38 @@ PetscErrorCode DumpSolution(Ctx ctx,Vec x)
     PetscInt    iVxLeft,iVxRight,iVyDown,iVyUp,iVxCenter,iVyCenter;
     PetscScalar ***arrStokes,***arrVelAvg;
 
-    ierr = DMStagGetLocationSlot(ctx->dmStokes,DMSTAG_LEFT,   0,&iVxLeft  );CHKERRQ(ierr);
-    ierr = DMStagGetLocationSlot(ctx->dmStokes,DMSTAG_RIGHT,  0,&iVxRight );CHKERRQ(ierr);
-    ierr = DMStagGetLocationSlot(ctx->dmStokes,DMSTAG_DOWN,   0,&iVyDown  );CHKERRQ(ierr);
-    ierr = DMStagGetLocationSlot(ctx->dmStokes,DMSTAG_UP,     0,&iVyUp    );CHKERRQ(ierr);
-    ierr = DMStagGetLocationSlot(dmVelAvg,     DMSTAG_ELEMENT,0,&iVxCenter);CHKERRQ(ierr);
-    ierr = DMStagGetLocationSlot(dmVelAvg,     DMSTAG_ELEMENT,1,&iVyCenter);CHKERRQ(ierr);
+    ierr = DMStagGetLocationSlot(dmStokes,DMSTAG_LEFT,   0,&iVxLeft  );CHKERRQ(ierr);
+    ierr = DMStagGetLocationSlot(dmStokes,DMSTAG_RIGHT,  0,&iVxRight );CHKERRQ(ierr);
+    ierr = DMStagGetLocationSlot(dmStokes,DMSTAG_DOWN,   0,&iVyDown  );CHKERRQ(ierr);
+    ierr = DMStagGetLocationSlot(dmStokes,DMSTAG_UP,     0,&iVyUp    );CHKERRQ(ierr);
+    ierr = DMStagGetLocationSlot(dmVelAvg,DMSTAG_ELEMENT,0,&iVxCenter);CHKERRQ(ierr);
+    ierr = DMStagGetLocationSlot(dmVelAvg,DMSTAG_ELEMENT,1,&iVyCenter);CHKERRQ(ierr);
     ierr = DMStagGetCorners(dmVelAvg,&startx,&starty,NULL,&nx,&ny,NULL,NULL,NULL,NULL);CHKERRQ(ierr);
-    ierr = DMGetLocalVector(ctx->dmStokes,&stokesLocal);CHKERRQ(ierr);
-    ierr = DMGetLocalVector(dmVelAvg,     &velAvgLocal);CHKERRQ(ierr);
-    ierr = DMGlobalToLocal(ctx->dmStokes,x,INSERT_VALUES,stokesLocal);CHKERRQ(ierr);
-    ierr = DMStagVecGetArrayDOFRead(ctx->dmStokes,stokesLocal,&arrStokes);CHKERRQ(ierr);
-    ierr = DMStagVecGetArrayDOF(    dmVelAvg,     velAvgLocal,&arrVelAvg);CHKERRQ(ierr);
+    ierr = DMGetLocalVector(dmStokes,&stokesLocal);CHKERRQ(ierr);
+    ierr = DMGetLocalVector(dmVelAvg,&velAvgLocal);CHKERRQ(ierr);
+    ierr = DMGlobalToLocal(dmStokes,x,INSERT_VALUES,stokesLocal);CHKERRQ(ierr);
+    ierr = DMStagVecGetArrayDOFRead(dmStokes,stokesLocal,&arrStokes);CHKERRQ(ierr);
+    ierr = DMStagVecGetArrayDOF(    dmVelAvg,velAvgLocal,&arrVelAvg);CHKERRQ(ierr);
     for (ey = starty; ey<starty+ny; ++ey) {
       for (ex = startx; ex<startx+nx; ++ex) {
         arrVelAvg[ey][ex][iVxCenter] = 0.5 * (arrStokes[ey][ex][iVxLeft] + arrStokes[ey][ex][iVxRight]);
         arrVelAvg[ey][ex][iVyCenter] = 0.5 * (arrStokes[ey][ex][iVyDown] + arrStokes[ey][ex][iVyUp]);
       }
     }
-    ierr = DMStagVecRestoreArrayDOFRead(ctx->dmStokes,stokesLocal,&arrStokes);CHKERRQ(ierr);
-    ierr = DMStagVecRestoreArrayDOF(   dmVelAvg,      velAvgLocal,&arrVelAvg);CHKERRQ(ierr);
+    ierr = DMStagVecRestoreArrayDOFRead(dmStokes,stokesLocal,&arrStokes);CHKERRQ(ierr);
+    ierr = DMStagVecRestoreArrayDOF(   dmVelAvg, velAvgLocal,&arrVelAvg);CHKERRQ(ierr);
     ierr = DMLocalToGlobal(dmVelAvg,velAvgLocal,INSERT_VALUES,velAvg);CHKERRQ(ierr);
-    ierr = DMRestoreLocalVector(ctx->dmStokes,&stokesLocal);CHKERRQ(ierr);
-    ierr = DMRestoreLocalVector(dmVelAvg,     &velAvgLocal);CHKERRQ(ierr);
+    ierr = DMRestoreLocalVector(dmStokes,&stokesLocal);CHKERRQ(ierr);
+    ierr = DMRestoreLocalVector(dmVelAvg,&velAvgLocal);CHKERRQ(ierr);
   }
 
-  ierr = DMStagVecSplitToDMDA(ctx->dmStokes,x,DMSTAG_ELEMENT,0,&daP,&vecP);CHKERRQ(ierr);
+  ierr = DMStagVecSplitToDMDA(dmStokes,x,DMSTAG_ELEMENT,0,&daP,&vecP);CHKERRQ(ierr);
   ierr = PetscObjectSetName((PetscObject)vecP,"p (scaled)");CHKERRQ(ierr);
-  ierr = DMStagVecSplitToDMDA(ctx->dmCoeff,ctx->coeff,DMSTAG_DOWN_LEFT,0,&daEtaCorner,&vecEtaCorner);CHKERRQ(ierr);
+  ierr = DMStagVecSplitToDMDA(dmCoeff,ctx->coeff,DMSTAG_DOWN_LEFT,0,&daEtaCorner,&vecEtaCorner);CHKERRQ(ierr);
   ierr = PetscObjectSetName((PetscObject)vecEtaCorner,"eta");CHKERRQ(ierr);
-  ierr = DMStagVecSplitToDMDA(ctx->dmCoeff,ctx->coeff,DMSTAG_ELEMENT,0,&daEtaElement,&vecEtaElement);CHKERRQ(ierr);
+  ierr = DMStagVecSplitToDMDA(dmCoeff,ctx->coeff,DMSTAG_ELEMENT,0,&daEtaElement,&vecEtaElement);CHKERRQ(ierr);
   ierr = PetscObjectSetName((PetscObject)vecEtaElement,"eta");CHKERRQ(ierr);
-  ierr = DMStagVecSplitToDMDA(ctx->dmCoeff,ctx->coeff,DMSTAG_DOWN_LEFT,1,&daRho,&vecRho);CHKERRQ(ierr);
+  ierr = DMStagVecSplitToDMDA(dmCoeff,ctx->coeff,DMSTAG_DOWN_LEFT,1,&daRho,&vecRho);CHKERRQ(ierr);
   ierr = PetscObjectSetName((PetscObject)vecRho,"density");CHKERRQ(ierr);
   ierr = DMStagVecSplitToDMDA(dmVelAvg,velAvg,DMSTAG_ELEMENT,-3,&daVelAvg,&vecVelAvg);CHKERRQ(ierr); /* note -3 : pad with zero */
   ierr = PetscObjectSetName((PetscObject)vecVelAvg,"Velocity (Averaged)");CHKERRQ(ierr);

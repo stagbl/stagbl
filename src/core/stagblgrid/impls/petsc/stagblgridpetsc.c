@@ -35,6 +35,13 @@ StagBLErrorCode StagBLGridCreateStagBLArray_PETSc(StagBLGrid grid,StagBLArray *a
   return 0;
 }
 
+StagBLErrorCode StagBLGridPETScGetDM(StagBLGrid stagblgrid,DM *dm)
+{
+  StagBLGrid_PETSc * const data = (StagBLGrid_PETSc*) stagblgrid->data;
+  *dm = (data->dm);
+  return 0;
+}
+
 StagBLErrorCode StagBLGridPETScGetDMPointer(StagBLGrid stagblgrid,DM **dm)
 {
   StagBLGrid_PETSc * const data = (StagBLGrid_PETSc*) stagblgrid->data;

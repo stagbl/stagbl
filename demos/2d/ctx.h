@@ -1,17 +1,20 @@
 #ifndef CTX_H_
 #define CTX_H_
 
-#include <petscdm.h>
+#include "stagbl.h"
 
 typedef struct {
   MPI_Comm    comm;
-  DM          dmStokes,dmCoeff;
-  Vec         coeff;
-  PetscReal   xmax,ymax,xmin,ymin,hxCharacteristic,hyCharacteristic;
-  PetscScalar eta1,eta2,rho1,rho2,gy,Kbound,Kcont,etaCharacteristic;
-  PetscInt    pinx,piny;
-  PetscReal (*getEta)(void*,PetscReal,PetscReal);
-  PetscReal (*getRho)(void*,PetscReal,PetscReal);
+  StagBLGrid  stokesGrid,coeffGrid;
+  StagBLArray coeffArray;
+  StagBLReal  xmax,ymax,xmin,ymin,hxCharacteristic,hyCharacteristic;
+  StagBLReal  eta1,eta2,rho1,rho2,gy,Kbound,Kcont,etaCharacteristic;
+  StagBLInt   pinx,piny;
+  StagBLReal (*getEta)(void*,StagBLReal,StagBLReal);
+  StagBLReal (*getRho)(void*,StagBLReal,StagBLReal);
+
+  Vec coeff; // TODO get rid of this!
+  
 } CtxData;
 typedef CtxData* Ctx;
 

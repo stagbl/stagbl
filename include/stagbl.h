@@ -51,7 +51,8 @@ StagBLErrorCode StagBLGridDestroy(StagBLGrid*);
 #if defined (STAGBL_WITH_PETSC)
 #define STAGBLGRIDPETSC "petsc"
 StagBLErrorCode StagBLGridCreate_PETSc(StagBLGrid); // TODO this and similar functions are private, so need to be moved to a private header
-StagBLErrorCode StagBLGridPETScGetDMPointer(StagBLGrid,DM**);
+StagBLErrorCode StagBLGridPETScGetDM(StagBLGrid,DM*);
+StagBLErrorCode StagBLGridPETScGetDMPointer(StagBLGrid,DM**); // TODO this may not be needed anymore
 #endif
 
 // StagBLArray Functions
