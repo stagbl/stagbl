@@ -1,3 +1,4 @@
+#include "args.h"
 #include "ctx.h"
 #include "dump.h"
 #include "system.h"
@@ -57,7 +58,7 @@ int main(int argc, char** argv)
   StagBLOperator     A;
   StagBLLinearSolver solver;
   MPI_Comm           comm;
-
+  StagBLInt          system,structure;
   Ctx                ctx;
 
   // TODO remove all this petsc-dependence
@@ -67,9 +68,6 @@ int main(int argc, char** argv)
   Mat            matA;
   KSP            *pksp;
   KSP            ksp;
-
-  int            system;
-  int            structure;
 
   /* Initialize MPI and print a message */
   MPI_Init(&argc,&argv);
@@ -85,14 +83,9 @@ int main(int argc, char** argv)
   /* Initialize StagBL (which will initialize PETSc if needbe) */
   StagBLInitialize(argc,argv,comm);
 
-  // TODO split out this argument processing into its own file/function (since we're using PETSc, but just for convenience)
-  /* Accept argument for system type */
-  system = 1;
-  ierr = PetscOptionsGetInt(NULL,NULL,"-system",&system,NULL);CHKERRQ(ierr);
-
-  /* Accept argument for coefficient structure */
-  structure = 1;
-  ierr = PetscOptionsGetInt(NULL,NULL,"-structure",&structure,NULL);CHKERRQ(ierr);
+  /* Accept argument for system type and coefficient structure */
+  ierr = GetIntArg("-system",1,&system);CHKERRQ(ierr);
+  ierr = GetIntArg("-structure",1,&structure);CHKERRQ(ierr);
 
   /* Populate application context */
   ierr = PetscMalloc1(1,&ctx);CHKERRQ(ierr);
