@@ -10,6 +10,9 @@ implementation.
 We avoid a deep class hierarchy, but code duplication is kept to a minimum 
 by reusing implementations of API functions when possible.
 
+Whenever possible, objects are used to create compatible objects. For instance,
+a grid can create a compatible array.
+
 Data structures, numberings, function signatures, and other conventions should
 correspond exactly to those used in PETSc, whenever possible.
 
