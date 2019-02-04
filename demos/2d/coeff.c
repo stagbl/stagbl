@@ -10,6 +10,7 @@ static StagBLReal getRho_sinker(void *ptr,StagBLReal x, StagBLReal y) {
   const StagBLReal yy = y/d - 0.5;
   return (xx*xx + yy*yy) > 0.3*0.3 ? ctx->rho1 : ctx->rho2;
 }
+
 static StagBLReal getEta_sinker(void *ptr,StagBLReal x, StagBLReal y) {
   Ctx ctx = (Ctx) ptr;
   const StagBLReal d = ctx->xmax-ctx->xmin;
@@ -17,6 +18,7 @@ static StagBLReal getEta_sinker(void *ptr,StagBLReal x, StagBLReal y) {
   const StagBLReal yy = y/d - 0.5;
   return (xx*xx + yy*yy) > 0.3*0.3 ? ctx->eta1 : ctx->eta2;
 }
+
 /* Vertical layers */
 static StagBLReal getRho_gerya72(void *ptr,StagBLReal x,StagBLReal y)
 {
@@ -27,6 +29,7 @@ static StagBLReal getRho_gerya72(void *ptr,StagBLReal x,StagBLReal y)
     return ctx->rho2;
   }
 }
+
 static StagBLReal getEta_gerya72(void *ptr,StagBLReal x,StagBLReal y)
 {
   Ctx ctx = (Ctx) ptr;
