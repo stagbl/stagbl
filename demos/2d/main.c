@@ -6,8 +6,11 @@
 #include "system2.h"
 #include <stagbl.h>
 #include <stdio.h>
-#include <petsc.h> // TODO REMOVE THIS INCLUDE (and make sure it's not included indirectly! Should FAIL if you use PETSc directly here)
 #include <mpi.h>
+
+/* Note: while many of the functions here take advantage of PETSc, through
+   the "escape" hatch offered by several class implementations, this main
+   function does not depend on the PETSc API, only on the StagBL API */
 
 int main(int argc, char** argv)
 
@@ -43,12 +46,12 @@ int main(int argc, char** argv)
   ierr = CtxCreate(comm,&ctx);CHKERRQ(ierr);
 
   /* Create a Grid
-     We call a helper function from "stokes" to create an interlaced p-v
-     grid of the correct size. Note that the choice of whether to create a single
-     grid with both pressure and velocity, or two grids, must be made early, 
-     as this affects data layout. This single-grid choice is appropriate for
-     monolithic mulitigrid or direct solution, whereas two grids would be appropriated
-     for segregated or Approximate block factorization based solvers. */
+     We call a helper function to create an interlaced p-v grid of the correct size. 
+     Note that the choice of whether to create a single grid with both pressure and 
+     velocity, or two grids, must be made early, as this affects data layout. This 
+     single-grid choice is appropriate for monolithic mulitigrid or direct solution, 
+     whereas two grids would be appropriated for segregated or Approximate block 
+     factorization-based solvers. */
   ierr = StagBLGridCreateStokes2DBox(comm,30,20,0.0,ctx->xmax,0.0,ctx->ymax,&ctx->stokesGrid);CHKERRQ(ierr);
 
   /* Get scaling constants and node to pin, knowing grid dimensions */
@@ -59,13 +62,6 @@ int main(int argc, char** argv)
    const StagBLInt dofPerVertex  = 2;
    const StagBLInt dofPerElement = 1;
    ierr = StagBLGridCreateCompatibleStagBLGrid(ctx->stokesGrid,dofPerVertex,0,dofPerElement,0,&ctx->coeffGrid);CHKERRQ(ierr);
- }
-
- {
-   DM dmCoeff;
-  ierr = StagBLGridPETScGetDM(ctx->coeffGrid,&dmCoeff);CHKERRQ(ierr);
-  // TODO by default set this same coordinate DM (confirm that ref count is incremented..)
-  ierr = DMStagSetUniformCoordinatesProduct(dmCoeff,0.0,ctx->xmax,0.0,ctx->ymax,0.0,0.0);CHKERRQ(ierr);
  }
 
   /* Coefficient data */
@@ -99,4 +95,3 @@ int main(int argc, char** argv)
   StagBLFinalize();
   return 0;
 }
-
