@@ -49,6 +49,7 @@ StagBLReal getEta_gerya72(void *ptr,StagBLReal x,StagBLReal y)
 }
 
 int main(int argc, char** argv)
+
 {
   StagBLErrorCode ierr;
   int             rank,size;
@@ -58,12 +59,6 @@ int main(int argc, char** argv)
   MPI_Comm        comm;
   StagBLInt       systemtype,structure;
   Ctx             ctx;
-
-  // TODO remove all this petsc-dependence
-  Vec            *pvecb;
-  Vec            vecb;
-  Mat            *pmatA;
-  Mat            matA;
 
   /* Initialize MPI and print a message */
   MPI_Init(&argc,&argv);
@@ -145,7 +140,7 @@ int main(int argc, char** argv)
  {
    DM dmCoeff;
   ierr = StagBLGridPETScGetDM(ctx->coeffGrid,&dmCoeff);CHKERRQ(ierr);
-  // TODO by default set this same coordinate DM
+  // TODO by default set this same coordinate DM (confirm that ref count is incremented..)
   ierr = DMStagSetUniformCoordinatesProduct(dmCoeff,0.0,ctx->xmax,0.0,ctx->ymax,0.0,0.0);CHKERRQ(ierr);
  }
 
@@ -155,17 +150,11 @@ int main(int argc, char** argv)
   /* Create a system */
   ierr = StagBLGridCreateStagBLSystem(ctx->stokesGrid,&system);CHKERRQ(ierr);
 
-  // TODO move this escape hatching in to system building calls
-  ierr = StagBLSystemPETScGetMatPointer(system,&pmatA);CHKERRQ(ierr);
-  ierr = StagBLSystemPETScGetVecPointer(system,&pvecb);CHKERRQ(ierr);
-
   if (systemtype == 1) {
-    ierr = CreateSystem(ctx,pmatA,pvecb);CHKERRQ(ierr);
+    ierr = CreateSystem(ctx,system);CHKERRQ(ierr);
   } else if (systemtype == 2) {
-    ierr = CreateSystem2(ctx,pmatA,pvecb);CHKERRQ(ierr);
-  } else SETERRQ1(ctx->comm,PETSC_ERR_SUP,"Unsupported system type %D",system);
-  matA = *pmatA;
-  vecb = *pvecb;
+    ierr = CreateSystem2(ctx,system);CHKERRQ(ierr);
+  } else StagBLError(ctx->comm,"Unsupported system type");
 
   /* Solve the system (you will likely want to specify a solver from the command line,
      e.g. -pc_type lu -pc_factor_mat_solver_type umfpack) */

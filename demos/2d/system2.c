@@ -9,12 +9,14 @@ match that output.
 */
 #include "system2.h"
 
-PetscErrorCode CreateSystem2(const Ctx ctx,Mat *pA,Vec *pRhs)
+PetscErrorCode CreateSystem2(const Ctx ctx,StagBLSystem system)
 {
   PetscErrorCode  ierr;
   DM              dmStokes,dmCoeff;
   PetscInt        ex,ey,startx,starty,nx,ny;
+  Mat             *pA;
   Mat             A;
+  Vec             *pRhs;
   Vec             rhs;
   PetscReal       hx,hy;
   PetscInt        N[2];
@@ -24,6 +26,8 @@ PetscErrorCode CreateSystem2(const Ctx ctx,Mat *pA,Vec *pRhs)
   PetscFunctionBeginUser;
 
   /* Use the "escape hatch" */
+  ierr = StagBLSystemPETScGetMatPointer(system,&pA);CHKERRQ(ierr);
+  ierr = StagBLSystemPETScGetVecPointer(system,&pRhs);CHKERRQ(ierr);
   ierr = StagBLGridPETScGetDM(ctx->stokesGrid,&dmStokes);CHKERRQ(ierr);
   ierr = StagBLGridPETScGetDM(ctx->coeffGrid,&dmCoeff);CHKERRQ(ierr);
   ierr = StagBLArrayPETScGetLocalVec(ctx->coeffArray,&coeffLocal);CHKERRQ(ierr);
