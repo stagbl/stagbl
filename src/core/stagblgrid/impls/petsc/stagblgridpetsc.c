@@ -17,13 +17,17 @@ StagBLErrorCode StagBLGridCreateCompatibleStagBLGrid_PETSc(StagBLGrid grid,StagB
 {
   StagBLGrid_PETSc *data,*dataNew;
   PetscErrorCode   ierr;
+  DM               coordinateDM;
 
   data = (StagBLGrid_PETSc*) grid->data;
   StagBLGridCreate(newgrid);
   dataNew = (StagBLGrid_PETSc*) (*newgrid)->data;
   ierr = DMStagCreateCompatibleDMStag(data->dm,dof0,dof1,dof2,dof3,&(dataNew->dm));CHKERRQ(ierr);
   ierr = DMSetUp(dataNew->dm);CHKERRQ(ierr);
-  // TODO need to have the same coordinate DM (but DONT want to copy data - share reference possible?)
+
+  /* Use the same coordinate DM (Different from PETSc's behavior) */
+  ierr = DMGetCoordinateDM(data->dm,&coordinateDM);CHKERRQ(ierr);
+  ierr = DMSetCoordinateDM(dataNew->dm,coordinateDM);CHKERRQ(ierr);
   return 0;
 }
 
