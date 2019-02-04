@@ -1,1 +1,1 @@
-include $(call incsubdirs,stagblarray stagblgrid stagbloperator stagbllinearsolver)
+include $(call incsubdirs,stagblarray stagblgrid stagblsystem stagblsolver)

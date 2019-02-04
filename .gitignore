@@ -9,4 +9,7 @@ pythontestharness
 *.DS_Store
 
 # vim
-.*.swp
+.*.sw[omp]
+
+# Misc temporary files
+*.tmp

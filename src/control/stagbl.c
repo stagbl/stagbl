@@ -1,7 +1,7 @@
 #include "stagbl.h"
 #include <stdio.h>
 
-void StagBLInitialize(int argc,char** argv,MPI_Comm comm)
+StagBLErrorCode StagBLInitialize(int argc,char** argv,MPI_Comm comm)
 {
   printf("Hello from StagBL\n");
 #if defined(STAGBL_WITH_PETSC)
@@ -12,11 +12,13 @@ void StagBLInitialize(int argc,char** argv,MPI_Comm comm)
   }
 
 #endif
+  return 0;
 }
 
-void StagBLFinalize()
+StagBLErrorCode StagBLFinalize()
 {
 #if defined(STAGBL_WITH_PETSC)
   PetscFinalize();
 #endif
+  return 0;
 }

@@ -1,5 +1,1 @@
-libstagbl-y.c += $(call thisdir,\
-  stagbl.c\
-)
-
-include $(call incsubdirs,core tests)
+include $(call incsubdirs,control core stokes tests)

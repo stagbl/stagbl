@@ -1,76 +1,112 @@
 #if !defined(STAGBL_H_)
 #define STAGBL_H_
 
-// Hard-coding for now (later put in generated header)
+// Hard-coding for now (later put in configure-generated header)
 #define STAGBL_WITH_PETSC
-
-// Data Types
-#if defined(STAGBL_WITH_PETSC)
-#define StagBLInt PetscInt
-#define StagBLReal PetscReal
-#else
-#define StagBLInt int
-#define StagBLReal double
-#endif
 
 #if defined(STAGBL_WITH_PETSC)
 #include <petsc.h>
 #endif
 #include <mpi.h>
 
-void StagBLInitialize(int,char**,MPI_Comm);
-void StagBLFinalize();
+// Data Types (obviously needs to precede all the other declarations here)
+#if defined(STAGBL_WITH_PETSC)
+#define StagBLErrorCode PetscErrorCode
+#define StagBLInt       PetscInt
+#define StagBLReal      PetscReal
+#else
+#define StagBLErrorCode int
+#define StagBLInt       int
+#define StagBLReal      double
+#endif
 
-// StagBLGrid
+StagBLErrorCode StagBLInitialize(int,char**,MPI_Comm);
+StagBLErrorCode StagBLFinalize();
+
+// Errors
+void StagBLErrorFileLine(MPI_Comm,const char*,const char*,long int);
+#if defined(STAGBL_WITH_PETSC)
+#define StagBLError(comm,msg) SETERRQ1(comm,PETSC_ERR_LIB,"StagBL Error: %s",msg);
+#else
+#define StagBLError(comm,msg) StagBLErrorFileLine(comm,msg,__FILE__,__LINE__)
+// Note: this check could be disabled in opt mode (though almost certainly not a real performance concern, one comparison with zero)
+#define CHKERRQ(ierr) do {if(ierr) {StagBLError(MPI_COMM_SELF,"StagBL Error Check failed");}} while(0)
+#endif
+
+// StagBLGrid Data
 struct _p_StagBLGrid;
 typedef struct _p_StagBLGrid *StagBLGrid;
-void StagBLGridCreate(StagBLGrid*);
-void StagBLGridDestroy(StagBLGrid*);
+
+// StagBLArray Data
+struct _p_StagBLArray;
+typedef struct _p_StagBLArray *StagBLArray;
+
+// StagBLSystem Data
+struct _p_StagBLSystem;
+typedef struct _p_StagBLSystem *StagBLSystem;
+
+// StagBLSolver Data
+struct _p_StagBLSolver;
+typedef struct _p_StagBLSolver *StagBLSolver;
+
+// StagBLGrid Functions
+StagBLErrorCode StagBLGridCreate(StagBLGrid*);
+StagBLErrorCode StagBLGridCreateCompatibleStagBLGrid(StagBLGrid,StagBLInt,StagBLInt,StagBLInt,StagBLInt,StagBLGrid*);
+StagBLErrorCode StagBLGridCreateStagBLArray(StagBLGrid,StagBLArray*);
+StagBLErrorCode StagBLGridCreateStagBLSystem(StagBLGrid,StagBLSystem*);
+StagBLErrorCode StagBLGridDestroy(StagBLGrid*);
 
 // StagBLGrid impls
 #if defined (STAGBL_WITH_PETSC)
 #define STAGBLGRIDPETSC "petsc"
-void StagBLGridCreate_PETSc(StagBLGrid);
-void StagBLGridPETScGetDMPointer(StagBLGrid,DM**);
+StagBLErrorCode StagBLGridCreate_PETSc(StagBLGrid); // TODO this and similar functions are private, so need to be moved to a private header
+StagBLErrorCode StagBLGridPETScGetDM(StagBLGrid,DM*);
+StagBLErrorCode StagBLGridPETScGetDMPointer(StagBLGrid,DM**); // TODO this may not be needed anymore
 #endif
 
-// StagBLArray
-struct _p_StagBLArray;
-typedef struct _p_StagBLArray *StagBLArray;
-void StagBLArrayCreate(StagBLArray*);
-void StagBLArrayDestroy(StagBLArray*);
+// StagBLArray Functions
+StagBLErrorCode StagBLArrayCreate(StagBLGrid,StagBLArray*); // TODO this needn't be public (or even exist?) because we can only create StagBLArrays from StagBLGrids
+StagBLErrorCode StagBLArrayDestroy(StagBLArray*);
+StagBLErrorCode StagBLArrayGetStagBLGrid(StagBLArray,StagBLGrid*);
 
 // StagBLArray impls
 #if defined (STAGBL_WITH_PETSC)
 #define STAGBLARRAYPETSC "petsc"
-void StagBLArrayCreate_PETSc(StagBLArray);
-void StagBLArrayPETScGetVecPointer(StagBLArray,Vec**);
+StagBLErrorCode StagBLArrayCreate_PETSc(StagBLArray);
+StagBLErrorCode StagBLArrayPETScGetLocalVec(StagBLArray,Vec*);
+StagBLErrorCode StagBLArrayPETScGetGlobalVec(StagBLArray,Vec*);
+StagBLErrorCode StagBLArrayPETScGetLocalVecPointer(StagBLArray,Vec**);
+StagBLErrorCode StagBLArrayPETScGetGlobalVecPointer(StagBLArray,Vec**);
 #endif
 
-// StagBLOperator
-struct _p_StagBLOperator;
-typedef struct _p_StagBLOperator *StagBLOperator;
-void StagBLOperatorCreate(StagBLOperator*);
-void StagBLOperatorDestroy(StagBLOperator*);
+// StagBLSystem Functions
+StagBLErrorCode StagBLSystemCreate(StagBLGrid,StagBLSystem*);
+StagBLErrorCode StagBLSystemCreateStagBLSolver(StagBLSystem,StagBLSolver*);
+StagBLErrorCode StagBLSystemDestroy(StagBLSystem*);
 
-// StagBLOperator impls
+// StagBLSystem impls
 #if defined (STAGBL_WITH_PETSC)
-#define STAGBLOPERATORPETSC "petsc"
-void StagBLOperatorCreate_PETSc(StagBLOperator);
-void StagBLOperatorPETScGetMatPointer(StagBLOperator,Mat**);
+#define STAGBLSYSTEMPETSC "petsc"
+StagBLErrorCode StagBLSystemCreate_PETSc(StagBLSystem);
+StagBLErrorCode StagBLSystemPETScGetMat(StagBLSystem,Mat*);
+StagBLErrorCode StagBLSystemPETScGetMatPointer(StagBLSystem,Mat**);
+StagBLErrorCode StagBLSystemPETScGetVec(StagBLSystem,Vec*);
+StagBLErrorCode StagBLSystemPETScGetVecPointer(StagBLSystem,Vec**);
 #endif
 
-// StagBLLinearSolver
-struct _p_StagBLLinearSolver;
-typedef struct _p_StagBLLinearSolver *StagBLLinearSolver;
-void StagBLLinearSolverCreate(StagBLLinearSolver*);
-void StagBLLinearSolverDestroy(StagBLLinearSolver*);
+// StagBLSolver Functions
+StagBLErrorCode StagBLSolverCreate(StagBLSystem,StagBLSolver*);
+StagBLErrorCode StagBLSolverDestroy(StagBLSolver*);
+StagBLErrorCode StagBLSolverSolve(StagBLSolver,StagBLArray);
 
-// StagBLLinearSolver impls
+// StagBLSolver impls
 #if defined (STAGBL_WITH_PETSC)
-#define STAGBLLINEARSOLVERPETSC "petsc"
-void StagBLLinearSolverCreate_PETSc(StagBLLinearSolver);
-void StagBLLinearSolverPETScGetKSPPointer(StagBLLinearSolver,KSP**);
+#define STAGBLSOLVERPETSC "petsc"
+StagBLErrorCode StagBLSolverCreate_PETSc(StagBLSolver);
+StagBLErrorCode StagBLSolverPETScGetKSPPointer(StagBLSolver,KSP**);
 #endif
+
+// Stokes
+StagBLErrorCode StagBLGridCreateStokes2DBox(MPI_Comm,StagBLInt,StagBLInt,StagBLReal,StagBLReal,StagBLReal,StagBLReal,StagBLGrid*);
 
 #endif

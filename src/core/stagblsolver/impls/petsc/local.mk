@@ -1,3 +1,3 @@
 libstagbl-y.c += $(call thisdir,\
-  stagbloperatorpetsc.c\
+  stagblsolverpetsc.c\
 )

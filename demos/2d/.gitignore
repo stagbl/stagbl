@@ -5,3 +5,5 @@ stagbldemo2d
 *.dSYM
 
 *.vtr
+*.petscbin
+*.petscbin.info

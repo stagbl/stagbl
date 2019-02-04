@@ -1,6 +1,8 @@
-#include "stagbl.h"
+#include <stagbl.h>
 #include <stdio.h>
 #include <petsc.h> // Note that we still have work to do guarding for the non-PETSc case (probably define STAGBL_HAVE_PETSC in a configured include file eventually)
+
+// Note: This is not a complete demo yet. It is mainly here to test 3d grid functionality.
 
 // TODO add log stages
 
@@ -67,15 +69,15 @@ static PetscReal getEta(Ctx ctx,PetscReal x, PetscReal y, PetscReal z) {
 
 int main(int argc, char** argv)
 {
-  int                rank,size;
-  StagBLGrid         grid;
-  StagBLArray        x,b;
-  StagBLOperator     A;
-  StagBLLinearSolver solver;
-  MPI_Comm           comm;
-  PetscInt           Nx,Ny,Nz;
+  int          rank,size;
+  StagBLGrid   grid;
+  StagBLArray  x;
+  StagBLSystem system;
+  StagBLSolver solver;
+  MPI_Comm     comm;
+  PetscInt     Nx,Ny,Nz;
 
-  Ctx            ctx;
+  Ctx          ctx;
 
   PetscErrorCode ierr;
   DM             *pdm;
@@ -164,23 +166,22 @@ int main(int argc, char** argv)
   ierr = PopulateCoefficientData(ctx);CHKERRQ(ierr);
 
   // Create a system
-  StagBLOperatorCreate(&A);
-  StagBLArrayCreate(&x);
-  StagBLArrayCreate(&b);
+  StagBLGridCreateStagBLSystem(grid,&system);
+  StagBLGridCreateStagBLArray(grid,&x);
 
-  StagBLArrayPETScGetVecPointer(x,&pvecx);
+  StagBLArrayPETScGetGlobalVecPointer(x,&pvecx);
   ierr = DMCreateGlobalVector(ctx->dmStokes,pvecx);
   vecx = *pvecx;
 
-  StagBLArrayPETScGetVecPointer(b,&pvecb);
-  StagBLOperatorPETScGetMatPointer(A,&pmatA);
+  StagBLSystemPETScGetVecPointer(system,&pvecb);
+  StagBLSystemPETScGetMatPointer(system,&pmatA);
   ierr = CreateSystem(ctx,pmatA,pvecb);CHKERRQ(ierr);
   matA = *pmatA;
   vecb = *pvecb;
 
   // Solve the system (you will likely want to choose a solver from the command line)
-  StagBLLinearSolverCreate(&solver);
-  StagBLLinearSolverPETScGetKSPPointer(solver,&pksp);
+  StagBLSolverCreate(system,&solver);
+  StagBLSolverPETScGetKSPPointer(solver,&pksp);
 
   ierr = VecDuplicate(vecb,pvecx);CHKERRQ(ierr);
   ierr = KSPCreate(ctx->comm,pksp);CHKERRQ(ierr);
@@ -199,9 +200,8 @@ int main(int argc, char** argv)
 
   /* Free data */
   StagBLArrayDestroy(&x);
-  StagBLArrayDestroy(&b);
-  StagBLOperatorDestroy(&A);
-  StagBLLinearSolverDestroy(&solver);
+  StagBLSystemDestroy(&system);
+  StagBLSolverDestroy(&solver);
   StagBLGridDestroy(&grid);
 
   StagBLFinalize();

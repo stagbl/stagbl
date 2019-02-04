@@ -4,8 +4,8 @@
 #include "stagbl.h"
 
 struct _p_StagBLArrayOps {
-  void (*create)(StagBLArray);
-  void (*destroy)(StagBLArray);
+  StagBLErrorCode (*create)(StagBLArray);
+  StagBLErrorCode (*destroy)(StagBLArray);
 };
 
 typedef struct _p_StagBLArrayOps *StagBLArrayOps;
@@ -13,8 +13,9 @@ typedef struct _p_StagBLArrayOps *StagBLArrayOps;
 struct _p_StagBLArray
 {
   StagBLArrayOps ops;
-  const char    *type;
-  void          *data;
+  StagBLGrid     grid;
+  const char     *type;
+  void           *data;
 };
 
 #endif
