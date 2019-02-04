@@ -1,4 +1,5 @@
 #include "args.h"
+#include "coeff.h"
 #include "ctx.h"
 #include "dump.h"
 #include "system.h"
@@ -7,46 +8,6 @@
 #include <stdio.h>
 #include <petsc.h> // TODO REMOVE THIS INCLUDE (and make sure it's not included indirectly! Should FAIL if you use PETSc directly here)
 #include <mpi.h>
-
-/* Helper functions */
-static PetscErrorCode PopulateCoefficientData(Ctx);
-
-/* Coefficient/forcing Functions */
-
-/* Sinker */
-static StagBLReal getRho_sinker(void *ptr,StagBLReal x, StagBLReal y) {
-  Ctx ctx = (Ctx) ptr;
-  const StagBLReal d = ctx->xmax-ctx->xmin;
-  const StagBLReal xx = x/d - 0.5;
-  const StagBLReal yy = y/d - 0.5;
-  return (xx*xx + yy*yy) > 0.3*0.3 ? ctx->rho1 : ctx->rho2;
-}
-static StagBLReal getEta_sinker(void *ptr,StagBLReal x, StagBLReal y) {
-  Ctx ctx = (Ctx) ptr;
-  const StagBLReal d = ctx->xmax-ctx->xmin;
-  const StagBLReal xx = x/d - 0.5;
-  const StagBLReal yy = y/d - 0.5;
-  return (xx*xx + yy*yy) > 0.3*0.3 ? ctx->eta1 : ctx->eta2;
-}
-/* Vertical layers */
-StagBLReal getRho_gerya72(void *ptr,StagBLReal x,StagBLReal y)
-{
-  Ctx ctx = (Ctx) ptr;
-  if (x + 0.0*y < (ctx->xmax-ctx->xmin)/2.0) {
-    return ctx->rho1;
-  } else {
-    return ctx->rho2;
-  }
-}
-StagBLReal getEta_gerya72(void *ptr,StagBLReal x,StagBLReal y)
-{
-  Ctx ctx = (Ctx) ptr;
-  if (x  + 0.0*y < (ctx->xmax-ctx->xmin)/2.0) {
-    return ctx->eta1;
-  } else {
-    return ctx->eta2;
-  }
-}
 
 int main(int argc, char** argv)
 
@@ -78,30 +39,8 @@ int main(int argc, char** argv)
   ierr = GetIntArg("-system",1,&systemtype);CHKERRQ(ierr);
   ierr = GetIntArg("-structure",1,&structure);CHKERRQ(ierr);
 
-  /* Populate application context */
-  ierr = PetscMalloc1(1,&ctx);CHKERRQ(ierr);
-  ctx->comm = comm;
-  ctx->xmin = 0.0;
-  ctx->xmax = 1e6;
-  ctx->ymin = 0.0;
-  ctx->ymax = 1.5e6;
-  ctx->rho1 = 3200;
-  ctx->rho2 = 3300;
-  ctx->eta1 = 1e20;
-  ctx->eta2 = 1e22;
-  ctx->gy   = 10.0;
-
-  switch (structure) {
-    case 1:
-      ctx->getEta = getEta_gerya72;
-      ctx->getRho = getRho_gerya72;
-      break;
-    case 2:
-      ctx->getEta = getEta_sinker;
-      ctx->getRho = getRho_sinker;
-      break;
-    default: SETERRQ1(comm,PETSC_ERR_ARG_OUTOFRANGE,"Unsupported viscosity structure %d",structure);
-  }
+  /* Populate application context (sets parameters) */
+  ierr = CtxCreate(comm,&ctx);CHKERRQ(ierr);
 
   /* Create a Grid
      We call a helper function from "stokes" to create an interlaced p-v
@@ -113,22 +52,7 @@ int main(int argc, char** argv)
   ierr = StagBLGridCreateStokes2DBox(comm,30,20,0.0,ctx->xmax,0.0,ctx->ymax,&ctx->stokesGrid);CHKERRQ(ierr);
 
   /* Get scaling constants and node to pin, knowing grid dimensions */
-  {
-    DM dmStokes;
-    StagBLInt N[2];
-    StagBLReal hxAvgInv;
-    // TODO remove this escape hatch logic from main.. (easiest way is to move to an initialization function for the Ctx)
-    ierr = StagBLGridPETScGetDM(ctx->stokesGrid,&dmStokes);CHKERRQ(ierr);
-    ierr = DMStagGetGlobalSizes(dmStokes,&N[0],&N[1],NULL);CHKERRQ(ierr);
-    ctx->hxCharacteristic = (ctx->xmax-ctx->xmin)/N[0];
-    ctx->hyCharacteristic = (ctx->ymax-ctx->ymin)/N[1];
-    ctx->etaCharacteristic = PetscMin(ctx->eta1,ctx->eta2);
-    hxAvgInv = 2.0/(ctx->hxCharacteristic + ctx->hyCharacteristic);
-    ctx->Kcont = ctx->etaCharacteristic*hxAvgInv;
-    ctx->Kbound = ctx->etaCharacteristic*hxAvgInv*hxAvgInv;
-    if (N[0] < 2) SETERRQ(comm,PETSC_ERR_SUP,"Not implemented for a single element in the x direction");
-    ctx->pinx = 1; ctx->piny = 0;
-  }
+  ierr = CtxSetupFromGrid(ctx);CHKERRQ(ierr);
 
   /* Create another, compatible grid to represent coefficients */
  {
@@ -145,7 +69,7 @@ int main(int argc, char** argv)
  }
 
   /* Coefficient data */
-  ierr = PopulateCoefficientData(ctx);CHKERRQ(ierr);
+  ierr = PopulateCoefficientData(ctx,structure);CHKERRQ(ierr);
 
   /* Create a system */
   ierr = StagBLGridCreateStagBLSystem(ctx->stokesGrid,&system);CHKERRQ(ierr);
@@ -176,47 +100,3 @@ int main(int argc, char** argv)
   return 0;
 }
 
-static PetscErrorCode PopulateCoefficientData(Ctx ctx)
-{
-  PetscErrorCode ierr;
-  PetscInt       N[2];
-  PetscInt       ex,ey,startx,starty,nx,ny,ietaCorner,ietaElement,irho,iprev,icenter;
-  DM             dmCoeff;
-  Vec            *pcoeffLocal;
-  Vec            coeffLocal;
-  PetscReal      **cArrX,**cArrY;
-  PetscReal      ***coeffArr;
-
-  PetscFunctionBeginUser;
-
-  ierr = StagBLGridCreateStagBLArray(ctx->coeffGrid,&ctx->coeffArray);CHKERRQ(ierr);
-
-  /* Escape Hatch */
-  ierr = StagBLGridPETScGetDM(ctx->coeffGrid,&dmCoeff);CHKERRQ(ierr);
-  ierr = StagBLArrayPETScGetLocalVecPointer(ctx->coeffArray,&pcoeffLocal);CHKERRQ(ierr);
-
-  ierr = DMCreateLocalVector(dmCoeff,pcoeffLocal);CHKERRQ(ierr);
-  coeffLocal = *pcoeffLocal;
-  ierr = DMStagGetGhostCorners(dmCoeff,&startx,&starty,NULL,&nx,&ny,NULL);CHKERRQ(ierr); /* Iterate over all local elements */
-  ierr = DMStagGetGlobalSizes(dmCoeff,&N[0],&N[1],NULL);CHKERRQ(ierr);
-  ierr = DMStagGetLocationSlot(dmCoeff,DMSTAG_DOWN_LEFT,0,&ietaCorner);CHKERRQ(ierr);
-  ierr = DMStagGetLocationSlot(dmCoeff,DMSTAG_ELEMENT,0,&ietaElement);CHKERRQ(ierr);
-  ierr = DMStagGetLocationSlot(dmCoeff,DMSTAG_DOWN_LEFT,1,&irho);CHKERRQ(ierr);
-
-  ierr = DMStagGet1dCoordinateArraysDOFRead(dmCoeff,&cArrX,&cArrY,NULL);CHKERRQ(ierr);
-  ierr = DMStagGet1dCoordinateLocationSlot(dmCoeff,DMSTAG_ELEMENT,&icenter);CHKERRQ(ierr);
-  ierr = DMStagGet1dCoordinateLocationSlot(dmCoeff,DMSTAG_LEFT,&iprev);CHKERRQ(ierr);
-
-  ierr = DMStagVecGetArrayDOF(dmCoeff,coeffLocal,&coeffArr);CHKERRQ(ierr);
-
-  for (ey = starty; ey<starty+ny; ++ey) {
-    for (ex = startx; ex<startx+nx; ++ex) {
-      coeffArr[ey][ex][ietaElement] = ctx->getEta(ctx,cArrX[ex][icenter],cArrY[ey][icenter]);
-      coeffArr[ey][ex][ietaCorner]  = ctx->getEta(ctx,cArrX[ex][iprev],cArrY[ey][iprev]);
-      coeffArr[ey][ex][irho]        = ctx->getRho(ctx,cArrX[ex][iprev],cArrY[ey][iprev]);
-    }
-  }
-  ierr = DMStagRestore1dCoordinateArraysDOFRead(dmCoeff,&cArrX,&cArrY,NULL);CHKERRQ(ierr);
-  ierr = DMStagVecRestoreArrayDOF(dmCoeff,coeffLocal,&coeffArr);CHKERRQ(ierr);
-  PetscFunctionReturn(0);
-}

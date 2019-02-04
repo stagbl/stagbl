@@ -1,10 +1,6 @@
 #if !defined(STAGBL_H_)
 #define STAGBL_H_
 
-
-// TODO this header should NOT include petsc.h! That's an implementation thing, so should be in private headers only.
-// This might get tricky though, as we're currently inhereting several things from petsc. We may have to settle with having those headers (types, error) included
-
 // Hard-coding for now (later put in configure-generated header)
 #define STAGBL_WITH_PETSC
 

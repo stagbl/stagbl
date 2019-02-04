@@ -15,4 +15,7 @@ typedef struct {
 } CtxData;
 typedef CtxData* Ctx;
 
+StagBLErrorCode CtxCreate(MPI_Comm,Ctx*);
+StagBLErrorCode CtxSetupFromGrid(Ctx);
+
 #endif
