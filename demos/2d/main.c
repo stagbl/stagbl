@@ -60,12 +60,10 @@ int main(int argc, char** argv)
   Ctx             ctx;
 
   // TODO remove all this petsc-dependence
-  Vec            *pvecx,*pvecb;
-  Vec            vecx,vecb;
+  Vec            *pvecb;
+  Vec            vecb;
   Mat            *pmatA;
   Mat            matA;
-  KSP            *pksp;
-  KSP            ksp;
 
   /* Initialize MPI and print a message */
   MPI_Init(&argc,&argv);
@@ -176,9 +174,7 @@ int main(int argc, char** argv)
   ierr = StagBLSolverSolve(solver,x);CHKERRQ(ierr);
 
   /* Dump solution by converting to DMDAs and dumping */
-  ierr = StagBLArrayPETScGetGlobalVec(x,&vecx);CHKERRQ(ierr); // TODO move into Dump function
-  ierr = PetscObjectSetName((PetscObject)vecx,"solution");CHKERRQ(ierr); // TODO move into Dump function
-  ierr = DumpSolution(ctx,vecx);CHKERRQ(ierr);
+  ierr = DumpSolution(ctx,x);CHKERRQ(ierr);
 
   /* Free data */
   ierr = StagBLArrayDestroy(&x);CHKERRQ(ierr);
@@ -188,7 +184,6 @@ int main(int argc, char** argv)
   ierr = StagBLGridDestroy(&ctx->coeffGrid);CHKERRQ(ierr);
 
   StagBLFinalize();
-
   return 0;
 }
 

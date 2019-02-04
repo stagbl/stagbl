@@ -1,10 +1,11 @@
 #include "dump.h"
 
-PetscErrorCode DumpSolution(Ctx ctx,Vec x)
+PetscErrorCode DumpSolution(Ctx ctx,StagBLArray x)
 {
   PetscErrorCode ierr;
   DM             dmStokes,dmCoeff;
   DM             dmVelAvg;
+  Vec            vecx;
   Vec            velAvg;
   DM             daVelAvg,daP,daEtaElement,daEtaCorner,daRho;
   Vec            vecVelAvg,vecP,vecEtaElement,vecEtaCorner,vecRho;
@@ -13,6 +14,8 @@ PetscErrorCode DumpSolution(Ctx ctx,Vec x)
   PetscFunctionBeginUser;
 
   /* Use the "escape hatch" */
+  ierr = StagBLArrayPETScGetGlobalVec(x,&vecx);CHKERRQ(ierr);
+  ierr = PetscObjectSetName((PetscObject)vecx,"solution");CHKERRQ(ierr);
   ierr = StagBLGridPETScGetDM(ctx->stokesGrid,&dmStokes);CHKERRQ(ierr);
   ierr = StagBLGridPETScGetDM(ctx->coeffGrid,&dmCoeff);CHKERRQ(ierr);
   ierr = StagBLArrayPETScGetLocalVec(ctx->coeffArray,&vecCoeffLocal);CHKERRQ(ierr);
@@ -39,7 +42,7 @@ PetscErrorCode DumpSolution(Ctx ctx,Vec x)
     ierr = DMStagGetCorners(dmVelAvg,&startx,&starty,NULL,&nx,&ny,NULL,NULL,NULL,NULL);CHKERRQ(ierr);
     ierr = DMGetLocalVector(dmStokes,&stokesLocal);CHKERRQ(ierr);
     ierr = DMGetLocalVector(dmVelAvg,&velAvgLocal);CHKERRQ(ierr);
-    ierr = DMGlobalToLocal(dmStokes,x,INSERT_VALUES,stokesLocal);CHKERRQ(ierr);
+    ierr = DMGlobalToLocal(dmStokes,vecx,INSERT_VALUES,stokesLocal);CHKERRQ(ierr);
     ierr = DMStagVecGetArrayDOFRead(dmStokes,stokesLocal,&arrStokes);CHKERRQ(ierr);
     ierr = DMStagVecGetArrayDOF(    dmVelAvg,velAvgLocal,&arrVelAvg);CHKERRQ(ierr);
     for (ey = starty; ey<starty+ny; ++ey) {
@@ -60,7 +63,7 @@ PetscErrorCode DumpSolution(Ctx ctx,Vec x)
   ierr = DMLocalToGlobal(dmCoeff,vecCoeffLocal,INSERT_VALUES,vecCoeff);CHKERRQ(ierr);
 
   /* Split to DMDAs */
-  ierr = DMStagVecSplitToDMDA(dmStokes,x,DMSTAG_ELEMENT,0,&daP,&vecP);CHKERRQ(ierr);
+  ierr = DMStagVecSplitToDMDA(dmStokes,vecx,DMSTAG_ELEMENT,0,&daP,&vecP);CHKERRQ(ierr);
   ierr = PetscObjectSetName((PetscObject)vecP,"p (scaled)");CHKERRQ(ierr);
   ierr = DMStagVecSplitToDMDA(dmCoeff,vecCoeff,DMSTAG_DOWN_LEFT,0,&daEtaCorner,&vecEtaCorner);CHKERRQ(ierr);
   ierr = PetscObjectSetName((PetscObject)vecEtaCorner,"eta");CHKERRQ(ierr);
@@ -110,7 +113,7 @@ PetscErrorCode DumpSolution(Ctx ctx,Vec x)
       PetscViewer viewer;
       PetscViewerASCIIOpen(PetscObjectComm((PetscObject)daVelAvg),"x.matlabascii.txt",&viewer);CHKERRQ(ierr);
       PetscViewerPushFormat(viewer,PETSC_VIEWER_ASCII_MATLAB);
-      ierr = VecView(x,viewer);CHKERRQ(ierr);
+      ierr = VecView(vecx,viewer);CHKERRQ(ierr);
       ierr = PetscViewerDestroy(&viewer);CHKERRQ(ierr);
     }
   }
