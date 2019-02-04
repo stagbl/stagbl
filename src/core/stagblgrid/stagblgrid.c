@@ -37,7 +37,7 @@ StagBLErrorCode StagBLGridCreateStagBLSystem(StagBLGrid grid,StagBLSystem *syste
 {
   StagBLErrorCode ierr;
   // TODO this is basically a placeholder, createing a generic system
-  ierr = StagBLSystemCreate(system);CHKERRQ(ierr);
+  ierr = StagBLSystemCreate(grid,system);CHKERRQ(ierr);
   return 0;
 } 
 

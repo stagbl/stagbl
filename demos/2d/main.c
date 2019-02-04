@@ -5,7 +5,7 @@
 #include "system2.h"
 #include <stagbl.h>
 #include <stdio.h>
-#include <petsc.h> // TODO REMOVE THIS INCLUDE
+#include <petsc.h> // TODO REMOVE THIS INCLUDE (and make sure it's not included indirectly! Should FAIL if you use PETSc directly here)
 #include <mpi.h>
 
 /* Helper functions */
@@ -124,7 +124,7 @@ int main(int argc, char** argv)
     DM dmStokes;
     StagBLInt N[2];
     StagBLReal hxAvgInv;
-    // TODO remove this escape hatch logic from main..
+    // TODO remove this escape hatch logic from main.. (easiest way is to move to an initialization function for the Ctx)
     ierr = StagBLGridPETScGetDM(ctx->stokesGrid,&dmStokes);CHKERRQ(ierr);
     ierr = DMStagGetGlobalSizes(dmStokes,&N[0],&N[1],NULL);CHKERRQ(ierr);
     ctx->hxCharacteristic = (ctx->xmax-ctx->xmin)/N[0];
@@ -157,21 +157,9 @@ int main(int argc, char** argv)
   /* Create a system */
   ierr = StagBLGridCreateStagBLSystem(ctx->stokesGrid,&system);CHKERRQ(ierr);
 
-  ierr = StagBLGridCreateStagBLArray(ctx->stokesGrid,&x);CHKERRQ(ierr);
-
   // TODO move this escape hatching in to system building calls
   ierr = StagBLSystemPETScGetMatPointer(system,&pmatA);CHKERRQ(ierr);
   ierr = StagBLSystemPETScGetVecPointer(system,&pvecb);CHKERRQ(ierr);
-
-  {
-    DM dmStokes;
-    ierr = StagBLGridPETScGetDM(ctx->stokesGrid,&dmStokes);CHKERRQ(ierr);
-    // TODO make sure this escape hatching is gone
-    ierr = StagBLArrayPETScGetGlobalVecPointer(x,&pvecx);CHKERRQ(ierr);
-    ierr = DMCreateGlobalVector(dmStokes,pvecx);CHKERRQ(ierr);
-  }
-  vecx = *pvecx;
-  ierr = PetscObjectSetName((PetscObject)vecx,"solution");CHKERRQ(ierr);
 
   if (systemtype == 1) {
     ierr = CreateSystem(ctx,pmatA,pvecb);CHKERRQ(ierr);
@@ -181,29 +169,15 @@ int main(int argc, char** argv)
   matA = *pmatA;
   vecb = *pvecb;
 
-  // TODO we call a function to create the default solver for the created StagBLSystem function,
-  // set any additional options we'd like, and set up
-
-  // TODO StagBLSystemCreateStagBLSolver(stokesSystem,&solver);
-  // TODO StagBLSolverSolve(solver,...);
-
-  /* Solve the system (you will likely want to specify a solver from the command line) */
-  StagBLSolverCreate(&solver);
-  StagBLSolverPETScGetKSPPointer(solver,&pksp);
-
-  ierr = VecDuplicate(vecb,pvecx);CHKERRQ(ierr);
-  ierr = KSPCreate(ctx->comm,pksp);CHKERRQ(ierr);
-  ksp = *pksp;
-  ierr = KSPSetOperators(ksp,matA,matA);CHKERRQ(ierr);
-  ierr = KSPSetFromOptions(ksp);CHKERRQ(ierr);
-  ierr = KSPSolve(ksp,vecb,vecx);CHKERRQ(ierr);
-  {
-    KSPConvergedReason reason;
-    ierr = KSPGetConvergedReason(ksp,&reason);CHKERRQ(ierr);
-    if (reason < 0) SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_CONV_FAILED,"Linear solve failed");CHKERRQ(ierr);
-  }
+  /* Solve the system (you will likely want to specify a solver from the command line,
+     e.g. -pc_type lu -pc_factor_mat_solver_type umfpack) */
+  ierr = StagBLSystemCreateStagBLSolver(system,&solver);CHKERRQ(ierr);
+  ierr = StagBLGridCreateStagBLArray(ctx->stokesGrid,&x);CHKERRQ(ierr);
+  ierr = StagBLSolverSolve(solver,x);CHKERRQ(ierr);
 
   /* Dump solution by converting to DMDAs and dumping */
+  ierr = StagBLArrayPETScGetGlobalVec(x,&vecx);CHKERRQ(ierr); // TODO move into Dump function
+  ierr = PetscObjectSetName((PetscObject)vecx,"solution");CHKERRQ(ierr); // TODO move into Dump function
   ierr = DumpSolution(ctx,vecx);CHKERRQ(ierr);
 
   /* Free data */

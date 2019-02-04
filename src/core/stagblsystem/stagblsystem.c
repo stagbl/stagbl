@@ -1,27 +1,34 @@
-#include "stagbloperatorimpl.h"
+#include "stagbl/private/stagblsystemimpl.h"
 #include <stdlib.h>
 
-StagBLErrorCode StagBLOperatorCreate(StagBLOperator *stagbloperator)
+StagBLErrorCode StagBLSystemCreate(StagBLGrid grid,StagBLSystem *system)
 {
-  *stagbloperator = malloc(sizeof(struct _p_StagBLOperator));
-  (*stagbloperator)->ops = calloc(1,sizeof(struct _p_StagBLOperatorOps));
+  *system = malloc(sizeof(struct _p_StagBLSystem));
+  (*system)->ops = calloc(1,sizeof(struct _p_StagBLSystemOps));
+
+  (*system)->grid = grid;
 
   // Setting Type and calling creation routine hard-coded for now
-  (*stagbloperator)->type = STAGBLOPERATORPETSC;
-  (*stagbloperator)->ops->create = StagBLOperatorCreate_PETSc; // Sets other ops
-  ((*stagbloperator)->ops->create)(*stagbloperator);
-
+  (*system)->type = STAGBLSYSTEMPETSC;
+  (*system)->ops->create = StagBLSystemCreate_PETSc; // Sets other ops
+  ((*system)->ops->create)(*system);
   return 0;
 }
 
-StagBLErrorCode StagBLOperatorDestroy(StagBLOperator *stagbloperator)
+StagBLErrorCode StagBLSystemCreateStagBLSolver(StagBLSystem system,StagBLSolver *solver)
 {
-  if ((*stagbloperator)->ops->destroy) {
-    ((*stagbloperator)->ops->destroy)(*stagbloperator);
-  }
-  free((*stagbloperator)->ops);
-  free(*stagbloperator);
-  *stagbloperator = NULL;
+  StagBLErrorCode ierr;
+  ierr = StagBLSolverCreate(system,solver);CHKERRQ(ierr);
+  return 0;
+}
 
+StagBLErrorCode StagBLSystemDestroy(StagBLSystem *system)
+{
+  if ((*system)->ops->destroy) {
+    ((*system)->ops->destroy)(*system);
+  }
+  free((*system)->ops);
+  free(*system);
+  *system = NULL;
   return 0;
 }

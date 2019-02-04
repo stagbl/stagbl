@@ -166,7 +166,7 @@ int main(int argc, char** argv)
   ierr = PopulateCoefficientData(ctx);CHKERRQ(ierr);
 
   // Create a system
-  StagBLSystemCreate(&system);
+  StagBLGridCreateStagBLSystem(grid,&system);
   StagBLGridCreateStagBLArray(grid,&x);
 
   StagBLArrayPETScGetGlobalVecPointer(x,&pvecx);
@@ -180,7 +180,7 @@ int main(int argc, char** argv)
   vecb = *pvecb;
 
   // Solve the system (you will likely want to choose a solver from the command line)
-  StagBLSolverCreate(&solver);
+  StagBLSolverCreate(system,&solver);
   StagBLSolverPETScGetKSPPointer(solver,&pksp);
 
   ierr = VecDuplicate(vecb,pvecx);CHKERRQ(ierr);

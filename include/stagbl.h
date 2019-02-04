@@ -67,6 +67,7 @@ StagBLErrorCode StagBLGridPETScGetDMPointer(StagBLGrid,DM**); // TODO this may n
 // StagBLArray Functions
 StagBLErrorCode StagBLArrayCreate(StagBLGrid,StagBLArray*); // TODO this needn't be public (or even exist?) because we can only create StagBLArrays from StagBLGrids
 StagBLErrorCode StagBLArrayDestroy(StagBLArray*);
+StagBLErrorCode StagBLArrayGetStagBLGrid(StagBLArray,StagBLGrid*);
 
 // StagBLArray impls
 #if defined (STAGBL_WITH_PETSC)
@@ -79,7 +80,7 @@ StagBLErrorCode StagBLArrayPETScGetGlobalVecPointer(StagBLArray,Vec**);
 #endif
 
 // StagBLSystem Functions
-StagBLErrorCode StagBLSystemCreate(StagBLSystem*);
+StagBLErrorCode StagBLSystemCreate(StagBLGrid,StagBLSystem*);
 StagBLErrorCode StagBLSystemCreateStagBLSolver(StagBLSystem,StagBLSolver*);
 StagBLErrorCode StagBLSystemDestroy(StagBLSystem*);
 
@@ -87,13 +88,16 @@ StagBLErrorCode StagBLSystemDestroy(StagBLSystem*);
 #if defined (STAGBL_WITH_PETSC)
 #define STAGBLSYSTEMPETSC "petsc"
 StagBLErrorCode StagBLSystemCreate_PETSc(StagBLSystem);
+StagBLErrorCode StagBLSystemPETScGetMat(StagBLSystem,Mat*);
 StagBLErrorCode StagBLSystemPETScGetMatPointer(StagBLSystem,Mat**);
+StagBLErrorCode StagBLSystemPETScGetVec(StagBLSystem,Vec*);
 StagBLErrorCode StagBLSystemPETScGetVecPointer(StagBLSystem,Vec**);
 #endif
 
 // StagBLSolver Functions
-StagBLErrorCode StagBLSolverCreate(StagBLSolver*);
+StagBLErrorCode StagBLSolverCreate(StagBLSystem,StagBLSolver*);
 StagBLErrorCode StagBLSolverDestroy(StagBLSolver*);
+StagBLErrorCode StagBLSolverSolve(StagBLSolver,StagBLArray);
 
 // StagBLSolver impls
 #if defined (STAGBL_WITH_PETSC)

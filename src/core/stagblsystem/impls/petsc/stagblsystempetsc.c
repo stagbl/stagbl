@@ -1,36 +1,55 @@
-#include "../../stagbloperatorimpl.h"
-#include "stagbloperatorpetscimpl.h"
+#include "stagbl/private/stagblsystemimpl.h"
+#include "stagblsystempetscimpl.h"
 #include <stdlib.h>
 
-StagBLErrorCode StagBLOperatorDestroy_PETSc(StagBLOperator stagbloperator)
+StagBLErrorCode StagBLSystemDestroy_PETSc(StagBLSystem stagblsystem)
 {
-  StagBLOperator_PETSc *data = (StagBLOperator_PETSc*) stagbloperator->data;
+  StagBLSystem_PETSc *data = (StagBLSystem_PETSc*) stagblsystem->data;
 
   if (data->mat) {
     MatDestroy(&data->mat);
   }
-  free(stagbloperator->data);
-  stagbloperator->data = NULL;
-
+  free(stagblsystem->data);
+  stagblsystem->data = NULL;
   return 0;
 }
 
-StagBLErrorCode StagBLOperatorCreate_PETSc(StagBLOperator stagbloperator)
+StagBLErrorCode StagBLSystemCreate_PETSc(StagBLSystem stagblsystem)
 {
-  StagBLOperator_PETSc *data;
+  StagBLSystem_PETSc *data;
 
-  stagbloperator->data = (void*) malloc(sizeof(StagBLOperator_PETSc));
-  data = (StagBLOperator_PETSc*) stagbloperator->data;
+  stagblsystem->data = (void*) malloc(sizeof(StagBLSystem_PETSc));
+  data = (StagBLSystem_PETSc*) stagblsystem->data;
   data->mat = NULL;
-  stagbloperator->ops->destroy = StagBLOperatorDestroy_PETSc;
-
+  data->rhs = NULL;
+  stagblsystem->ops->destroy = StagBLSystemDestroy_PETSc;
   return 0;
 }
 
-StagBLErrorCode StagBLOperatorPETScGetMatPointer(StagBLOperator stagbloperator,Mat **mat)
+StagBLErrorCode StagBLSystemPETScGetMat(StagBLSystem stagblsystem,Mat *mat)
 {
-  StagBLOperator_PETSc * const data = (StagBLOperator_PETSc*) stagbloperator->data;
-  *mat = &(data->mat);
+  StagBLSystem_PETSc * const data = (StagBLSystem_PETSc*) stagblsystem->data;
+  *mat = data->mat;
+  return 0;
+}
 
+StagBLErrorCode StagBLSystemPETScGetMatPointer(StagBLSystem stagblsystem,Mat **mat)
+{
+  StagBLSystem_PETSc * const data = (StagBLSystem_PETSc*) stagblsystem->data;
+  *mat = &(data->mat);
+  return 0;
+}
+
+StagBLErrorCode StagBLSystemPETScGetVec(StagBLSystem stagblsystem,Vec *vec)
+{
+  StagBLSystem_PETSc * const data = (StagBLSystem_PETSc*) stagblsystem->data;
+  *vec = data->rhs;
+  return 0;
+}
+
+StagBLErrorCode StagBLSystemPETScGetVecPointer(StagBLSystem stagblsystem,Vec **vec)
+{
+  StagBLSystem_PETSc * const data = (StagBLSystem_PETSc*) stagblsystem->data;
+  *vec = &(data->rhs);
   return 0;
 }

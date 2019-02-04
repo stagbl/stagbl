@@ -1,20 +1,21 @@
-#if !defined(STAGBLOPERATORIMPL_H_)
-#define STAGBLOPERATORIMPL_H_
+#if !defined(STAGBLSYSTEMIMPL_H_)
+#define STAGBLSYSTEMIMPL_H_
 
 #include "stagbl.h"
 
-struct _p_StagBLOperatorOps {
-  StagBLErrorCode (*create)(StagBLOperator);
-  StagBLErrorCode (*destroy)(StagBLOperator);
+struct _p_StagBLSystemOps {
+  StagBLErrorCode (*create)(StagBLSystem);
+  StagBLErrorCode (*destroy)(StagBLSystem);
 };
 
-typedef struct _p_StagBLOperatorOps *StagBLOperatorOps;
+typedef struct _p_StagBLSystemOps *StagBLSystemOps;
 
-struct _p_StagBLOperator
+struct _p_StagBLSystem
 {
-  StagBLOperatorOps ops;
+  StagBLSystemOps ops;
   const char    *type;
   void          *data;
+  StagBLGrid    grid;
 };
 
 #endif

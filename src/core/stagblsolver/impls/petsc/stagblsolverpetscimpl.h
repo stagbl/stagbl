@@ -1,11 +1,11 @@
-#if !defined(STAGBLLINEARSOLVERPETSCIMPL_H_)
-#define STAGBLLINEARSOLVERPETSCIMPL_H_
+#if !defined(STAGBLSOLVERPETSCIMPL_H_)
+#define STAGBLSOLVERPETSCIMPL_H_
 
 #include "stagbl.h"
 #include <petsc.h>
 
 typedef struct {
   KSP ksp;
-} StagBLLinearSolver_PETSc;
+} StagBLSolver_PETSc;
 
 #endif

@@ -56,7 +56,9 @@ Implementations:
  - Composite
 
 ### StagBLSystem
-This knows how to compute a residual on a grid, from values on one or more compatible grids.
+This knows how to compute a residual on a grid, from values on zero or more compatible grids.
+
+Contains an immutable reference to a StagBLGrid.
 
 Implementations:
  - Native Assembled
@@ -65,7 +67,7 @@ Implementations:
  - UTOPIA
 
 ### StagBLSolver
-Holds an immutable refernce to a StagBLSystem.
+Holds an immutable reference to a StagBLSystem.
 
 This knows how to take an initial guess (could be implicit zero) of an array,
 and compute a lower-residual update with respect to a StagBLSystem.

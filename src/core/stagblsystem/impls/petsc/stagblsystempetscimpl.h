@@ -1,11 +1,12 @@
-#if !defined(STAGBLOPERATORPETSCIMPL_H_)
-#define STAGBLOPERATORPETSCIMPL_H_
+#if !defined(STAGBLSYSTEMPETSCIMPL_H_)
+#define STAGBLSYSTEMPETSCIMPL_H_
 
 #include "stagbl.h"
 #include <petsc.h>
 
 typedef struct {
   Mat mat;
-} StagBLOperator_PETSc;
+  Vec rhs;
+} StagBLSystem_PETSc;
 
 #endif

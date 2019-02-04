@@ -1,27 +1,39 @@
-#include "stagbllinearsolverimpl.h"
+#include "stagbl/private/stagblsolverimpl.h"
 #include <stdlib.h>
 
-StagBLErrorCode StagBLLinearSolverCreate(StagBLLinearSolver *stagbllinearsolver)
+StagBLErrorCode StagBLSolverCreate(StagBLSystem system,StagBLSolver *stagblsolver)
 {
-  *stagbllinearsolver = malloc(sizeof(struct _p_StagBLLinearSolver));
-  (*stagbllinearsolver)->ops = calloc(1,sizeof(struct _p_StagBLLinearSolverOps));
+  *stagblsolver = malloc(sizeof(struct _p_StagBLSolver));
+  (*stagblsolver)->ops = calloc(1,sizeof(struct _p_StagBLSolverOps));
+
+  (*stagblsolver)->system = system;
 
   // Setting Type and calling creation routine hard-coded for now
-  (*stagbllinearsolver)->type = STAGBLLINEARSOLVERPETSC;
-  (*stagbllinearsolver)->ops->create = StagBLLinearSolverCreate_PETSc; // Sets other ops
-  ((*stagbllinearsolver)->ops->create)(*stagbllinearsolver);
-
+  (*stagblsolver)->type = STAGBLSOLVERPETSC;
+  (*stagblsolver)->ops->create = StagBLSolverCreate_PETSc; // Sets other ops
+  ((*stagblsolver)->ops->create)(*stagblsolver);
   return 0;
 }
 
-StagBLErrorCode StagBLLinearSolverDestroy(StagBLLinearSolver *stagbllinearsolver)
+StagBLErrorCode StagBLSolverDestroy(StagBLSolver *stagblsolver)
 {
-  if ((*stagbllinearsolver)->ops->destroy) {
-    ((*stagbllinearsolver)->ops->destroy)(*stagbllinearsolver);
+  if ((*stagblsolver)->ops->destroy) {
+    ((*stagblsolver)->ops->destroy)(*stagblsolver);
   }
-  free((*stagbllinearsolver)->ops);
-  free(*stagbllinearsolver);
-  *stagbllinearsolver = NULL;
+  free((*stagblsolver)->ops);
+  free(*stagblsolver);
+  *stagblsolver = NULL;
+  return 0;
+}
 
+StagBLErrorCode StagBLSolverSolve(StagBLSolver stagblsolver, StagBLArray sol)
+{
+  // TODO check that solver's stored grid and sol's stored grid are compatible and have the same number of dof (or could even be stronger and assert that they must be the same object..)
+  
+  if (stagblsolver->ops->solve) {
+    (stagblsolver->ops->solve)(stagblsolver,sol);
+  } else {
+    StagBLError(MPI_COMM_SELF,"StagBLSolverSolver not implemented for this type");
+  }
   return 0;
 }

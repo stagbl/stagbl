@@ -12,7 +12,6 @@ StagBLErrorCode StagBLArrayCreate(StagBLGrid grid, StagBLArray *stagblarray)
   (*stagblarray)->type = STAGBLARRAYPETSC;
   (*stagblarray)->ops->create = StagBLArrayCreate_PETSc; // Sets other ops
   ((*stagblarray)->ops->create)(*stagblarray);
-
   return 0;
 }
 
@@ -24,6 +23,11 @@ StagBLErrorCode StagBLArrayDestroy(StagBLArray *stagblarray)
   free((*stagblarray)->ops);
   free(*stagblarray);
   *stagblarray = NULL;
+  return 0;
+}
 
+StagBLErrorCode StagBLArrayGetStagBLGrid(StagBLArray stagblarray,StagBLGrid *grid)
+{
+  *grid = stagblarray->grid;
   return 0;
 }

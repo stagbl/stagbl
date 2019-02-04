@@ -1,5 +1,5 @@
 libstagbl-y.c += $(call thisdir,\
-  stagbloperator.c\
+  stagblsystem.c\
 )
 
 include $(call incsubdirs,impls)
