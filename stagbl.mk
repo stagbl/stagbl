@@ -1,12 +1,13 @@
 # This file is meant to be included from $(STAGBL_ARCH)/Makefile, after
 # $(STAGBL_ARCH)/variables.mk
 
-OBJDIR ?= obj
-LIBDIR ?= lib
 BINDIR ?= bin
+INCDIR ?= include
+LIBDIR ?= lib
+OBJDIR ?= obj
 TESTDIR ?= test
 
-all : library
+all : library includes
 
 .PHONY : library
 
@@ -36,10 +37,16 @@ $(OBJDIR)/%.o: $(OBJDIR)/%.c
 $(OBJDIR)/%.o: $(SRCDIR)/%.c | $$(@D)/.DIR
 	$(STAGBL_COMPILE.c) $< -o $@
 
-.PHONY: all clean print
+# Configuration-specific includes
+includes : $(INCDIR)/.DIR
+
+.PHONY: includes
+
 
 clean:
-	rm -rf $(OBJDIR) $(LIBDIR) $(BINDIR) $(TESTDIR)
+	rm -rf $(BINDIR) $(INCDIR) $(LIBDIR) $(OBJDIR) $(TESTDIR)
+
+.PHONY: all clean print
 
 srcs.c := $(libstagbl-y.c)
 srcs.o := $(call srctoobj,$(srcs.c))
