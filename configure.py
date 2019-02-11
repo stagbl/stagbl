@@ -65,7 +65,7 @@ def configure(args):
     print('To build:')
     print('make -j3 -C %s' % args.arch)
     print('To test:')
-    print('make -C %s test' % args.arch)
+    print('make -j3 -C %s test' % args.arch)
 
 def variables(args):
     if args.CC:
