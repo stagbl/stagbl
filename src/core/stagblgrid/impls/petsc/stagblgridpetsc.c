@@ -18,6 +18,7 @@ StagBLErrorCode StagBLGridCreateCompatibleStagBLGrid_PETSc(StagBLGrid grid,StagB
   StagBLGrid_PETSc *data,*dataNew;
   PetscErrorCode   ierr;
   DM               coordinateDM;
+  PetscInt         dof0_from, dof1_from, dof2_from, dof3_from;
 
   data = (StagBLGrid_PETSc*) grid->data;
   StagBLGridCreate(newgrid);
@@ -26,8 +27,18 @@ StagBLErrorCode StagBLGridCreateCompatibleStagBLGrid_PETSc(StagBLGrid grid,StagB
   ierr = DMSetUp(dataNew->dm);CHKERRQ(ierr);
 
   /* Use the same coordinate DM (Different from PETSc's behavior) */
-  ierr = DMGetCoordinateDM(data->dm,&coordinateDM);CHKERRQ(ierr);
-  ierr = DMSetCoordinateDM(dataNew->dm,coordinateDM);CHKERRQ(ierr);
+  ierr = DMStagGetDOF(data->dm,&dof0_from,&dof1_from,&dof2_from,&dof3_from);CHKERRQ(ierr);
+  if (  // Check that the same strata are active (non-zero dof)
+      ((dof0 == 0) == (dof0_from ==0)) ||
+      ((dof1 == 0) == (dof1_from ==0)) ||
+      ((dof2 == 0) == (dof2_from ==0)) ||
+      ((dof3 == 0) == (dof3_from ==0)) 
+     ) {
+    ierr = DMGetCoordinateDM(data->dm,&coordinateDM);CHKERRQ(ierr);
+    ierr = DMSetCoordinateDM(dataNew->dm,coordinateDM);CHKERRQ(ierr);
+  } else {
+    SETERRQ(PetscObjectComm((PetscObject)data->dm),PETSC_ERR_SUP,"Coordinate DM creation not implemented when active strata change");
+  }
   return 0;
 }
 
