@@ -1,15 +1,13 @@
 # This file is meant to be included from $(STAGBL_ARCH)/Makefile, after
 # $(STAGBL_ARCH)/variables.mk
 
-BINDIR ?= bin
-INCDIR ?= include
-LIBDIR ?= lib
-OBJDIR ?= obj
+BINDIR  ?= bin
+INCDIR  ?= include
+LIBDIR  ?= lib
+OBJDIR  ?= obj
 TESTDIR ?= test
 
-all : library includes
-
-.PHONY : library
+all : library
 
 # function to prefix directory that contains most recently-parsed
 # makefile (current) if that directory is not ./
@@ -29,7 +27,9 @@ libstagbl = $(LIBDIR)/libstagbl.$(AR_LIB_SUFFIX)
 libstagbl : $(libstagbl)
 $(libstagbl) : $(call srctoobj,$(libstagbl-y.c))
 
-library : $(libstagbl)
+library : $(libstagbl) includes
+
+.PHONY : library
 
 $(OBJDIR)/%.o: $(OBJDIR)/%.c
 	$(STAGBL_COMPILE.c) $< -o $@
@@ -41,7 +41,6 @@ $(OBJDIR)/%.o: $(SRCDIR)/%.c | $$(@D)/.DIR
 includes : $(INCDIR)/.DIR
 
 .PHONY: includes
-
 
 clean:
 	rm -rf $(BINDIR) $(INCDIR) $(LIBDIR) $(OBJDIR) $(TESTDIR)
