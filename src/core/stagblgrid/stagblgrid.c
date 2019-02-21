@@ -43,6 +43,7 @@ StagBLErrorCode StagBLGridCreateStagBLSystem(StagBLGrid grid,StagBLSystem *syste
 
 StagBLErrorCode StagBLGridDestroy(StagBLGrid *stagblgrid)
 {
+  if (!*stagblgrid) return 0;
   if ((*stagblgrid)->ops->destroy) {
     ((*stagblgrid)->ops->destroy)(*stagblgrid);
   }

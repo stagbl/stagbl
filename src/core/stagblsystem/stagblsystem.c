@@ -24,6 +24,7 @@ StagBLErrorCode StagBLSystemCreateStagBLSolver(StagBLSystem system,StagBLSolver 
 
 StagBLErrorCode StagBLSystemDestroy(StagBLSystem *system)
 {
+  if (!*system) return 0;
   if ((*system)->ops->destroy) {
     ((*system)->ops->destroy)(*system);
   }

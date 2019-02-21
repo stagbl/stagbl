@@ -17,6 +17,7 @@ StagBLErrorCode StagBLArrayCreate(StagBLGrid grid, StagBLArray *stagblarray)
 
 StagBLErrorCode StagBLArrayDestroy(StagBLArray *stagblarray)
 {
+  if (!*stagblarray) return 0;
   if ((*stagblarray)->ops->destroy) {
     ((*stagblarray)->ops->destroy)(*stagblarray);
   }

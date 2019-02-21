@@ -15,14 +15,15 @@ StagBLErrorCode StagBLSolverCreate(StagBLSystem system,StagBLSolver *stagblsolve
   return 0;
 }
 
-StagBLErrorCode StagBLSolverDestroy(StagBLSolver *stagblsolver)
+StagBLErrorCode StagBLSolverDestroy(StagBLSolver *solver)
 {
-  if ((*stagblsolver)->ops->destroy) {
-    ((*stagblsolver)->ops->destroy)(*stagblsolver);
+  if (!*solver) return 0;
+  if ((*solver)->ops->destroy) {
+    ((*solver)->ops->destroy)(*solver);
   }
-  free((*stagblsolver)->ops);
-  free(*stagblsolver);
-  *stagblsolver = NULL;
+  free((*solver)->ops);
+  free(*solver);
+  *solver = NULL;
   return 0;
 }
 
