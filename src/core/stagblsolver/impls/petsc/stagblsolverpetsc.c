@@ -57,7 +57,7 @@ StagBLErrorCode StagBLSolverSolve_PETSc(StagBLSolver solver,StagBLArray sol)
   {
     KSPConvergedReason reason;
     ierr = KSPGetConvergedReason(data->ksp,&reason);CHKERRQ(ierr);
-    if (reason < 0) SETERRQ(PetscObjectComm((PetscObject)dm),PETSC_ERR_CONV_FAILED,"Linear solve failed");CHKERRQ(ierr);
+    if (reason < 0) SETERRQ1(PetscObjectComm((PetscObject)dm),PETSC_ERR_CONV_FAILED,"Linear solve failed: %s",KSPConvergedReasons[reason]);CHKERRQ(ierr);
   }
 
   return 0;
