@@ -88,6 +88,7 @@ StagBLErrorCode StagBLSystemDestroy(StagBLSystem*);
 #if defined (STAGBL_WITH_PETSC)
 #define STAGBLSYSTEMPETSC "petsc"
 StagBLErrorCode StagBLSystemCreate_PETSc(StagBLSystem);
+StagBLErrorCode StagBLSystemGetGrid(StagBLSystem,StagBLGrid*);
 StagBLErrorCode StagBLSystemPETScGetMat(StagBLSystem,Mat*);
 StagBLErrorCode StagBLSystemPETScGetMatPointer(StagBLSystem,Mat**);
 StagBLErrorCode StagBLSystemPETScGetVec(StagBLSystem,Vec*);
@@ -97,6 +98,7 @@ StagBLErrorCode StagBLSystemPETScGetVecPointer(StagBLSystem,Vec**);
 // StagBLSolver Functions
 StagBLErrorCode StagBLSolverCreate(StagBLSystem,StagBLSolver*);
 StagBLErrorCode StagBLSolverDestroy(StagBLSolver*);
+StagBLErrorCode StagBLSolverGetSystem(StagBLSolver,StagBLSystem*);
 StagBLErrorCode StagBLSolverSolve(StagBLSolver,StagBLArray);
 
 // StagBLSolver impls

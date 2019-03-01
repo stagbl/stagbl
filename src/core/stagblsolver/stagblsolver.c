@@ -15,6 +15,12 @@ StagBLErrorCode StagBLSolverCreate(StagBLSystem system,StagBLSolver *stagblsolve
   return 0;
 }
 
+StagBLErrorCode StagBLSolverGetSystem(StagBLSolver solver,StagBLSystem *system)
+{
+  *system = solver->system;
+  return 0;
+}
+
 StagBLErrorCode StagBLSolverDestroy(StagBLSolver *solver)
 {
   if (!*solver) return 0;

@@ -33,3 +33,9 @@ StagBLErrorCode StagBLSystemDestroy(StagBLSystem *system)
   *system = NULL;
   return 0;
 }
+
+StagBLErrorCode StagBLSystemGetGrid(StagBLSystem system,StagBLGrid *grid)
+{
+  *grid = system->grid;
+  return 0;
+}
