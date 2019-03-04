@@ -3,6 +3,8 @@
 
 StagBLErrorCode StagBLSystemCreate(StagBLGrid grid,StagBLSystem *system)
 {
+  StagBLErrorCode ierr;
+
   *system = malloc(sizeof(struct _p_StagBLSystem));
   (*system)->ops = calloc(1,sizeof(struct _p_StagBLSystemOps));
 
@@ -11,7 +13,7 @@ StagBLErrorCode StagBLSystemCreate(StagBLGrid grid,StagBLSystem *system)
   // Setting Type and calling creation routine hard-coded for now
   (*system)->type = STAGBLSYSTEMPETSC;
   (*system)->ops->create = StagBLSystemCreate_PETSc; // Sets other ops
-  ((*system)->ops->create)(*system);
+  ierr = ((*system)->ops->create)(*system);CHKERRQ(ierr);
   return 0;
 }
 
@@ -24,9 +26,11 @@ StagBLErrorCode StagBLSystemCreateStagBLSolver(StagBLSystem system,StagBLSolver 
 
 StagBLErrorCode StagBLSystemDestroy(StagBLSystem *system)
 {
+  StagBLErrorCode ierr;
+
   if (!*system) return 0;
   if ((*system)->ops->destroy) {
-    ((*system)->ops->destroy)(*system);
+    ierr = ((*system)->ops->destroy)(*system);CHKERRQ(ierr);
   }
   free((*system)->ops);
   free(*system);

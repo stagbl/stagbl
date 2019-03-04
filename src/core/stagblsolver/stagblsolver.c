@@ -3,6 +3,8 @@
 
 StagBLErrorCode StagBLSolverCreate(StagBLSystem system,StagBLSolver *stagblsolver)
 {
+  StagBLErrorCode ierr;
+
   *stagblsolver = malloc(sizeof(struct _p_StagBLSolver));
   (*stagblsolver)->ops = calloc(1,sizeof(struct _p_StagBLSolverOps));
 
@@ -11,7 +13,7 @@ StagBLErrorCode StagBLSolverCreate(StagBLSystem system,StagBLSolver *stagblsolve
   // Setting Type and calling creation routine hard-coded for now
   (*stagblsolver)->type = STAGBLSOLVERPETSC;
   (*stagblsolver)->ops->create = StagBLSolverCreate_PETSc; // Sets other ops
-  ((*stagblsolver)->ops->create)(*stagblsolver);
+  ierr = ((*stagblsolver)->ops->create)(*stagblsolver);CHKERRQ(ierr);
   return 0;
 }
 
@@ -23,9 +25,11 @@ StagBLErrorCode StagBLSolverGetSystem(StagBLSolver solver,StagBLSystem *system)
 
 StagBLErrorCode StagBLSolverDestroy(StagBLSolver *solver)
 {
+  StagBLErrorCode ierr;
+
   if (!*solver) return 0;
   if ((*solver)->ops->destroy) {
-    ((*solver)->ops->destroy)(*solver);
+    ierr = ((*solver)->ops->destroy)(*solver);CHKERRQ(ierr);
   }
   free((*solver)->ops);
   free(*solver);
@@ -35,10 +39,11 @@ StagBLErrorCode StagBLSolverDestroy(StagBLSolver *solver)
 
 StagBLErrorCode StagBLSolverSolve(StagBLSolver stagblsolver, StagBLArray sol)
 {
+  StagBLErrorCode ierr;
   // TODO check that solver's stored grid and sol's stored grid are compatible and have the same number of dof (or could even be stronger and assert that they must be the same object..)
   
   if (stagblsolver->ops->solve) {
-    (stagblsolver->ops->solve)(stagblsolver,sol);
+    ierr = (stagblsolver->ops->solve)(stagblsolver,sol);CHKERRQ(ierr);
   } else {
     StagBLError(MPI_COMM_SELF,"StagBLSolverSolver not implemented for this type");
   }

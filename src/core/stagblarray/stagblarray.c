@@ -3,6 +3,7 @@
 
 StagBLErrorCode StagBLArrayCreate(StagBLGrid grid, StagBLArray *stagblarray)
 {
+  StagBLErrorCode ierr;
   *stagblarray = malloc(sizeof(struct _p_StagBLArray));
   (*stagblarray)->ops = calloc(1,sizeof(struct _p_StagBLArrayOps));
 
@@ -11,15 +12,16 @@ StagBLErrorCode StagBLArrayCreate(StagBLGrid grid, StagBLArray *stagblarray)
   // Setting Type and calling creation routine hard-coded for now
   (*stagblarray)->type = STAGBLARRAYPETSC;
   (*stagblarray)->ops->create = StagBLArrayCreate_PETSc; // Sets other ops
-  ((*stagblarray)->ops->create)(*stagblarray);
+  ierr = ((*stagblarray)->ops->create)(*stagblarray);CHKERRQ(ierr);
   return 0;
 }
 
 StagBLErrorCode StagBLArrayDestroy(StagBLArray *stagblarray)
 {
+  StagBLErrorCode ierr;
   if (!*stagblarray) return 0;
   if ((*stagblarray)->ops->destroy) {
-    ((*stagblarray)->ops->destroy)(*stagblarray);
+    ierr = ((*stagblarray)->ops->destroy)(*stagblarray);CHKERRQ(ierr);
   }
   free((*stagblarray)->ops);
   free(*stagblarray);
