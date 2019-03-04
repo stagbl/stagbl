@@ -24,9 +24,9 @@ StagBLErrorCode StagBLSolverSolve_PETSc(StagBLSolver solver,StagBLArray sol)
 {
   StagBLSolver_PETSc * const data = (StagBLSolver_PETSc*) solver->data;
   StagBLGrid                 grid;
-  PetscErrorCode ierr;
-  Vec vecRHS,vecSol;
-  DM dm;
+  PetscErrorCode             ierr;
+  Vec                        vecRHS,vecSol;
+  DM                         dm;
 
   ierr = StagBLArrayGetStagBLGrid(sol,&grid);CHKERRQ(ierr);
   ierr = StagBLGridPETScGetDM(grid,&dm);CHKERRQ(ierr);
@@ -48,7 +48,7 @@ StagBLErrorCode StagBLSolverSolve_PETSc(StagBLSolver solver,StagBLArray sol)
     ierr = StagBLSystemPETScGetMat(solver->system,&mat);CHKERRQ(ierr);
     ierr = KSPCreate(PetscObjectComm((PetscObject)dm),&data->ksp);CHKERRQ(ierr);
     ierr = KSPSetOperators(data->ksp,mat,mat);CHKERRQ(ierr);
-    ierr = KSPSetFromOptions(data->ksp);CHKERRQ(ierr); // TODO this might become problematic
+    ierr = KSPSetFromOptions(data->ksp);CHKERRQ(ierr); // TODO this might become problematic - need to figure out prefixes
   }
 
   ierr = StagBLSystemPETScGetVec(solver->system,&vecRHS);CHKERRQ(ierr);
@@ -57,7 +57,7 @@ StagBLErrorCode StagBLSolverSolve_PETSc(StagBLSolver solver,StagBLArray sol)
   {
     KSPConvergedReason reason;
     ierr = KSPGetConvergedReason(data->ksp,&reason);CHKERRQ(ierr);
-    if (reason < 0) SETERRQ1(PetscObjectComm((PetscObject)dm),PETSC_ERR_CONV_FAILED,"Linear solve failed: %s",KSPConvergedReasons[reason]);CHKERRQ(ierr);
+    if (reason < 0) SETERRQ1(PetscObjectComm((PetscObject)dm),PETSC_ERR_CONV_FAILED,"Linear solve failed: %s",KSPConvergedReasons[reason]);
   }
 
   return 0;
