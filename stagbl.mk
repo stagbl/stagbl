@@ -93,6 +93,9 @@ $(BINDIR)/test_dmstag_vec_stencil_vs_array : $(OBJDIR)/src/tests/performance/tes
 test : tests demos $(TESTDIR)/.DIR
 	cd $(TESTDIR)	&& STAGBL_DIR=$(STAGBL_DIR) STAGBL_ARCH=$(STAGBL_ARCH) $(STAGBL_DIR)/tests/runTests.py -w pth.conf
 
+test_check : tests demos $(TESTDIR)/.DIR
+	cd $(TESTDIR)	&& STAGBL_DIR=$(STAGBL_DIR) STAGBL_ARCH=$(STAGBL_ARCH) $(STAGBL_DIR)/tests/runTests.py -w pth.conf -v
+
 test_clean : $(TESTDIR)/.DIR
 	cd $(TESTDIR)	&& STAGBL_DIR=$(STAGBL_DIR) STAGBL_ARCH=$(STAGBL_ARCH) $(STAGBL_DIR)/tests/runTests.py -w pth.conf -p
 
