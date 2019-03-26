@@ -1,29 +1,25 @@
 PDFS = slides.pdf
+BIBFILES = pds.bib
 
 PDFLATEX=pdflatex --halt-on-error
 BIBTEX=bibtex
-PYTHON3=python3
 
-PLOT_PDFS= \
-			 images/A11_breakdown_plot1.pdf \
-			 images/A11_breakdown_plot2.pdf \
+all : $(PDFS)
 
-all : $(PDFS) $(PLOT_PDFS)
-
-$(PDFS) : $(PLOT_PDFS)
-
-%.pdf : %.tex
+# Main compile with latexmk, if available, otherwise with brute force
+ifndef LATEXMK
+LATEXMK=
+endif
+ifeq (${LATEXMK},)
+%.pdf : %.tex $(BIBFILES)
 	$(PDFLATEX) $<
-	$(BIBTEX) $(<:%.tex=%)
+	$(BIBTEX) $(<:.tex=)
 	$(PDFLATEX) $<
 	$(PDFLATEX) $<
-
-images/A11_breakdown_plot%.pdf : images/A11_breakdown_plot.py
-	$(PYTHON3) $<
-	mv A11_breakdown_plot*.pdf images
-
-# Keep the intermediate images
-.SECONDARY : $(PLOT_PDFS)
+else
+%.pdf : %.tex $(BIBFILES)
+	$(LATEXMK) $<
+endif
 
 # Remove intermediate files
 clean :
