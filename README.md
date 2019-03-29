@@ -31,10 +31,17 @@ Then, from this directory,
     ./configure.py         # follow instructions to make
     cd demos/2d
     make
-    ./stagbldemo2 -pc_type lu -pc_factor_mat_solver_type umfpack
+    ./stagbldemo2d -pc_type lu -pc_factor_mat_solver_type umfpack
     paraview &             # open out_element.vtr
 
 ![stagbl2ddemo quickstart](documentation/resources/stagbldemo2d_quickstart.pdf)
+
+In parallel, if you have configured PETSc with MUMPS, also try
+
+    $PETSC_DIR/$PETSC_ARCH/bin/mpiexec -np 4 ./stagbldemo2d -pc_type lu -pc_factor_mat_solver_type mumps  -structure 2 -stag_grid_x 30 -stag_grid_y 50
+    paraview &             # open out_element.vtr
+
+![stagbl2ddemo quickstart](documentation/resources/stagbldemo2d_quickstart2.pdf)
 
 ## Support
 Development of StagBL is supported by the [Platform for Advanced Scientific Computing](https://www.pasc-ch.org).
