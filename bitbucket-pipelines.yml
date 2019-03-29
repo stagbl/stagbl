@@ -28,7 +28,9 @@ pipelines:
             - export STAGBL_DIR=$PWD
             - export STAGBL_ARCH=$PETSC_ARCH
             - cd tests
-            - ./runTests.py -w ../${PETSC_ARCH}/pth.conf -d # default config (note no MPI for now!)
+            - ./runTests.py -w ../${PETSC_ARCH}/pth.conf -d # default config
+            - sed -i ../${PETSC_ARCH}/pth.conf "/mpiLaunch=.*/d"
+            - echo "mpiLaunch=$PETSC_DIR/$PETSC_ARCH/bin/mpiexec -np <ranks>" >> ../${PETSC_ARCH}/pth.conf
             - ./runTests.py -w ../${PETSC_ARCH}/pth.conf -f # return error code
 definitions:
    caches:
