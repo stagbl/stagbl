@@ -7,7 +7,7 @@ LIBDIR  ?= lib
 OBJDIR  ?= obj
 TESTDIR ?= test
 
-all : library
+all : library tests
 
 # function to prefix directory that contains most recently-parsed
 # makefile (current) if that directory is not ./
