@@ -30,7 +30,7 @@ options.
 ## Core Classes
 
 ### StagBLGrid
-Implementations:
+Potential Implementations:
  - Native (data layouts identical to DMStag)
  - PETSc (DMStag)
  - Multi (several compatible grids)
@@ -47,7 +47,7 @@ data, and maintains state as to which are "up to date".
 
 It features routines to obtain read-write or write-only access to the array data.
 
-Implementations:
+Potential Implementations:
  - Default (C arrays)
  - PETSc (Petsc Vecs, holding refernce to DMStag)
  - UTOPIA
@@ -60,7 +60,7 @@ This knows how to compute a residual on a grid, from values on zero or more comp
 
 Contains an immutable reference to a StagBLGrid.
 
-Implementations:
+Potential Implementations:
  - Native Assembled
  - Native Matrix-Free
  - PETSc (Mat + Vec)
@@ -72,7 +72,7 @@ Holds an immutable reference to a StagBLSystem.
 This knows how to take an initial guess (could be implicit zero) of an array,
 and compute a lower-residual update with respect to a StagBLSystem.
 
-Implementations:
+Potential Implementations:
  - Direct interface(s) to some direct solver package(s)
  - PETSc (KSP)
  - Native MG using StagBL components only
