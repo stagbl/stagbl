@@ -1,4 +1,4 @@
-![StagBL Logo](documentation/resources/logo/logo.pdf)
+![StagBL Logo](documentation/resources/logo/logo_half.pdf)
 # StagBL
 
 StagBL is a C library designed to allow optimized, massively-parallel solvers
