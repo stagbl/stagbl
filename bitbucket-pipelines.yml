@@ -24,6 +24,7 @@ pipelines:
             # Make StagBL (no -j)
             - make -C $PETSC_ARCH
             # Run tests
+            - export STAGBL_DIR=$PWD
             - cd tests
             - ./runTests.py -w ../${PETSC_ARCH}/pth.conf -d # default config
             - ./runTests.py -w ../${PETSC_ARCH}/pth.conf -f # return error code
