@@ -23,6 +23,7 @@ pipelines:
             - ./configure.py
             # Make StagBL (no -j)
             - make -C $PETSC_ARCH
+            - make -C $PETSC_ARCH demos
             # Run tests
             - export STAGBL_DIR=$PWD
             - export STAGBL_ARCH=$PETSC_ARCH
