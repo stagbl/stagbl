@@ -37,4 +37,4 @@ Then, from this directory,
 ![stagbl2ddemo quickstart](documentation/resources/stagbldemo2d_quickstart.pdf)
 
 ## Support
-Developement of StagBL is supported by the [Platform for Advanced Scientific Computing](https://www.pasc-ch.org).
+Development of StagBL is supported by the [Platform for Advanced Scientific Computing](https://www.pasc-ch.org).
