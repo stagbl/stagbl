@@ -25,6 +25,7 @@ pipelines:
             - make -C $PETSC_ARCH
             # Run tests
             - export STAGBL_DIR=$PWD
+            - export STAGBL_ARCH=$PETSC_ARCH
             - cd tests
             - ./runTests.py -w ../${PETSC_ARCH}/pth.conf -d # default config
             - ./runTests.py -w ../${PETSC_ARCH}/pth.conf -f # return error code
