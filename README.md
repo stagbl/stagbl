@@ -2,15 +2,14 @@
 
 ## About
 
-StagBL is a C library designed to allow optimized, massively-parallel solvers
+StagBL is a C library designed to allow optimized, massively-parallel Stokes solvers
 for geodynamics application codes based on finite-volume methods on regular,
 orthogonal grids, usually coupled to a particle-based advection scheme.
 
-It aims to be as lightweight as possible while still providing access to modern
-solvers.
-
-StagBL is in the initial heavy development phase. Everything and anything may change.
-See the Trello Board on the Bitbucket repository.
+It aims to be as lightweight as possible while still providing the flexibility
+and extensibility required for scientific application codes. This accomplished
+with careful design and interfaces to powerful external libraries like
+[PETSc](https://www.mcs.anl.gov/petsc).
 
 ## Dependencies
 
@@ -20,11 +19,12 @@ See the Trello Board on the Bitbucket repository.
 
 ## Quickstart
 
-First, you need a working branch of PETSc's master branch
+First, you need a working branch of PETSc's master branch, configured with
+`--download-suitesparse`.
 
     git clone -b master https://bitbucket.org/petsc/petsc petsc-master
 
-After it is configured, with `--download-suitesparse`,
+Then, from this directory,
 
     export PETSC_DIR=yyy
     export PETSC_ARCH=xxx
