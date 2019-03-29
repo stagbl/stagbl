@@ -13,7 +13,7 @@ pipelines:
             - cd petsc-3.11.0
             - export PETSC_DIR=$PWD
             - export PETSC_ARCH=default-arch-gnu-debug
-            - if [ ! -f "configure.log" ]; then ./configure --with-mpi=0 --with-shared-libraries=0; fi
+            - if [ ! -f "configure.log" ]; then ./configure --download-mpich --with-shared-libraries=0; fi
             - if [ ! -f "make.log" ]; then make all; fi
             - make check
             - cd ..
