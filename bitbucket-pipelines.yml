@@ -1,0 +1,32 @@
+pipelines:
+  branches:
+    master: &default-step
+      - step:
+          caches:
+            - petsc-3-11-0
+          script:
+            # Packages
+            - sudo apt-get update
+            - sudo apt-get --fix-missing -yq --no-install-suggests --no-install-recommends --force-yes install gfortran libblas-dev liblapack-dev python-numpy
+            # PETSc: we use a cache to avoid rebuilding, checking if configure.log exists
+            - if [ ! -f "petsc-3.11.0/configure.log" ]; then curl -O http://ftp.mcs.anl.gov/pub/petsc/release-snapshots/petsc-lite-3.11.0.tar.gz && tar zxvf petsc-lite-3.11.0.tar.gz; fi
+            - cd petsc-3.11.0
+            - export PETSC_DIR=$PWD
+            - export PETSC_ARCH=default-arch-gnu-debug
+            - if [ ! -f "configure.log" ]; then ./configure --with-mpi=0 --with-shared-libraries=0; fi
+            - if [ ! -f "make.log" ]; then make all; fi
+            - make check
+            - cd ..
+            # Clone test harness
+            - git clone https://bitbucket.org/dmay/pythontestharness 
+            # Configure StagBL
+            - ./configure.py
+            # Make StagBL (no -j)
+            - make -C $PETSC_ARCH
+            # Run tests
+            - cd tests
+            - ./runTests.py -w ../${PETSC_ARCH}/pth.conf -d # default config
+            - ./runTests.py -w ../${PETSC_ARCH}/pth.conf -f # return error code
+definitions:
+   caches:
+      petsc-3-11-0: petsc-3.11.0
