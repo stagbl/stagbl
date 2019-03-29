@@ -1,5 +1,6 @@
-![StagBL Logo](documentation/resources/logo/logo_half.pdf)
-# StagBL
+![StagBL](documentation/resources/logo/logo_half.pdf)
+
+## About
 
 StagBL is a C library designed to allow optimized, massively-parallel solvers
 for geodynamics application codes based on finite-volume methods on regular,
