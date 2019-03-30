@@ -4,8 +4,6 @@
 
 // Note: This is not a complete demo yet. It is mainly here to test 3d grid functionality.
 
-// TODO add log stages
-
 /* Shorter, more convenient names for DMStagLocation entries */
 #define BACK_DOWN_LEFT   DMSTAG_BACK_DOWN_LEFT
 #define BACK_DOWN        DMSTAG_BACK_DOWN
