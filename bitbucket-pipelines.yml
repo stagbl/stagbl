@@ -18,20 +18,21 @@ pipelines:
             - make check
             - cd ..
             # Clone test harness
-            - git clone https://bitbucket.org/dmay/pythontestharness 
+            - git clone https://bitbucket.org/dmay/pythontestharness
             # Configure StagBL
             - ./configure.py
-            # Make StagBL (no -j)
-            - make -C $PETSC_ARCH
-            - make -C $PETSC_ARCH demos
-            # Run tests
             - export STAGBL_DIR=$PWD
             - export STAGBL_ARCH=$PETSC_ARCH
+            # Make StagBL (no -j)
+            - make -C $STAGBL_ARCH
+            - make -C $STAGBL_ARCH demos
+            # Run tests
             - cd tests
-            - ./runTests.py -w ../${PETSC_ARCH}/pth.conf -d # default config
-            - sed -i ../${PETSC_ARCH}/pth.conf "/mpiLaunch=.*/d"
-            - echo "mpiLaunch=$PETSC_DIR/$PETSC_ARCH/bin/mpiexec -np <ranks>" >> ../${PETSC_ARCH}/pth.conf
-            - ./runTests.py -w ../${PETSC_ARCH}/pth.conf -f # return error code
+            - export PTH_CONF=../${PETSC_ARCH}/pth.conf
+            - ./runTests.py -w $PTH_CONF -d # default config
+            - sed -i "/mpiLaunch=.*/d" $PTH_CONF
+            - echo "mpiLaunch=$PETSC_DIR/$PETSC_ARCH/bin/mpiexec -np <ranks>" >> $PTH_CONF
+            - ./runTests.py -w $PTH_CONF -f # return error code
 definitions:
    caches:
       petsc-3-11-0: petsc-3.11.0
