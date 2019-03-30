@@ -7,7 +7,7 @@ pipelines:
           script:
             # Packages
             - sudo apt-get update
-            - sudo apt-get --fix-missing -yq --no-install-suggests --no-install-recommends --force-yes install gfortran libblas-dev liblapack-dev python-numpy bison
+            - sudo apt-get --fix-missing -yq --no-install-suggests --no-install-recommends --force-yes install gfortran libblas-dev liblapack-dev python-numpy bison flex
             # PETSc: we use a cache to avoid rebuilding, checking if configure.log exists
             - if [ ! -f "petsc-3.11.0/configure.log" ]; then curl -O http://ftp.mcs.anl.gov/pub/petsc/release-snapshots/petsc-lite-3.11.0.tar.gz && tar zxvf petsc-lite-3.11.0.tar.gz; fi
             - cd petsc-3.11.0
