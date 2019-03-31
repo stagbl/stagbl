@@ -27,6 +27,7 @@ Configure PETSc with `--download-suitesparse`, build, and check.
 See [the PETSc website](https://www.mcs.anl.gov/petsc/documentation/installation.html) for more.
 
 From this directory,
+
     export PETSC_DIR=yyy   # use value from your PETSc build
     export PETSC_ARCH=xxx  # use value from your PETSc build
     ./configure.py         # follow instructions to make
