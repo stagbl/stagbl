@@ -9,7 +9,7 @@ pipelines:
             - sudo apt-get update
             - sudo apt-get --fix-missing -yq --no-install-suggests --no-install-recommends --force-yes install gfortran libblas-dev liblapack-dev python-numpy cmake
             # PETSc: we use a cache to avoid rebuilding
-            - if [ ! -d "petsc-3.11.0" ]; then curl -O http://ftp.mcs.anl.gov/pub/petsc/release-snapshots/petsc-lite-3.11.0.tar.gz && tar zxvf petsc-lite-3.11.0.tar.gz; fi
+            - if [ ! -f "petsc-3.11.0/configure.log" ]; then curl -O http://ftp.mcs.anl.gov/pub/petsc/release-snapshots/petsc-lite-3.11.0.tar.gz && tar zxvf petsc-lite-3.11.0.tar.gz; fi
             - cd petsc-3.11.0
             - export PETSC_DIR=$PWD
             - export PETSC_ARCH=default-arch-gnu-debug
