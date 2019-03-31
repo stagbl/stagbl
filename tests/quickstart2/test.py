@@ -23,7 +23,6 @@ def test() :
             raise Exception("Did not find the expected quickstart command in README.md! : " + command)
 
     command_full = os.path.join(STAGBL_DIR,STAGBL_ARCH,'bin',command_details)
-    print('debug',command_full)
 
     t = pyTestHarness.test.Test("quickstart1",4,command_full,os.path.join(this_dir,'expected'))
     t.set
