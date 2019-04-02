@@ -24,7 +24,7 @@ def test() :
 
     command_full = os.path.join(STAGBL_DIR,STAGBL_ARCH,'bin',command_details)
 
-    t = pyTestHarness.test.Test("quickstart1",4,command_full,os.path.join(this_dir,'expected'))
+    t = pyTestHarness.test.Test("quickstart2",4,command_full,os.path.join(this_dir,'expected'))
     t.setUseSandbox()
 
     def comparefunc(t) :
