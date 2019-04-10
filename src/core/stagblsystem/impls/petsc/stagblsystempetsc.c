@@ -4,14 +4,19 @@
 
 StagBLErrorCode StagBLSystemDestroy_PETSc(StagBLSystem stagblsystem)
 {
+  PetscErrorCode     ierr;
   StagBLSystem_PETSc *data = (StagBLSystem_PETSc*) stagblsystem->data;
 
+  PetscFunctionBeginUser;
+  if (data->rhs) {
+    ierr = VecDestroy(&data->rhs);CHKERRQ(ierr);
+  }
   if (data->mat) {
-    MatDestroy(&data->mat);
+    ierr = MatDestroy(&data->mat);CHKERRQ(ierr);
   }
   free(stagblsystem->data);
   stagblsystem->data = NULL;
-  return 0;
+  PetscFunctionReturn(0);
 }
 
 StagBLErrorCode StagBLSystemCreate_PETSc(StagBLSystem stagblsystem)
