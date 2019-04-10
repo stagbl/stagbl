@@ -3,6 +3,7 @@
 #include <petsc.h> // Note that we still have work to do guarding for the non-PETSc case (probably define STAGBL_HAVE_PETSC in a configured include file eventually)
 
 // Note: This is not a complete demo yet. It is mainly here to test 3d grid functionality.
+// TODO: error checking for all StagBL functions
 
 /* Shorter, more convenient names for DMStagLocation entries */
 #define BACK_DOWN_LEFT   DMSTAG_BACK_DOWN_LEFT
@@ -181,7 +182,6 @@ int main(int argc, char** argv)
   StagBLSolverCreate(system,&solver);
   StagBLSolverPETScGetKSPPointer(solver,&pksp);
 
-  ierr = VecDuplicate(vecb,pvecx);CHKERRQ(ierr);
   ierr = KSPCreate(ctx->comm,pksp);CHKERRQ(ierr);
   ksp = *pksp;
   ierr = KSPSetOperators(ksp,matA,matA);CHKERRQ(ierr);
@@ -197,10 +197,14 @@ int main(int argc, char** argv)
   ierr = DumpSolution(ctx,vecx);CHKERRQ(ierr);
 
   /* Free data */
+  ierr = VecDestroy(pvecx);CHKERRQ(ierr);
+  ierr = VecDestroy(&ctx->coeff);CHKERRQ(ierr);
   StagBLArrayDestroy(&x);
   StagBLSystemDestroy(&system);
   StagBLSolverDestroy(&solver);
   StagBLGridDestroy(&grid);
+  ierr = DMDestroy(&ctx->dmCoeff);CHKERRQ(ierr);
+  ierr = PetscFree(ctx);CHKERRQ(ierr);
 
   StagBLFinalize();
 
