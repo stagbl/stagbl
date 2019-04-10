@@ -814,6 +814,7 @@ static PetscErrorCode DumpSolution(Ctx ctx,Vec x)
   /* Edge-based fields could similarly be dumped */
 
   /* Destroy DMDAs and Vecs */
+  ierr = VecDestroy(&velAvg);CHKERRQ(ierr);
   ierr = VecDestroy(&vecVelAvg);CHKERRQ(ierr);
   ierr = VecDestroy(&vecP);CHKERRQ(ierr);
   ierr = VecDestroy(&vecEtaCorner);CHKERRQ(ierr);
