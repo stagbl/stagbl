@@ -100,7 +100,7 @@ PetscErrorCode CreateSystem2(const Ctx ctx,StagBLSystem system)
           /* Get eta values */
           etaPoint[0].i = ex; etaPoint[0].j = ey;   etaPoint[0].loc = DMSTAG_DOWN_LEFT;  etaPoint[0].c = 0; /* Left  */
           etaPoint[1].i = ex; etaPoint[1].j = ey;   etaPoint[1].loc = DMSTAG_DOWN_RIGHT; etaPoint[1].c = 0; /* Right */
-          etaPoint[2].i = ex; etaPoint[2].j = ey+1; etaPoint[2].loc = DMSTAG_ELEMENT;    etaPoint[2].c = 0; /* Up    */
+          etaPoint[2].i = ex; etaPoint[2].j = ey;   etaPoint[2].loc = DMSTAG_ELEMENT;    etaPoint[2].c = 0; /* Up    */
           etaPoint[3].i = ex; etaPoint[3].j = ey-1; etaPoint[3].loc = DMSTAG_ELEMENT;    etaPoint[3].c = 0; /* Down  */
           ierr = DMStagVecGetValuesStencil(dmCoeff,coeffLocal,4,etaPoint,eta);CHKERRQ(ierr);
           etaLeft = eta[0]; etaRight = eta[1]; etaUp = eta[2]; etaDown = eta[3];
