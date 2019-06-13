@@ -34,7 +34,7 @@ From this directory,
     cd demos/2d
     make
     ./stagbldemo2d -pc_type lu -pc_factor_mat_solver_type umfpack
-    paraview &             # open out_element.vtr
+    paraview out_element.vtr &
 
 ![stagbl2ddemo quickstart](documentation/resources/stagbldemo2d_quickstart.pdf)
 
