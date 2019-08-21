@@ -18,9 +18,9 @@ def test() :
     command_details = "stagbldemo2d -pc_type lu -pc_factor_mat_solver_type umfpack"
 
     # Search the README.md to make sure the expected command is there
-    with open(os.path.join(STAGBL_DIR,'README.md')) as readme_file :
+    with open(os.path.join(STAGBL_DIR,'README.rst')) as readme_file :
         if not command_details in readme_file.read():
-            raise Exception("Did not find the expected quickstart command in README.md! : " + command)
+            raise Exception("Did not find the expected quickstart command in README.rst! : " + command)
 
     command_full = os.path.join(STAGBL_DIR,STAGBL_ARCH,'bin',command_details)
 
