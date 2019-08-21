@@ -15,7 +15,7 @@ def test() :
     if not STAGBL_ARCH :
         raise RuntimeError('STAGBL_ARCH not defined in environment')
 
-    command_details = "stagbldemo2d -pc_type lu -pc_factor_mat_solver_type mumps -structure 2 -stag_grid_x 30 -stag_grid_y 50"
+    command_details = "stagbldemo2d -pc_type lu -pc_factor_mat_solver_type mumps -mat_mumps_icntl_23 100 -structure 2 -stag_grid_x 30 -stag_grid_y 50"
 
     # Search the README.md to make sure the expected command is there
     with open(os.path.join(STAGBL_DIR,'README.md')) as readme_file :

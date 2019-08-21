@@ -40,7 +40,7 @@ From this directory,
 
 In parallel, if you have configured PETSc with MUMPS, also try
 
-    $PETSC_DIR/$PETSC_ARCH/bin/mpiexec -np 4 ./stagbldemo2d -pc_type lu -pc_factor_mat_solver_type mumps -structure 2 -stag_grid_x 30 -stag_grid_y 50
+    $PETSC_DIR/$PETSC_ARCH/bin/mpiexec -np 4 ./stagbldemo2d -pc_type lu -pc_factor_mat_solver_type mumps -mat_mumps_icntl_23 100 -structure 2 -stag_grid_x 30 -stag_grid_y 50
 
 ![stagbl2ddemo quickstart 2](documentation/resources/stagbldemo2d_quickstart2.pdf)
 
