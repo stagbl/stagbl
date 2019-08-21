@@ -51,7 +51,7 @@ static StagBLReal getEta_gerya72(void *ptr,StagBLReal x,StagBLReal y)
   }
 }
 
-PetscErrorCode PopulateCoefficientData(Ctx ctx,StagBLInt structure)
+PetscErrorCode PopulateCoefficientData(Ctx ctx,const char* mode)
 {
   PetscErrorCode ierr;
   PetscInt       N[2];
@@ -61,23 +61,32 @@ PetscErrorCode PopulateCoefficientData(Ctx ctx,StagBLInt structure)
   Vec            coeffLocal;
   PetscReal      **cArrX,**cArrY;
   PetscReal      ***coeffArr;
+  PetscBool      flg;
 
   PetscFunctionBeginUser;
 
-  switch (structure) {
-    case 0:
-      ctx->getEta = getEta_constant;
-      ctx->getRho = getRho_constant;
-      break;
-    case 1:
-      ctx->getEta = getEta_gerya72;
-      ctx->getRho = getRho_gerya72;
-      break;
-    case 2:
+  flg = PETSC_FALSE;
+  ierr = PetscStrcmp(mode,"gerya72",&flg);CHKERRQ(ierr);
+  if (flg) {
+    ctx->getEta = getEta_gerya72;
+    ctx->getRho = getRho_gerya72;
+  }
+  if (!flg) {
+    ierr = PetscStrcmp(mode,"sinker",&flg);CHKERRQ(ierr);
+    if (flg) {
       ctx->getEta = getEta_sinker;
       ctx->getRho = getRho_sinker;
-      break;
-    default: SETERRQ1(ctx->comm,PETSC_ERR_ARG_OUTOFRANGE,"Unsupported viscosity structure %d",structure);
+    }
+  }
+  if (!flg) {
+    ierr = PetscStrcmp(mode,"blankenbach_1",&flg);CHKERRQ(ierr);
+    if (flg) {
+      ctx->getEta = getEta_constant;
+      ctx->getRho = getRho_constant;
+    }
+  }
+  if (!flg) {
+    SETERRQ1(ctx->comm,PETSC_ERR_ARG_OUTOFRANGE,"Unrecognized mode %s",mode);
   }
 
   ierr = StagBLGridCreateStagBLArray(ctx->coeffGrid,&ctx->coeffArray);CHKERRQ(ierr);

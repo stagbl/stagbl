@@ -2,6 +2,6 @@
 #define ARGS_H_
 
 #include "stagbl.h"
-StagBLErrorCode GetIntArg(const char*,StagBLInt,StagBLInt*);
+PetscErrorCode GetStringArg(const char*,const char*,size_t,char*);
 
 #endif

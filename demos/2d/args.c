@@ -2,11 +2,12 @@
 #include "args.h"
 #include <petscsys.h>
 
-StagBLErrorCode GetIntArg(const char *flg,StagBLInt def,StagBLInt *dest)
+PetscErrorCode GetStringArg(const char *flg,const char *def,size_t len,char *dest)
 {
   PetscErrorCode ierr;
 
-  *dest = def;
-  ierr = PetscOptionsGetInt(NULL,NULL,flg,dest,NULL);CHKERRQ(ierr);
-  return 0;
+  PetscFunctionBeginUser;
+  ierr = PetscStrcpy(dest,def);CHKERRQ(ierr);
+  ierr = PetscOptionsGetString(NULL,NULL,flg,dest,len,NULL);CHKERRQ(ierr);
+  PetscFunctionReturn(0);
 }

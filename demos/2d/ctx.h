@@ -5,6 +5,7 @@
 
 typedef struct {
   MPI_Comm    comm;
+  char        mode[1024];
   StagBLGrid  stokesGrid,coeffGrid;
   StagBLArray coeffArray;
   StagBLReal  xmax,ymax,xmin,ymin,hxCharacteristic,hyCharacteristic;
@@ -15,7 +16,7 @@ typedef struct {
 } CtxData;
 typedef CtxData* Ctx;
 
-StagBLErrorCode CtxCreate(MPI_Comm,Ctx*);
+StagBLErrorCode CtxCreate(MPI_Comm,const char* mode,Ctx*);
 StagBLErrorCode CtxSetupFromGrid(Ctx);
 
 #endif
