@@ -1,4 +1,4 @@
-.. image:: documentation/resources/logo/logo_half.png
+.. image:: docs/resources/logo/logo_half.png
    :alt: StagBL
 
 .. image:: https://travis-ci.com/stagbl/stagbl.svg?branch=master
@@ -51,7 +51,7 @@ From this directory,
     ./stagbldemo2d -pc_type lu -pc_factor_mat_solver_type umfpack
     paraview out_element.vtr &
 
-.. image:: documentation/resources/stagbldemo2d_quickstart.png
+.. image:: docs/resources/stagbldemo2d_quickstart.png
    :alt: stagbl2ddemo quickstart
 In parallel, if you have configured PETSc with MUMPS, also try
 
@@ -59,7 +59,7 @@ In parallel, if you have configured PETSc with MUMPS, also try
 
     $PETSC_DIR/$PETSC_ARCH/bin/mpiexec -np 4 ./stagbldemo2d -pc_type lu -pc_factor_mat_solver_type mumps -mat_mumps_icntl_23 100 -structure 2 -stag_grid_x 30 -stag_grid_y 50
 
-.. image:: documentation/resources/stagbldemo2d_quickstart2.png
+.. image:: docs/resources/stagbldemo2d_quickstart2.png
    :alt: stagbl2ddemo quickstart 2
 
 Support
