@@ -1,5 +1,5 @@
 import os
-import pyTestHarness.test
+from sciath.test import Test
 
 def test() :
     # Note that we create this test in a special way, not with the usual
@@ -24,7 +24,7 @@ def test() :
 
     command_full = os.path.join(STAGBL_DIR,STAGBL_ARCH,'bin',command_details)
 
-    t = pyTestHarness.test.Test("quickstart1",1,command_full,os.path.join(this_dir,'expected'))
+    t = Test("quickstart1",1,command_full,os.path.join(this_dir,'expected'))
     t.setUseSandbox()
 
     def comparefunc(t) :

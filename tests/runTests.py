@@ -34,18 +34,18 @@ if not os.path.exists(chkpath) :
     sys.exit(1)
 
 # bitbucket.org/dmay/pythontestharness
-sys.path.append(os.path.join(STAGBL_DIR,'pythontestharness','lib'))  # overrides
+sys.path.append(os.path.join(STAGBL_DIR,'sciath','lib'))  # overrides
 try :
-  import pyTestHarness.harness as pth_harness
-  import pyTestHarness.test as pth_test
+  from sciath.harness import Harness
+  from sciath.test import Test
 except Exception as errorMessage :
   if not sys.exc_info()[-1].tb_next :     # Check that the traceback has depth 1
     traceback.print_exc()
     print('********************')
-    print('The required python library pyTestHarness was not found. Exiting.')
-    print('If pyTestHarness is installed on your system, ensure pythontestharness/lib is included in the environment variable PYTHONPATH.')
-    print('If pyTestHarness is not installed, obtain the source by executing the following:')
-    print('  git clone https://bitbucket.org/dmay/pythontestharness ' + os.path.join(STAGBL_DIR,'pythontestharness'))
+    print('The required python package SciATH was not found. Exiting.')
+    print('If SciATH is installed on your system, ensure it is included in the environment variable PYTHONPATH.')
+    print('If SciATH is not installed, obtain the source by executing the following:')
+    print('  git clone https://github.com/sciath/sciath ' + os.path.join(STAGBL_DIR,'sciath'))
     print('********************')
     sys.exit(1)
   raise
@@ -61,6 +61,6 @@ for (root, dirs, files) in os.walk(thisDir) :
         exec('allTests.append('+mod+'.test())')
 
 # Run tests
-h = pth_harness.pthHarness(allTests)
+h = Harness(allTests)
 h.execute()
 h.verify()

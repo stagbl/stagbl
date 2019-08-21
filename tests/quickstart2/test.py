@@ -1,5 +1,5 @@
 import os
-import pyTestHarness.test
+from sciath.test import Test
 
 def test() :
     # Note that we create this test in a special way, not with the usual
@@ -20,11 +20,11 @@ def test() :
     # Search the README.md to make sure the expected command is there
     with open(os.path.join(STAGBL_DIR,'README.md')) as readme_file :
         if not command_details in readme_file.read():
-            raise Exception("Did not find the expected quickstart command in README.md! : " + command)
+            raise Exception("Did not find the expected quickstart command details in README.md! : " + command_details)
 
     command_full = os.path.join(STAGBL_DIR,STAGBL_ARCH,'bin',command_details)
 
-    t = pyTestHarness.test.Test("quickstart2",4,command_full,os.path.join(this_dir,'expected'))
+    t = Test("quickstart2",4,command_full,os.path.join(this_dir,'expected'))
     t.setUseSandbox()
 
     def comparefunc(t) :

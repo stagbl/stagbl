@@ -1,5 +1,5 @@
 import os
-import pyTestHarness.test
+from sciath.test import Test
 
 def create_stagbl_test(calling_file,exec_name,ranks,arguments,comparison_filename=None) :
     """ Set up a StagBL test based on a the absolute path of the calling file,
@@ -30,7 +30,7 @@ def create_stagbl_test(calling_file,exec_name,ranks,arguments,comparison_filenam
     launch = os.path.join(STAGBL_DIR,STAGBL_ARCH,'bin',exec_name) + ' ' + ' '.join(arguments)
 
     # Create and set up a pth test, which can be operated on later
-    t = pyTestHarness.test.Test(test_name,ranks,launch,expected_filename)
+    t = Test(test_name,ranks,launch,expected_filename)
     t.setUseSandbox()
 
     # Set alternate comparison file
