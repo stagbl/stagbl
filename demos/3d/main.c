@@ -211,6 +211,7 @@ int main(int argc, char** argv)
   return 0;
 }
 
+// TODO properly scale (if using this placeholder version)
 static PetscErrorCode CreateSystem(const Ctx ctx,Mat *pA,Vec *pRhs)
 {
   PetscErrorCode ierr;
@@ -751,8 +752,7 @@ static PetscErrorCode DumpSolution(Ctx ctx,Vec x)
      DMStagVecGetArrayDOF() and related functions */
   ierr = DMStagCreateCompatibleDMStag(ctx->dmStokes,0,0,0,3,&dmVelAvg); /* 2 dof per element */
   ierr = DMSetUp(dmVelAvg);CHKERRQ(ierr);
-  ierr = DMStagSetUniformCoordinatesExplicit(dmVelAvg,0.0,ctx->xmax,0.0,ctx->ymax,0.0,ctx->zmax);CHKERRQ(ierr);
-  // TODO this should be product, probably
+  ierr = DMStagSetUniformCoordinatesProduct(dmVelAvg,0.0,ctx->xmax,0.0,ctx->ymax,0.0,ctx->zmax);CHKERRQ(ierr);
   ierr = DMCreateGlobalVector(dmVelAvg,&velAvg);CHKERRQ(ierr);
   {
     PetscInt ex,ey,ez,startx,starty,startz,nx,ny,nz;
