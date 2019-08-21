@@ -2,6 +2,17 @@
 
 /* Coefficient/forcing Functions */
 
+/* Constant */
+static StagBLReal getRho_constant(void *ptr,StagBLReal x, StagBLReal y) {
+  Ctx ctx = (Ctx) ptr;
+  return ctx->rho1;
+}
+
+static StagBLReal getEta_constant(void *ptr,StagBLReal x, StagBLReal y) {
+  Ctx ctx = (Ctx) ptr;
+  return ctx->rho2;
+}
+
 /* Sinker */
 static StagBLReal getRho_sinker(void *ptr,StagBLReal x, StagBLReal y) {
   Ctx ctx = (Ctx) ptr;
@@ -54,6 +65,10 @@ PetscErrorCode PopulateCoefficientData(Ctx ctx,StagBLInt structure)
   PetscFunctionBeginUser;
 
   switch (structure) {
+    case 0:
+      ctx->getEta = getEta_constant;
+      ctx->getRho = getRho_constant;
+      break;
     case 1:
       ctx->getEta = getEta_gerya72;
       ctx->getRho = getRho_gerya72;

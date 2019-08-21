@@ -8,6 +8,8 @@
 #include <stdio.h>
 #include <mpi.h>
 
+// TODO: see recent updates to DMStag tutorial ex4, and copy them here, in particular the examples about an MG solver (and put that on the quickstart!)
+
 /* Note: while many of the functions here take advantage of PETSc, through
    the "escape" hatch offered by several class implementations, this main
    function does not depend on the PETSc API, only on the StagBL API */
