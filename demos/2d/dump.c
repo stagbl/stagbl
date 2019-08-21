@@ -25,7 +25,7 @@ PetscErrorCode DumpSolution(Ctx ctx,StagBLArray x)
      DMStagVecGetArrayDOF() and related functions */
   ierr = DMStagCreateCompatibleDMStag(dmStokes,0,0,2,0,&dmVelAvg); /* 2 dof per element */
   ierr = DMSetUp(dmVelAvg);CHKERRQ(ierr);
-  ierr = DMStagSetUniformCoordinatesExplicit(dmVelAvg,0.0,ctx->xmax,0.0,ctx->ymax,0.0,0.0);CHKERRQ(ierr);
+  ierr = DMStagSetUniformCoordinatesProduct(dmVelAvg,0.0,ctx->xmax,0.0,ctx->ymax,0.0,0.0);CHKERRQ(ierr);
   ierr = DMCreateGlobalVector(dmVelAvg,&velAvg);CHKERRQ(ierr);
   {
     PetscInt    ex,ey,startx,starty,nx,ny;
