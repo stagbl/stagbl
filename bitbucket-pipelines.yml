@@ -18,7 +18,7 @@ pipelines:
             - make check
             - cd ..
             # Clone test harness
-            - git clone https://bitbucket.org/dmay/pythontestharness
+            - git clone https://github.com/sciath/sciath
             # Configure StagBL
             - ./configure.py
             - export STAGBL_DIR=$PWD
