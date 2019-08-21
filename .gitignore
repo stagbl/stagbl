@@ -2,8 +2,8 @@
 build
 arch-*
 
-# Testing harness
-pythontestharness
+# github.com/sciath/sciath
+sciath
 
 # OS X
 *.DS_Store
