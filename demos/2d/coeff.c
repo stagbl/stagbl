@@ -4,13 +4,17 @@
 
 /* Constant */
 static PetscScalar getRho_constant(void *ptr,PetscScalar x, PetscScalar y) {
+  STAGBL_UNUSED(x);
+  STAGBL_UNUSED(y);
   Ctx ctx = (Ctx) ptr;
   return ctx->rho1;
 }
 
 static PetscScalar getEta_constant(void *ptr,PetscScalar x, PetscScalar y) {
+  STAGBL_UNUSED(x);
+  STAGBL_UNUSED(y);
   Ctx ctx = (Ctx) ptr;
-  return ctx->rho2;
+  return ctx->eta1;
 }
 
 /* Sinker */
@@ -79,7 +83,7 @@ PetscErrorCode PopulateCoefficientData(Ctx ctx,const char* mode)
     }
   }
   if (!flg) {
-    ierr = PetscStrcmp(mode,"blankenbach_1",&flg);CHKERRQ(ierr);
+    ierr = PetscStrcmp(mode,"blankenbach",&flg);CHKERRQ(ierr);
     if (flg) {
       ctx->getEta = getEta_constant;
       ctx->getRho = getRho_constant;
