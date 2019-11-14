@@ -1,7 +1,10 @@
 static char help[] = "Solve simple assembled Stokes linear solve with DMStag, including MatPreallocator usage\n";
 
 /* Note: this could be extended to compare with a DMDA-based appraoch, as
-   a performance comparison */
+   a performance comparison. See PETSc SNES tutorial ex30  */
+
+/* Note: the additional code wrt MatPreallocate is likely unnecessary as of
+   PETSc 3.12 */
 
 #include <petscdm.h>
 #include <petscdmstag.h>
