@@ -5,7 +5,7 @@
 #                                                                               #
 #################################################################################
 # Usage:                                                                        #
-#  ./runTests.py [-h] [-other_pyTestHarness_options]                            #
+#  ./run_tests.py [-h] [-other_sciath_options]
 #                                                                               #
 #################################################################################
 
@@ -33,8 +33,7 @@ if not os.path.exists(chkpath) :
     print(chkpath,' not found. Set STAGBL_DIR and STAGBL_ARCH properly. Exiting.')
     sys.exit(1)
 
-# bitbucket.org/dmay/pythontestharness
-sys.path.append(os.path.join(STAGBL_DIR,'sciath','lib'))  # overrides
+sys.path.append(os.path.join(STAGBL_DIR,'sciath'))  # overrides
 try :
   from sciath.harness import Harness
   from sciath.test import Test
@@ -45,7 +44,7 @@ except Exception as errorMessage :
     print('The required python package SciATH was not found. Exiting.')
     print('If SciATH is installed on your system, ensure it is included in the environment variable PYTHONPATH.')
     print('If SciATH is not installed, obtain the source by executing the following:')
-    print('  git clone https://github.com/sciath/sciath ' + os.path.join(STAGBL_DIR,'sciath'))
+    print('  git submodule init && git submodule update')
     print('********************')
     sys.exit(1)
   raise

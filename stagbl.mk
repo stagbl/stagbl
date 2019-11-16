@@ -94,12 +94,12 @@ $(BINDIR)/test_dmstag_preallocate : $(OBJDIR)/src/tests/performance/test_dmstag_
 
 # Run tests
 test : tests demos $(TESTDIR)/.DIR
-	cd $(TESTDIR)	&& STAGBL_DIR=$(STAGBL_DIR) STAGBL_ARCH=$(STAGBL_ARCH) $(STAGBL_DIR)/tests/runTests.py -w pth.conf
+	cd $(TESTDIR)	&& STAGBL_DIR=$(STAGBL_DIR) STAGBL_ARCH=$(STAGBL_ARCH) $(STAGBL_DIR)/tests/run_tests.py -w pth.conf
 
 test_check : tests demos $(TESTDIR)/.DIR
-	cd $(TESTDIR)	&& STAGBL_DIR=$(STAGBL_DIR) STAGBL_ARCH=$(STAGBL_ARCH) $(STAGBL_DIR)/tests/runTests.py -w pth.conf -v
+	cd $(TESTDIR)	&& STAGBL_DIR=$(STAGBL_DIR) STAGBL_ARCH=$(STAGBL_ARCH) $(STAGBL_DIR)/tests/run_tests.py -w pth.conf -v
 
 test_clean : $(TESTDIR)/.DIR
-	cd $(TESTDIR)	&& STAGBL_DIR=$(STAGBL_DIR) STAGBL_ARCH=$(STAGBL_ARCH) $(STAGBL_DIR)/tests/runTests.py -w pth.conf -p
+	cd $(TESTDIR)	&& STAGBL_DIR=$(STAGBL_DIR) STAGBL_ARCH=$(STAGBL_ARCH) $(STAGBL_DIR)/tests/run_tests.py -w pth.conf -p
 
 .PHONY: test test_clean
