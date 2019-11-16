@@ -2,9 +2,6 @@
 build
 arch-*
 
-# github.com/sciath/sciath
-sciath
-
 # OS X
 *.DS_Store
 

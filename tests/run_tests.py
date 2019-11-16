@@ -5,7 +5,7 @@
 #                                                                               #
 #################################################################################
 # Usage:                                                                        #
-#  ./runTests.py [-h] [-other_pyTestHarness_options]                            #
+#  ./run_tests.py [-h] [-other_sciath_options]
 #                                                                               #
 #################################################################################
 
@@ -44,7 +44,7 @@ except Exception as errorMessage :
     print('The required python package SciATH was not found. Exiting.')
     print('If SciATH is installed on your system, ensure it is included in the environment variable PYTHONPATH.')
     print('If SciATH is not installed, obtain the source by executing the following:')
-    print('  git clone https://github.com/sciath/sciath ' + os.path.join(STAGBL_DIR,'sciath'))
+    print('  git submodule init && git submodule update')
     print('********************')
     sys.exit(1)
   raise
