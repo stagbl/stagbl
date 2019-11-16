@@ -33,8 +33,7 @@ if not os.path.exists(chkpath) :
     print(chkpath,' not found. Set STAGBL_DIR and STAGBL_ARCH properly. Exiting.')
     sys.exit(1)
 
-# bitbucket.org/dmay/pythontestharness
-sys.path.append(os.path.join(STAGBL_DIR,'sciath','lib'))  # overrides
+sys.path.append(os.path.join(STAGBL_DIR,'sciath'))  # overrides
 try :
   from sciath.harness import Harness
   from sciath.test import Test
