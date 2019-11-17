@@ -18,7 +18,7 @@ typedef enum {
   DATEST2  = 2  /* Use 8 DMDAs */
 } Test;
 
-#define NUM_DAS 4
+#define NUM_DAS 8
 
 PetscErrorCode ApplyStag(DM,Vec,Vec);
 PetscErrorCode ApplyDA1(DM,Vec,Vec);
