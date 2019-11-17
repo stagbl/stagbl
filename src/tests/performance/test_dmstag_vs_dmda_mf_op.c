@@ -170,9 +170,9 @@ PetscErrorCode ApplyDA1(DM dm,Vec in,Vec out)
   vz = 3;
   ierr = DMDAVecGetArrayDOFRead(dm,in,&arrIn);CHKERRQ(ierr);
   ierr = DMDAVecGetArrayDOF(dm,in,&arrOut);CHKERRQ(ierr);
-  for (i=start[0]; i<end[0]; ++i) {
+  for (k=start[2]; k<end[2]; ++k) {
     for (j=start[1]; j<end[1]; ++j) {
-      for (k=start[2]; k<end[2]; ++k) {
+      for (i=start[0]; i<end[0]; ++i) {
         arrOut[k][j][i][vy] = arrIn[k][j][i][p] + arrIn[k][j+1][i][p];
         arrOut[k][j][i][vx] = arrIn[k][j][i][p] + arrIn[k][j][i+1][p];
         arrOut[k][j][i][p] =
