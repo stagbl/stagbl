@@ -24,7 +24,7 @@ STAGBL_ARCH = os.getenv('STAGBL_ARCH')
 if not STAGBL_ARCH :
     print('You must define STAGBL_ARCH in your environment. Exiting.')
     sys.exit(1)
-if os.path.join(STAGBL_DIR,'tests') != thisDir :
+if os.path.normpath(os.path.join(STAGBL_DIR,'tests')) != thisDir :
     print('STAGBL_DIR is not set correctly in your environment. Exiting.')
     sys.exit(1)
 
