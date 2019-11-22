@@ -169,7 +169,7 @@ PetscErrorCode ApplyDA1(DM dm,Vec in,Vec out)
   p  = 2;
   vz = 3;
   ierr = DMDAVecGetArrayDOFRead(dm,in,&arrIn);CHKERRQ(ierr);
-  ierr = DMDAVecGetArrayDOF(dm,in,&arrOut);CHKERRQ(ierr);
+  ierr = DMDAVecGetArrayDOF(dm,out,&arrOut);CHKERRQ(ierr);
   for (k=start[2]; k<end[2]; ++k) {
     for (j=start[1]; j<end[1]; ++j) {
       for (i=start[0]; i<end[0]; ++i) {
@@ -184,7 +184,7 @@ PetscErrorCode ApplyDA1(DM dm,Vec in,Vec out)
     }
   }
   ierr = DMDAVecRestoreArrayDOFRead(dm,in,&arrIn);CHKERRQ(ierr);
-  ierr = DMDAVecRestoreArrayDOF(dm,in,&arrOut);CHKERRQ(ierr);
+  ierr = DMDAVecRestoreArrayDOF(dm,out,&arrOut);CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
