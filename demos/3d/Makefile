@@ -1,8 +1,7 @@
-# Expects STAGBL_DIR and STAGBL_ARCH to be set
 STAGBL_DIR ?= ../..
 STAGBL_ARCH ?= $(PETSC_ARCH)
 ifeq ($(STAGBL_ARCH),)
-STAGBL_ARCH:=build
+$(error STAGBL_ARCH or PETSC_ARCH must be set)
 endif
 
 EXNAME = stagbldemo3d
