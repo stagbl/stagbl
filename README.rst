@@ -45,7 +45,7 @@ Clone this repository, including submodules (using git 2.13 or later)
 
     git clone --recurse-submodules https://github.com/stagbl/stagbl
 
-From this `stagbl` directory that is created,
+From the ``stagbl`` directory that is created,
 
 ::
 
