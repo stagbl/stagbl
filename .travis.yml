@@ -23,16 +23,14 @@ addons:
 
 script:
   # PETSc: we use a cache to avoid rebuilding
-  - if [ ! -f "petsc-3.12.1/configure.log" ]; then curl -O http://ftp.mcs.anl.gov/pub/petsc/release-snapshots/petsc-lite-3.12.1.tar.gz && tar zxvf petsc-lite-3.12.1.tar.gz; fi
-  - cd petsc-3.12.1
+  - if [ ! -f "petsc-stagbl/configure.log" ]; then git clone --recurse-submodules --depth=1 https://bitbucket.org/psanan/petsc -b psanan/stagbl-working-base petsc-stagbl; fi
+  - cd petsc-stagbl
   - export PETSC_DIR=$PWD
   - export PETSC_ARCH=default-arch-gnu-debug
   - if [ ! -f "configure.log" ]; then ./configure --download-mpich --download-suitesparse --download-metis --download-parmetis --download-mumps --download-scalapack --with-shared-libraries=0; fi
   - if [ ! -f "make.log" ]; then make all; fi
   - make check
   - cd ..
-  # Test harness from submodule
-  - git submodule init && git submodule update --recursive
   # Configure StagBL
   - ./configure.py
   - export STAGBL_DIR=$PWD
@@ -50,4 +48,4 @@ script:
 
 cache:
   directories:
-    - petsc-3.12.1
+    - petsc-stagbl
