@@ -16,30 +16,36 @@ particle-based advection scheme.
 It aims to be as lightweight as possible while still providing the
 flexibility and extensibility required for scientific application codes.
 This accomplished with careful design and interfaces to powerful
-external libraries like `PETSc <https://www.mcs.anl.gov/petsc>`__.
+external libraries.  In particular, its parallel staggered-grid date structure
+leverages the DMStag component within `PETSc <https://www.mcs.anl.gov/petsc>`__.
 
 Dependencies
 ------------
 
 -  MPI
-- `PETSc <https://www.mcs.anl.gov/petsc>`__
--  Python (for configuration only)
+-  PETSc
+-  Python (for configuration)
 
 Quickstart
 ----------
 
-Clone PETSc's master branch.
+Clone a custom branch of PETSc
 
 ::
 
-    git clone -b master https://bitbucket.org/petsc/petsc petsc-master
+    git clone -b master https://bitbucket.org/psanan/petsc -b psanan/stagbl-working-base petsc-stagbl
 
 Configure PETSc with ``--download-suitesparse``, build, and check. See
-`the PETSc
-website <https://www.mcs.anl.gov/petsc/documentation/installation.html>`__
+`the PETSc website <https://www.mcs.anl.gov/petsc/documentation/installation.html>`__
 for more.
 
-From this directory,
+Clone this repository, including submodules (using git 2.13 or later)
+
+::
+
+    git clone --recurse-submodules https://github.com/stagbl/stagbl
+
+From this `stagbl` directory that is created,
 
 ::
 

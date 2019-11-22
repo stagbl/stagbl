@@ -24,7 +24,7 @@ STAGBL_ARCH = os.getenv('STAGBL_ARCH')
 if not STAGBL_ARCH :
     print('You must define STAGBL_ARCH in your environment. Exiting.')
     sys.exit(1)
-if os.path.join(STAGBL_DIR,'tests') != thisDir :
+if os.path.normpath(os.path.join(STAGBL_DIR,'tests')) != thisDir :
     print('STAGBL_DIR is not set correctly in your environment. Exiting.')
     sys.exit(1)
 
@@ -33,7 +33,7 @@ if not os.path.exists(chkpath) :
     print(chkpath,' not found. Set STAGBL_DIR and STAGBL_ARCH properly. Exiting.')
     sys.exit(1)
 
-sys.path.append(os.path.join(STAGBL_DIR,'sciath'))  # overrides
+sys.path.insert(0,os.path.join(STAGBL_DIR,'sciath'))
 try :
   from sciath.harness import Harness
   from sciath.test import Test
@@ -42,8 +42,7 @@ except Exception as errorMessage :
     traceback.print_exc()
     print('********************')
     print('The required python package SciATH was not found. Exiting.')
-    print('If SciATH is installed on your system, ensure it is included in the environment variable PYTHONPATH.')
-    print('If SciATH is not installed, obtain the source by executing the following:')
+    print('You can obtain SciATH by executing the following:')
     print('  git submodule init && git submodule update')
     print('********************')
     sys.exit(1)
