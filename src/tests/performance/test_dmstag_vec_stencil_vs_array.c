@@ -160,7 +160,7 @@ PetscErrorCode TestArray(Vec vec)
   for (s=0; s<8; ++s) {
     ierr = DMStagGetLocationSlot(dm,loc[s],0,&slot[s]);CHKERRQ(ierr);
   }
-  ierr = DMStagVecGetArrayDOF(dm,vecLocal,&arr);CHKERRQ(ierr);
+  ierr = DMStagVecGetArray(dm,vecLocal,&arr);CHKERRQ(ierr);
   for (k=startz; k<startz + nz; ++k) {
     for (j=starty; j<starty + ny; ++j) {
       for (i=startx; i<startx + nx; ++i) {
@@ -170,7 +170,7 @@ PetscErrorCode TestArray(Vec vec)
       }
     }
   }
-  ierr = DMStagVecRestoreArrayDOF(dm,vecLocal,&arr);CHKERRQ(ierr);
+  ierr = DMStagVecRestoreArray(dm,vecLocal,&arr);CHKERRQ(ierr);
   ierr = DMLocalToGlobalBegin(dm,vecLocal,INSERT_VALUES,vec);CHKERRQ(ierr);
   ierr = DMLocalToGlobalEnd(dm,vecLocal,INSERT_VALUES,vec);CHKERRQ(ierr);
   ierr = DMRestoreLocalVector(dm,&vecLocal);CHKERRQ(ierr);
