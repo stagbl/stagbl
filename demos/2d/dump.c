@@ -43,16 +43,16 @@ PetscErrorCode DumpSolution(Ctx ctx,StagBLArray x)
     ierr = DMGetLocalVector(dmStokes,&stokesLocal);CHKERRQ(ierr);
     ierr = DMGetLocalVector(dmVelAvg,&velAvgLocal);CHKERRQ(ierr);
     ierr = DMGlobalToLocal(dmStokes,vecx,INSERT_VALUES,stokesLocal);CHKERRQ(ierr);
-    ierr = DMStagVecGetArrayDOFRead(dmStokes,stokesLocal,&arrStokes);CHKERRQ(ierr);
-    ierr = DMStagVecGetArrayDOF(    dmVelAvg,velAvgLocal,&arrVelAvg);CHKERRQ(ierr);
+    ierr = DMStagVecGetArrayRead(dmStokes,stokesLocal,&arrStokes);CHKERRQ(ierr);
+    ierr = DMStagVecGetArray(    dmVelAvg,velAvgLocal,&arrVelAvg);CHKERRQ(ierr);
     for (ey = starty; ey<starty+ny; ++ey) {
       for (ex = startx; ex<startx+nx; ++ex) {
         arrVelAvg[ey][ex][iVxCenter] = 0.5 * (arrStokes[ey][ex][iVxLeft] + arrStokes[ey][ex][iVxRight]);
         arrVelAvg[ey][ex][iVyCenter] = 0.5 * (arrStokes[ey][ex][iVyDown] + arrStokes[ey][ex][iVyUp]);
       }
     }
-    ierr = DMStagVecRestoreArrayDOFRead(dmStokes,stokesLocal,&arrStokes);CHKERRQ(ierr);
-    ierr = DMStagVecRestoreArrayDOF(   dmVelAvg, velAvgLocal,&arrVelAvg);CHKERRQ(ierr);
+    ierr = DMStagVecRestoreArrayRead(dmStokes,stokesLocal,&arrStokes);CHKERRQ(ierr);
+    ierr = DMStagVecRestoreArray(   dmVelAvg, velAvgLocal,&arrVelAvg);CHKERRQ(ierr);
     ierr = DMLocalToGlobal(dmVelAvg,velAvgLocal,INSERT_VALUES,velAvg);CHKERRQ(ierr);
     ierr = DMRestoreLocalVector(dmStokes,&stokesLocal);CHKERRQ(ierr);
     ierr = DMRestoreLocalVector(dmVelAvg,&velAvgLocal);CHKERRQ(ierr);

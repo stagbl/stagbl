@@ -132,8 +132,8 @@ PetscErrorCode ApplyStag(DM dm,Vec in,Vec out)
   ierr = DMStagGetLocationSlot(dm,DMSTAG_LEFT,0,&vx);CHKERRQ(ierr);
   ierr = DMStagGetLocationSlot(dm,DMSTAG_DOWN,0,&vy);CHKERRQ(ierr);
   ierr = DMStagGetLocationSlot(dm,DMSTAG_BACK,0,&vz);CHKERRQ(ierr);
-  ierr = DMStagVecGetArrayDOFRead(dm,in,&arrIn);CHKERRQ(ierr);
-  ierr = DMStagVecGetArrayDOF(dm,out,&arrOut);CHKERRQ(ierr);
+  ierr = DMStagVecGetArrayRead(dm,in,&arrIn);CHKERRQ(ierr);
+  ierr = DMStagVecGetArray(dm,out,&arrOut);CHKERRQ(ierr);
   for (k=start[2]; k<end[2]; ++k) {
     for (j=start[1]; j<end[1]; ++j) {
       for (i=start[0]; i<end[0]; ++i) {
@@ -147,8 +147,8 @@ PetscErrorCode ApplyStag(DM dm,Vec in,Vec out)
       }
     }
   }
-  ierr = DMStagVecRestoreArrayDOFRead(dm,in,&arrIn);CHKERRQ(ierr);
-  ierr = DMStagVecRestoreArrayDOF(dm,in,&arrOut);CHKERRQ(ierr);
+  ierr = DMStagVecRestoreArrayRead(dm,in,&arrIn);CHKERRQ(ierr);
+  ierr = DMStagVecRestoreArray(dm,in,&arrOut);CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 

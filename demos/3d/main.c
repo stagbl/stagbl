@@ -713,11 +713,11 @@ static PetscErrorCode PopulateCoefficientData(Ctx ctx)
   ierr = DMStagGetLocationSlot(ctx->dmCoeff,DMSTAG_ELEMENT,0,&ietaElement);CHKERRQ(ierr);
   ierr = DMStagGetLocationSlot(ctx->dmCoeff,DMSTAG_ELEMENT,1,&irho);CHKERRQ(ierr);
 
-  ierr = DMStagGet1dCoordinateArraysDOFRead(ctx->dmCoeff,&cArrX,&cArrY,&cArrZ);CHKERRQ(ierr);
-  ierr = DMStagGet1dCoordinateLocationSlot(ctx->dmCoeff,DMSTAG_ELEMENT,&icenter);CHKERRQ(ierr);
-  ierr = DMStagGet1dCoordinateLocationSlot(ctx->dmCoeff,DMSTAG_LEFT,&iprev);CHKERRQ(ierr);
+  ierr = DMStagGetProductCoordinateArraysRead(ctx->dmCoeff,&cArrX,&cArrY,&cArrZ);CHKERRQ(ierr);
+  ierr = DMStagGetProductCoordinateLocationSlot(ctx->dmCoeff,DMSTAG_ELEMENT,&icenter);CHKERRQ(ierr);
+  ierr = DMStagGetProductCoordinateLocationSlot(ctx->dmCoeff,DMSTAG_LEFT,&iprev);CHKERRQ(ierr);
 
-  ierr = DMStagVecGetArrayDOF(ctx->dmCoeff,coeffLocal,&coeffArr);CHKERRQ(ierr);
+  ierr = DMStagVecGetArray(ctx->dmCoeff,coeffLocal,&coeffArr);CHKERRQ(ierr);
 
   for (ez = startz; ez<startz+nz+nExtra[2]; ++ez) {
     for (ey = starty; ey<starty+ny+nExtra[1]; ++ey) {
@@ -728,8 +728,8 @@ static PetscErrorCode PopulateCoefficientData(Ctx ctx)
       }
     }
   }
-  ierr = DMStagRestore1dCoordinateArraysDOFRead(ctx->dmCoeff,&cArrX,&cArrY,&cArrZ);CHKERRQ(ierr);
-  ierr = DMStagVecRestoreArrayDOF(ctx->dmCoeff,coeffLocal,&coeffArr);CHKERRQ(ierr);
+  ierr = DMStagRestoreProductCoordinateArraysRead(ctx->dmCoeff,&cArrX,&cArrY,&cArrZ);CHKERRQ(ierr);
+  ierr = DMStagVecRestoreArray(ctx->dmCoeff,coeffLocal,&coeffArr);CHKERRQ(ierr);
   ierr = DMCreateGlobalVector(ctx->dmCoeff,&ctx->coeff);CHKERRQ(ierr);
   ierr = DMLocalToGlobalBegin(ctx->dmCoeff,coeffLocal,INSERT_VALUES,ctx->coeff);CHKERRQ(ierr);
   ierr = DMLocalToGlobalEnd(ctx->dmCoeff,coeffLocal,INSERT_VALUES,ctx->coeff);CHKERRQ(ierr);
@@ -749,7 +749,7 @@ static PetscErrorCode DumpSolution(Ctx ctx,Vec x)
 
   /* For convenience, create a new DM and Vec which will hold averaged velocities
      Note that this could also be accomplished with direct array access, using
-     DMStagVecGetArrayDOF() and related functions */
+     DMStagVecGetArray() and related functions */
   ierr = DMStagCreateCompatibleDMStag(ctx->dmStokes,0,0,0,3,&dmVelAvg); /* 2 dof per element */
   ierr = DMSetUp(dmVelAvg);CHKERRQ(ierr);
   ierr = DMStagSetUniformCoordinatesProduct(dmVelAvg,0.0,ctx->xmax,0.0,ctx->ymax,0.0,ctx->zmax);CHKERRQ(ierr);

@@ -103,11 +103,11 @@ PetscErrorCode PopulateCoefficientData(Ctx ctx,const char* mode)
   ierr = DMStagGetLocationSlot(dmCoeff,DMSTAG_ELEMENT,0,&ietaElement);CHKERRQ(ierr);
   ierr = DMStagGetLocationSlot(dmCoeff,DMSTAG_DOWN_LEFT,1,&irho);CHKERRQ(ierr);
 
-  ierr = DMStagGet1dCoordinateArraysDOFRead(dmCoeff,&cArrX,&cArrY,NULL);CHKERRQ(ierr);
-  ierr = DMStagGet1dCoordinateLocationSlot(dmCoeff,DMSTAG_ELEMENT,&icenter);CHKERRQ(ierr);
-  ierr = DMStagGet1dCoordinateLocationSlot(dmCoeff,DMSTAG_LEFT,&iprev);CHKERRQ(ierr);
+  ierr = DMStagGetProductCoordinateArraysRead(dmCoeff,&cArrX,&cArrY,NULL);CHKERRQ(ierr);
+  ierr = DMStagGetProductCoordinateLocationSlot(dmCoeff,DMSTAG_ELEMENT,&icenter);CHKERRQ(ierr);
+  ierr = DMStagGetProductCoordinateLocationSlot(dmCoeff,DMSTAG_LEFT,&iprev);CHKERRQ(ierr);
 
-  ierr = DMStagVecGetArrayDOF(dmCoeff,coeffLocal,&coeffArr);CHKERRQ(ierr);
+  ierr = DMStagVecGetArray(dmCoeff,coeffLocal,&coeffArr);CHKERRQ(ierr);
 
   for (ey = starty; ey<starty+ny; ++ey) {
     for (ex = startx; ex<startx+nx; ++ex) {
@@ -116,8 +116,8 @@ PetscErrorCode PopulateCoefficientData(Ctx ctx,const char* mode)
       coeffArr[ey][ex][irho]        = ctx->getRho(ctx,cArrX[ex][iprev],cArrY[ey][iprev]);
     }
   }
-  ierr = DMStagRestore1dCoordinateArraysDOFRead(dmCoeff,&cArrX,&cArrY,NULL);CHKERRQ(ierr);
-  ierr = DMStagVecRestoreArrayDOF(dmCoeff,coeffLocal,&coeffArr);CHKERRQ(ierr);
+  ierr = DMStagRestoreProductCoordinateArraysRead(dmCoeff,&cArrX,&cArrY,NULL);CHKERRQ(ierr);
+  ierr = DMStagVecRestoreArray(dmCoeff,coeffLocal,&coeffArr);CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
