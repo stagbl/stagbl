@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <petsc.h> // Note that we still have work to do guarding for the non-PETSc case (probably define STAGBL_HAVE_PETSC in a configured include file eventually)
 
-// Note: This is not a complete demo yet. It is mainly here to test 3d grid functionality.
+// Note: This is not a complete demo yet. It is mainly here to test 3d grid functionality and will be completely changed.
 // TODO: error checking for all StagBL functions
 
 /* Shorter, more convenient names for DMStagLocation entries */

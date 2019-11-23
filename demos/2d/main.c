@@ -8,9 +8,14 @@
 #include <stdio.h>
 #include <mpi.h>
 
-/* Note: while many of the functions here take advantage of PETSc, through
-   the "escape" hatch offered by several class implementations, this main
-   function does not depend on the PETSc API, only on the StagBL API */
+/* Note: This demonstration code is written using the PETSc library
+    to provide various control, options processing, printing, and
+    other operations. This is convenient, since StagBL itself relies
+    on PETSc and we can thus reuse the configuration. For those
+    developing new codes or integrating StagBL into an existing code,
+    it is important to realize that an application may use other
+    tools for these operations, while still using StagBL for the
+    discretization and solver "base layer". */
 
 int main(int argc, char** argv)
 
