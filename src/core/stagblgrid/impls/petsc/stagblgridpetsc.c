@@ -2,7 +2,7 @@
 #include "stagblgridpetscimpl.h"
 #include <stdlib.h>
 
-StagBLErrorCode StagBLGridDestroy_PETSc(StagBLGrid stagblgrid)
+PetscErrorCode StagBLGridDestroy_PETSc(StagBLGrid stagblgrid)
 {
   StagBLGrid_PETSc *data = (StagBLGrid_PETSc*) stagblgrid->data;
   if (data->dm) {
@@ -13,7 +13,7 @@ StagBLErrorCode StagBLGridDestroy_PETSc(StagBLGrid stagblgrid)
   return 0;
 }
 
-StagBLErrorCode StagBLGridCreateCompatibleStagBLGrid_PETSc(StagBLGrid grid,StagBLInt dof0,StagBLInt dof1,StagBLInt dof2,StagBLInt dof3,StagBLGrid *newgrid)
+PetscErrorCode StagBLGridCreateCompatibleStagBLGrid_PETSc(StagBLGrid grid,PetscInt dof0,PetscInt dof1,PetscInt dof2,PetscInt dof3,StagBLGrid *newgrid)
 {
   StagBLGrid_PETSc *data,*dataNew;
   PetscErrorCode   ierr;
@@ -42,29 +42,29 @@ StagBLErrorCode StagBLGridCreateCompatibleStagBLGrid_PETSc(StagBLGrid grid,StagB
   return 0;
 }
 
-StagBLErrorCode StagBLGridCreateStagBLArray_PETSc(StagBLGrid grid,StagBLArray *array)
+PetscErrorCode StagBLGridCreateStagBLArray_PETSc(StagBLGrid grid,StagBLArray *array)
 {
-  StagBLErrorCode  ierr;
+  PetscErrorCode  ierr;
 
   ierr = StagBLArrayCreate(grid,array);CHKERRQ(ierr); // The default type is PETSc, so we do nothing special for now
   return 0;
 }
 
-StagBLErrorCode StagBLGridPETScGetDM(StagBLGrid stagblgrid,DM *dm)
+PetscErrorCode StagBLGridPETScGetDM(StagBLGrid stagblgrid,DM *dm)
 {
   StagBLGrid_PETSc * const data = (StagBLGrid_PETSc*) stagblgrid->data;
   *dm = (data->dm);
   return 0;
 }
 
-StagBLErrorCode StagBLGridPETScGetDMPointer(StagBLGrid stagblgrid,DM **dm)
+PetscErrorCode StagBLGridPETScGetDMPointer(StagBLGrid stagblgrid,DM **dm)
 {
   StagBLGrid_PETSc * const data = (StagBLGrid_PETSc*) stagblgrid->data;
   *dm = &(data->dm);
   return 0;
 }
 
-StagBLErrorCode StagBLGridCreate_PETSc(StagBLGrid stagblgrid)
+PetscErrorCode StagBLGridCreate_PETSc(StagBLGrid stagblgrid)
 {
   StagBLGrid_PETSc *data;
   stagblgrid->data = (void*) malloc(sizeof(StagBLGrid_PETSc));

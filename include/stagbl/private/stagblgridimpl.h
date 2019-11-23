@@ -4,10 +4,10 @@
 #include "stagbl.h"
 
 struct _p_StagBLGridOps {
-  StagBLErrorCode (*create)(StagBLGrid);
-  StagBLErrorCode (*createcompatiblestagblgrid)(StagBLGrid,StagBLInt,StagBLInt,StagBLInt,StagBLInt,StagBLGrid*);
-  StagBLErrorCode (*createstagblarray)(StagBLGrid,StagBLArray*);
-  StagBLErrorCode (*destroy)(StagBLGrid);
+  PetscErrorCode (*create)(StagBLGrid);
+  PetscErrorCode (*createcompatiblestagblgrid)(StagBLGrid,PetscInt,PetscInt,PetscInt,PetscInt,StagBLGrid*);
+  PetscErrorCode (*createstagblarray)(StagBLGrid,StagBLArray*);
+  PetscErrorCode (*destroy)(StagBLGrid);
 };
 
 typedef struct _p_StagBLGridOps *StagBLGridOps;
@@ -20,6 +20,6 @@ struct _p_StagBLGrid
 };
 
 #define STAGBLGRIDPETSC "petsc"
-StagBLErrorCode StagBLGridCreate_PETSc(StagBLGrid);
+PetscErrorCode StagBLGridCreate_PETSc(StagBLGrid);
 
 #endif

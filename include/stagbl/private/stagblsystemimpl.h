@@ -4,8 +4,8 @@
 #include "stagbl.h"
 
 struct _p_StagBLSystemOps {
-  StagBLErrorCode (*create)(StagBLSystem);
-  StagBLErrorCode (*destroy)(StagBLSystem);
+  PetscErrorCode (*create)(StagBLSystem);
+  PetscErrorCode (*destroy)(StagBLSystem);
 };
 
 typedef struct _p_StagBLSystemOps *StagBLSystemOps;

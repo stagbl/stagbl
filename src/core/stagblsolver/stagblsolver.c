@@ -1,9 +1,9 @@
 #include "stagbl/private/stagblsolverimpl.h"
 #include <stdlib.h>
 
-StagBLErrorCode StagBLSolverCreate(StagBLSystem system,StagBLSolver *stagblsolver)
+PetscErrorCode StagBLSolverCreate(StagBLSystem system,StagBLSolver *stagblsolver)
 {
-  StagBLErrorCode ierr;
+  PetscErrorCode ierr;
 
   *stagblsolver = malloc(sizeof(struct _p_StagBLSolver));
   (*stagblsolver)->ops = calloc(1,sizeof(struct _p_StagBLSolverOps));
@@ -17,15 +17,15 @@ StagBLErrorCode StagBLSolverCreate(StagBLSystem system,StagBLSolver *stagblsolve
   return 0;
 }
 
-StagBLErrorCode StagBLSolverGetSystem(StagBLSolver solver,StagBLSystem *system)
+PetscErrorCode StagBLSolverGetSystem(StagBLSolver solver,StagBLSystem *system)
 {
   *system = solver->system;
   return 0;
 }
 
-StagBLErrorCode StagBLSolverDestroy(StagBLSolver *solver)
+PetscErrorCode StagBLSolverDestroy(StagBLSolver *solver)
 {
-  StagBLErrorCode ierr;
+  PetscErrorCode ierr;
 
   if (!*solver) return 0;
   if ((*solver)->ops->destroy) {
@@ -37,9 +37,9 @@ StagBLErrorCode StagBLSolverDestroy(StagBLSolver *solver)
   return 0;
 }
 
-StagBLErrorCode StagBLSolverSolve(StagBLSolver stagblsolver, StagBLArray sol)
+PetscErrorCode StagBLSolverSolve(StagBLSolver stagblsolver, StagBLArray sol)
 {
-  StagBLErrorCode ierr;
+  PetscErrorCode ierr;
   // TODO check that solver's stored grid and sol's stored grid are compatible and have the same number of dof (or could even be stronger and assert that they must be the same object..)
   
   if (stagblsolver->ops->solve) {

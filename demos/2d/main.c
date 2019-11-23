@@ -20,14 +20,14 @@
 int main(int argc, char** argv)
 
 {
-  StagBLErrorCode ierr;
+  PetscErrorCode ierr;
   int             rank,size;
   StagBLArray     x;
   StagBLSystem    system;
   StagBLSolver    solver;
   MPI_Comm        comm;
   char            mode[1024];
-  StagBLInt       systemtype;
+  PetscInt       systemtype;
   Ctx             ctx;
 
   /* Initialize MPI and print a message */
@@ -73,8 +73,8 @@ int main(int argc, char** argv)
 
   /* Create another, compatible grid to represent coefficients */
  {
-   const StagBLInt dofPerVertex  = 2;
-   const StagBLInt dofPerElement = 1;
+   const PetscInt dofPerVertex  = 2;
+   const PetscInt dofPerElement = 1;
    ierr = StagBLGridCreateCompatibleStagBLGrid(ctx->stokesGrid,dofPerVertex,0,dofPerElement,0,&ctx->coeffGrid);CHKERRQ(ierr);
  }
 

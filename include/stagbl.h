@@ -3,13 +3,8 @@
 
 #include <petsc.h>
 
-// Data Types (obviously needs to precede all the other declarations here)
-#define StagBLErrorCode PetscErrorCode
-#define StagBLInt       PetscInt
-#define StagBLReal      PetscReal
-
-StagBLErrorCode StagBLInitialize(int,char**,MPI_Comm);
-StagBLErrorCode StagBLFinalize();
+PetscErrorCode StagBLInitialize(int,char**,MPI_Comm);
+PetscErrorCode StagBLFinalize();
 
 #define StagBLError(comm,msg) SETERRQ1(comm,PETSC_ERR_LIB,"StagBL Error: %s",msg);
 
@@ -30,54 +25,54 @@ struct _p_StagBLSolver;
 typedef struct _p_StagBLSolver *StagBLSolver;
 
 // StagBLGrid Functions
-StagBLErrorCode StagBLGridCreate(StagBLGrid*);
-StagBLErrorCode StagBLGridCreateCompatibleStagBLGrid(StagBLGrid,StagBLInt,StagBLInt,StagBLInt,StagBLInt,StagBLGrid*);
-StagBLErrorCode StagBLGridCreateStagBLArray(StagBLGrid,StagBLArray*);
-StagBLErrorCode StagBLGridCreateStagBLSystem(StagBLGrid,StagBLSystem*);
-StagBLErrorCode StagBLGridDestroy(StagBLGrid*);
+PetscErrorCode StagBLGridCreate(StagBLGrid*);
+PetscErrorCode StagBLGridCreateCompatibleStagBLGrid(StagBLGrid,PetscInt,PetscInt,PetscInt,PetscInt,StagBLGrid*);
+PetscErrorCode StagBLGridCreateStagBLArray(StagBLGrid,StagBLArray*);
+PetscErrorCode StagBLGridCreateStagBLSystem(StagBLGrid,StagBLSystem*);
+PetscErrorCode StagBLGridDestroy(StagBLGrid*);
 
-StagBLErrorCode StagBLGridPETScGetDM(StagBLGrid,DM*);
-StagBLErrorCode StagBLGridPETScGetDMPointer(StagBLGrid,DM**);
+PetscErrorCode StagBLGridPETScGetDM(StagBLGrid,DM*);
+PetscErrorCode StagBLGridPETScGetDMPointer(StagBLGrid,DM**);
 
 // StagBLArray Functions
-StagBLErrorCode StagBLArrayCreate(StagBLGrid,StagBLArray*); // TODO this needn't be public (or even exist?) because we can only create StagBLArrays from StagBLGrids
-StagBLErrorCode StagBLArrayDestroy(StagBLArray*);
-StagBLErrorCode StagBLArrayGetStagBLGrid(StagBLArray,StagBLGrid*);
+PetscErrorCode StagBLArrayCreate(StagBLGrid,StagBLArray*); // TODO this needn't be public (or even exist?) because we can only create StagBLArrays from StagBLGrids
+PetscErrorCode StagBLArrayDestroy(StagBLArray*);
+PetscErrorCode StagBLArrayGetStagBLGrid(StagBLArray,StagBLGrid*);
 
 // StagBLArray impls
 #define STAGBLARRAYPETSC "petsc"
-StagBLErrorCode StagBLArrayCreate_PETSc(StagBLArray);
-StagBLErrorCode StagBLArrayPETScGetLocalVec(StagBLArray,Vec*);
-StagBLErrorCode StagBLArrayPETScGetGlobalVec(StagBLArray,Vec*);
-StagBLErrorCode StagBLArrayPETScGetLocalVecPointer(StagBLArray,Vec**);
-StagBLErrorCode StagBLArrayPETScGetGlobalVecPointer(StagBLArray,Vec**);
+PetscErrorCode StagBLArrayCreate_PETSc(StagBLArray);
+PetscErrorCode StagBLArrayPETScGetLocalVec(StagBLArray,Vec*);
+PetscErrorCode StagBLArrayPETScGetGlobalVec(StagBLArray,Vec*);
+PetscErrorCode StagBLArrayPETScGetLocalVecPointer(StagBLArray,Vec**);
+PetscErrorCode StagBLArrayPETScGetGlobalVecPointer(StagBLArray,Vec**);
 
 // StagBLSystem Functions
-StagBLErrorCode StagBLSystemCreate(StagBLGrid,StagBLSystem*);
-StagBLErrorCode StagBLSystemCreateStagBLSolver(StagBLSystem,StagBLSolver*);
-StagBLErrorCode StagBLSystemDestroy(StagBLSystem*);
+PetscErrorCode StagBLSystemCreate(StagBLGrid,StagBLSystem*);
+PetscErrorCode StagBLSystemCreateStagBLSolver(StagBLSystem,StagBLSolver*);
+PetscErrorCode StagBLSystemDestroy(StagBLSystem*);
 
 // StagBLSystem impls
 #define STAGBLSYSTEMPETSC "petsc"
-StagBLErrorCode StagBLSystemCreate_PETSc(StagBLSystem);
-StagBLErrorCode StagBLSystemGetGrid(StagBLSystem,StagBLGrid*);
-StagBLErrorCode StagBLSystemPETScGetMat(StagBLSystem,Mat*);
-StagBLErrorCode StagBLSystemPETScGetMatPointer(StagBLSystem,Mat**);
-StagBLErrorCode StagBLSystemPETScGetVec(StagBLSystem,Vec*);
-StagBLErrorCode StagBLSystemPETScGetVecPointer(StagBLSystem,Vec**);
+PetscErrorCode StagBLSystemCreate_PETSc(StagBLSystem);
+PetscErrorCode StagBLSystemGetGrid(StagBLSystem,StagBLGrid*);
+PetscErrorCode StagBLSystemPETScGetMat(StagBLSystem,Mat*);
+PetscErrorCode StagBLSystemPETScGetMatPointer(StagBLSystem,Mat**);
+PetscErrorCode StagBLSystemPETScGetVec(StagBLSystem,Vec*);
+PetscErrorCode StagBLSystemPETScGetVecPointer(StagBLSystem,Vec**);
 
 // StagBLSolver Functions
-StagBLErrorCode StagBLSolverCreate(StagBLSystem,StagBLSolver*);
-StagBLErrorCode StagBLSolverDestroy(StagBLSolver*);
-StagBLErrorCode StagBLSolverGetSystem(StagBLSolver,StagBLSystem*);
-StagBLErrorCode StagBLSolverSolve(StagBLSolver,StagBLArray);
+PetscErrorCode StagBLSolverCreate(StagBLSystem,StagBLSolver*);
+PetscErrorCode StagBLSolverDestroy(StagBLSolver*);
+PetscErrorCode StagBLSolverGetSystem(StagBLSolver,StagBLSystem*);
+PetscErrorCode StagBLSolverSolve(StagBLSolver,StagBLArray);
 
 // StagBLSolver impls
 #define STAGBLSOLVERPETSC "petsc"
-StagBLErrorCode StagBLSolverCreate_PETSc(StagBLSolver);
-StagBLErrorCode StagBLSolverPETScGetKSPPointer(StagBLSolver,KSP**);
+PetscErrorCode StagBLSolverCreate_PETSc(StagBLSolver);
+PetscErrorCode StagBLSolverPETScGetKSPPointer(StagBLSolver,KSP**);
 
 // Stokes
-StagBLErrorCode StagBLGridCreateStokes2DBox(MPI_Comm,StagBLInt,StagBLInt,StagBLReal,StagBLReal,StagBLReal,StagBLReal,StagBLGrid*);
+PetscErrorCode StagBLGridCreateStokes2DBox(MPI_Comm,PetscInt,PetscInt,PetscScalar,PetscScalar,PetscScalar,PetscScalar,StagBLGrid*);
 
 #endif

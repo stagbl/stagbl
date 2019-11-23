@@ -1,9 +1,9 @@
 #include "stagbl/private/stagblsystemimpl.h"
 #include <stdlib.h>
 
-StagBLErrorCode StagBLSystemCreate(StagBLGrid grid,StagBLSystem *system)
+PetscErrorCode StagBLSystemCreate(StagBLGrid grid,StagBLSystem *system)
 {
-  StagBLErrorCode ierr;
+  PetscErrorCode ierr;
 
   *system = malloc(sizeof(struct _p_StagBLSystem));
   (*system)->ops = calloc(1,sizeof(struct _p_StagBLSystemOps));
@@ -17,16 +17,16 @@ StagBLErrorCode StagBLSystemCreate(StagBLGrid grid,StagBLSystem *system)
   return 0;
 }
 
-StagBLErrorCode StagBLSystemCreateStagBLSolver(StagBLSystem system,StagBLSolver *solver)
+PetscErrorCode StagBLSystemCreateStagBLSolver(StagBLSystem system,StagBLSolver *solver)
 {
-  StagBLErrorCode ierr;
+  PetscErrorCode ierr;
   ierr = StagBLSolverCreate(system,solver);CHKERRQ(ierr);
   return 0;
 }
 
-StagBLErrorCode StagBLSystemDestroy(StagBLSystem *system)
+PetscErrorCode StagBLSystemDestroy(StagBLSystem *system)
 {
-  StagBLErrorCode ierr;
+  PetscErrorCode ierr;
 
   if (!*system) return 0;
   if ((*system)->ops->destroy) {
@@ -38,7 +38,7 @@ StagBLErrorCode StagBLSystemDestroy(StagBLSystem *system)
   return 0;
 }
 
-StagBLErrorCode StagBLSystemGetGrid(StagBLSystem system,StagBLGrid *grid)
+PetscErrorCode StagBLSystemGetGrid(StagBLSystem system,StagBLGrid *grid)
 {
   *grid = system->grid;
   return 0;

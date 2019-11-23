@@ -1,7 +1,7 @@
 #include "stagbl.h"
 #include <stdio.h>
 
-StagBLErrorCode StagBLInitialize(int argc,char** argv,MPI_Comm comm)
+PetscErrorCode StagBLInitialize(int argc,char** argv,MPI_Comm comm)
 {
   PetscErrorCode ierr;
 
@@ -10,7 +10,7 @@ StagBLErrorCode StagBLInitialize(int argc,char** argv,MPI_Comm comm)
   return 0;
 }
 
-StagBLErrorCode StagBLFinalize()
+PetscErrorCode StagBLFinalize()
 {
   PetscErrorCode ierr;
 

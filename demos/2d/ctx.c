@@ -1,8 +1,8 @@
 #include "ctx.h"
 
-StagBLErrorCode CtxCreate(MPI_Comm comm,const char* mode,Ctx *pctx)
+PetscErrorCode CtxCreate(MPI_Comm comm,const char* mode,Ctx *pctx)
 {
-  StagBLErrorCode ierr;
+  PetscErrorCode ierr;
   Ctx             ctx;
   PetscBool       flg;
 
@@ -32,12 +32,12 @@ StagBLErrorCode CtxCreate(MPI_Comm comm,const char* mode,Ctx *pctx)
   SETERRQ1(comm,PETSC_ERR_SUP,"Unrecognized mode %s",mode);CHKERRQ(ierr);
 }
 
-StagBLErrorCode CtxSetupFromGrid(Ctx ctx)
+PetscErrorCode CtxSetupFromGrid(Ctx ctx)
 {
-  StagBLErrorCode ierr;
+  PetscErrorCode ierr;
   DM         dmStokes;
-  StagBLInt  N[2];
-  StagBLReal hxAvgInv;
+  PetscInt  N[2];
+  PetscScalar hxAvgInv;
 
   /* Escape hatch */
   ierr = StagBLGridPETScGetDM(ctx->stokesGrid,&dmStokes);CHKERRQ(ierr);

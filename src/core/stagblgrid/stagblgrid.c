@@ -1,9 +1,9 @@
 #include "stagbl/private/stagblgridimpl.h"
 #include <stdlib.h>
 
-StagBLErrorCode StagBLGridCreate(StagBLGrid *stagblgrid)
+PetscErrorCode StagBLGridCreate(StagBLGrid *stagblgrid)
 {
-  StagBLErrorCode ierr;
+  PetscErrorCode ierr;
 
   *stagblgrid = malloc(sizeof(struct _p_StagBLGrid));
   (*stagblgrid)->ops = calloc(1,sizeof(struct _p_StagBLGridOps));
@@ -15,9 +15,9 @@ StagBLErrorCode StagBLGridCreate(StagBLGrid *stagblgrid)
   return 0;
 }
 
-StagBLErrorCode StagBLGridCreateCompatibleStagBLGrid(StagBLGrid grid,StagBLInt dof0,StagBLInt dof1,StagBLInt dof2,StagBLInt dof3,StagBLGrid *newgrid)
+PetscErrorCode StagBLGridCreateCompatibleStagBLGrid(StagBLGrid grid,PetscInt dof0,PetscInt dof1,PetscInt dof2,PetscInt dof3,StagBLGrid *newgrid)
 {
-  StagBLErrorCode ierr;
+  PetscErrorCode ierr;
 
   if (grid->ops->createcompatiblestagblgrid) {
     ierr = (grid->ops->createcompatiblestagblgrid)(grid,dof0,dof1,dof2,dof3,newgrid);CHKERRQ(ierr);
@@ -27,9 +27,9 @@ StagBLErrorCode StagBLGridCreateCompatibleStagBLGrid(StagBLGrid grid,StagBLInt d
   return 0;
 }
 
-StagBLErrorCode StagBLGridCreateStagBLArray(StagBLGrid grid,StagBLArray *array)
+PetscErrorCode StagBLGridCreateStagBLArray(StagBLGrid grid,StagBLArray *array)
 {
-  StagBLErrorCode ierr;
+  PetscErrorCode ierr;
 
   if (grid->ops->createstagblarray) {
     ierr = (grid->ops->createstagblarray)(grid,array);CHKERRQ(ierr);
@@ -39,17 +39,17 @@ StagBLErrorCode StagBLGridCreateStagBLArray(StagBLGrid grid,StagBLArray *array)
   return 0;
 } 
 
-StagBLErrorCode StagBLGridCreateStagBLSystem(StagBLGrid grid,StagBLSystem *system)
+PetscErrorCode StagBLGridCreateStagBLSystem(StagBLGrid grid,StagBLSystem *system)
 {
-  StagBLErrorCode ierr;
+  PetscErrorCode ierr;
   // TODO this is basically a placeholder, creating a generic system
   ierr = StagBLSystemCreate(grid,system);CHKERRQ(ierr);
   return 0;
 } 
 
-StagBLErrorCode StagBLGridDestroy(StagBLGrid *stagblgrid)
+PetscErrorCode StagBLGridDestroy(StagBLGrid *stagblgrid)
 {
-  StagBLErrorCode ierr;
+  PetscErrorCode ierr;
 
   if (!*stagblgrid) return 0;
   if ((*stagblgrid)->ops->destroy) {

@@ -1,9 +1,9 @@
 #include "stagbl/private/stagblarrayimpl.h"
 #include <stdlib.h>
 
-StagBLErrorCode StagBLArrayCreate(StagBLGrid grid, StagBLArray *stagblarray)
+PetscErrorCode StagBLArrayCreate(StagBLGrid grid, StagBLArray *stagblarray)
 {
-  StagBLErrorCode ierr;
+  PetscErrorCode ierr;
   *stagblarray = malloc(sizeof(struct _p_StagBLArray));
   (*stagblarray)->ops = calloc(1,sizeof(struct _p_StagBLArrayOps));
 
@@ -16,9 +16,9 @@ StagBLErrorCode StagBLArrayCreate(StagBLGrid grid, StagBLArray *stagblarray)
   return 0;
 }
 
-StagBLErrorCode StagBLArrayDestroy(StagBLArray *stagblarray)
+PetscErrorCode StagBLArrayDestroy(StagBLArray *stagblarray)
 {
-  StagBLErrorCode ierr;
+  PetscErrorCode ierr;
   if (!*stagblarray) return 0;
   if ((*stagblarray)->ops->destroy) {
     ierr = ((*stagblarray)->ops->destroy)(*stagblarray);CHKERRQ(ierr);
@@ -29,7 +29,7 @@ StagBLErrorCode StagBLArrayDestroy(StagBLArray *stagblarray)
   return 0;
 }
 
-StagBLErrorCode StagBLArrayGetStagBLGrid(StagBLArray stagblarray,StagBLGrid *grid)
+PetscErrorCode StagBLArrayGetStagBLGrid(StagBLArray stagblarray,StagBLGrid *grid)
 {
   *grid = stagblarray->grid;
   return 0;

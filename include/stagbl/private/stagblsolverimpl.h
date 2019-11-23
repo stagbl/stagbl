@@ -4,9 +4,9 @@
 #include "stagbl.h"
 
 struct _p_StagBLSolverOps {
-  StagBLErrorCode (*create)(StagBLSolver);
-  StagBLErrorCode (*destroy)(StagBLSolver);
-  StagBLErrorCode (*solve)(StagBLSolver,StagBLArray);
+  PetscErrorCode (*create)(StagBLSolver);
+  PetscErrorCode (*destroy)(StagBLSolver);
+  PetscErrorCode (*solve)(StagBLSolver,StagBLArray);
 };
 
 typedef struct _p_StagBLSolverOps *StagBLSolverOps;

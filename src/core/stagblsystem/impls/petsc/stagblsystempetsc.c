@@ -2,7 +2,7 @@
 #include "stagblsystempetscimpl.h"
 #include <stdlib.h>
 
-StagBLErrorCode StagBLSystemDestroy_PETSc(StagBLSystem stagblsystem)
+PetscErrorCode StagBLSystemDestroy_PETSc(StagBLSystem stagblsystem)
 {
   PetscErrorCode     ierr;
   StagBLSystem_PETSc *data = (StagBLSystem_PETSc*) stagblsystem->data;
@@ -19,7 +19,7 @@ StagBLErrorCode StagBLSystemDestroy_PETSc(StagBLSystem stagblsystem)
   PetscFunctionReturn(0);
 }
 
-StagBLErrorCode StagBLSystemCreate_PETSc(StagBLSystem stagblsystem)
+PetscErrorCode StagBLSystemCreate_PETSc(StagBLSystem stagblsystem)
 {
   StagBLSystem_PETSc *data;
 
@@ -31,28 +31,28 @@ StagBLErrorCode StagBLSystemCreate_PETSc(StagBLSystem stagblsystem)
   return 0;
 }
 
-StagBLErrorCode StagBLSystemPETScGetMat(StagBLSystem stagblsystem,Mat *mat)
+PetscErrorCode StagBLSystemPETScGetMat(StagBLSystem stagblsystem,Mat *mat)
 {
   StagBLSystem_PETSc * const data = (StagBLSystem_PETSc*) stagblsystem->data;
   *mat = data->mat;
   return 0;
 }
 
-StagBLErrorCode StagBLSystemPETScGetMatPointer(StagBLSystem stagblsystem,Mat **mat)
+PetscErrorCode StagBLSystemPETScGetMatPointer(StagBLSystem stagblsystem,Mat **mat)
 {
   StagBLSystem_PETSc * const data = (StagBLSystem_PETSc*) stagblsystem->data;
   *mat = &(data->mat);
   return 0;
 }
 
-StagBLErrorCode StagBLSystemPETScGetVec(StagBLSystem stagblsystem,Vec *vec)
+PetscErrorCode StagBLSystemPETScGetVec(StagBLSystem stagblsystem,Vec *vec)
 {
   StagBLSystem_PETSc * const data = (StagBLSystem_PETSc*) stagblsystem->data;
   *vec = data->rhs;
   return 0;
 }
 
-StagBLErrorCode StagBLSystemPETScGetVecPointer(StagBLSystem stagblsystem,Vec **vec)
+PetscErrorCode StagBLSystemPETScGetVecPointer(StagBLSystem stagblsystem,Vec **vec)
 {
   StagBLSystem_PETSc * const data = (StagBLSystem_PETSc*) stagblsystem->data;
   *vec = &(data->rhs);

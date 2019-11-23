@@ -8,15 +8,15 @@ typedef struct {
   char        mode[1024];
   StagBLGrid  stokesGrid,coeffGrid;
   StagBLArray coeffArray;
-  StagBLReal  xmax,ymax,xmin,ymin,hxCharacteristic,hyCharacteristic;
-  StagBLReal  eta1,eta2,rho1,rho2,gy,Kbound,Kcont,etaCharacteristic;
-  StagBLInt   pinx,piny;
-  StagBLReal (*getEta)(void*,StagBLReal,StagBLReal);
-  StagBLReal (*getRho)(void*,StagBLReal,StagBLReal);
+  PetscScalar  xmax,ymax,xmin,ymin,hxCharacteristic,hyCharacteristic;
+  PetscScalar  eta1,eta2,rho1,rho2,gy,Kbound,Kcont,etaCharacteristic;
+  PetscInt   pinx,piny;
+  PetscScalar (*getEta)(void*,PetscScalar,PetscScalar);
+  PetscScalar (*getRho)(void*,PetscScalar,PetscScalar);
 } CtxData;
 typedef CtxData* Ctx;
 
-StagBLErrorCode CtxCreate(MPI_Comm,const char* mode,Ctx*);
-StagBLErrorCode CtxSetupFromGrid(Ctx);
+PetscErrorCode CtxCreate(MPI_Comm,const char* mode,Ctx*);
+PetscErrorCode CtxSetupFromGrid(Ctx);
 
 #endif

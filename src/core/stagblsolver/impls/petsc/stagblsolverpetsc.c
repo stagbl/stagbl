@@ -2,7 +2,7 @@
 #include "stagblsolverpetscimpl.h"
 #include <stdlib.h>
 
-StagBLErrorCode StagBLSolverDestroy_PETSc(StagBLSolver solver)
+PetscErrorCode StagBLSolverDestroy_PETSc(StagBLSolver solver)
 {
   StagBLSolver_PETSc *data = (StagBLSolver_PETSc*) solver->data;
   if (data->ksp) {
@@ -13,14 +13,14 @@ StagBLErrorCode StagBLSolverDestroy_PETSc(StagBLSolver solver)
   return 0;
 }
 
-StagBLErrorCode StagBLSolverPETScGetKSPPointer(StagBLSolver stagblsolver,KSP **ksp)
+PetscErrorCode StagBLSolverPETScGetKSPPointer(StagBLSolver stagblsolver,KSP **ksp)
 {
   StagBLSolver_PETSc * const data = (StagBLSolver_PETSc*) stagblsolver->data;
   *ksp = &(data->ksp);
   return 0;
 }
 
-StagBLErrorCode StagBLSolverSolve_PETSc(StagBLSolver solver,StagBLArray sol)
+PetscErrorCode StagBLSolverSolve_PETSc(StagBLSolver solver,StagBLArray sol)
 {
   StagBLSolver_PETSc * const data = (StagBLSolver_PETSc*) solver->data;
   StagBLGrid                 grid;
@@ -63,7 +63,7 @@ StagBLErrorCode StagBLSolverSolve_PETSc(StagBLSolver solver,StagBLArray sol)
   return 0;
 }
 
-StagBLErrorCode StagBLSolverCreate_PETSc(StagBLSolver stagblsolver)
+PetscErrorCode StagBLSolverCreate_PETSc(StagBLSolver stagblsolver)
 {
   StagBLSolver_PETSc *data;
   stagblsolver->data = (void*) malloc(sizeof(StagBLSolver_PETSc));

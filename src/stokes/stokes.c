@@ -1,6 +1,6 @@
 #include "stagbl.h"
 
-StagBLErrorCode StagBLGridCreateStokes2DBox(MPI_Comm comm, StagBLInt nx,StagBLInt ny,StagBLReal xmin, StagBLReal xmax, StagBLReal ymin, StagBLReal ymax,StagBLGrid *pgrid)
+PetscErrorCode StagBLGridCreateStokes2DBox(MPI_Comm comm, PetscInt nx,PetscInt ny,PetscScalar xmin, PetscScalar xmax, PetscScalar ymin, PetscScalar ymax,StagBLGrid *pgrid)
 {
   // TODO this function assumes PETSc is included, and that the defaults types for things are PETSc
   PetscErrorCode ierr;

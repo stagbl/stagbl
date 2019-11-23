@@ -3,35 +3,35 @@
 /* Coefficient/forcing Functions */
 
 /* Constant */
-static StagBLReal getRho_constant(void *ptr,StagBLReal x, StagBLReal y) {
+static PetscScalar getRho_constant(void *ptr,PetscScalar x, PetscScalar y) {
   Ctx ctx = (Ctx) ptr;
   return ctx->rho1;
 }
 
-static StagBLReal getEta_constant(void *ptr,StagBLReal x, StagBLReal y) {
+static PetscScalar getEta_constant(void *ptr,PetscScalar x, PetscScalar y) {
   Ctx ctx = (Ctx) ptr;
   return ctx->rho2;
 }
 
 /* Sinker */
-static StagBLReal getRho_sinker(void *ptr,StagBLReal x, StagBLReal y) {
+static PetscScalar getRho_sinker(void *ptr,PetscScalar x, PetscScalar y) {
   Ctx ctx = (Ctx) ptr;
-  const StagBLReal d = ctx->xmax-ctx->xmin;
-  const StagBLReal xx = x/d - 0.5;
-  const StagBLReal yy = y/d - 0.5;
+  const PetscScalar d = ctx->xmax-ctx->xmin;
+  const PetscScalar xx = x/d - 0.5;
+  const PetscScalar yy = y/d - 0.5;
   return (xx*xx + yy*yy) > 0.3*0.3 ? ctx->rho1 : ctx->rho2;
 }
 
-static StagBLReal getEta_sinker(void *ptr,StagBLReal x, StagBLReal y) {
+static PetscScalar getEta_sinker(void *ptr,PetscScalar x, PetscScalar y) {
   Ctx ctx = (Ctx) ptr;
-  const StagBLReal d = ctx->xmax-ctx->xmin;
-  const StagBLReal xx = x/d - 0.5;
-  const StagBLReal yy = y/d - 0.5;
+  const PetscScalar d = ctx->xmax-ctx->xmin;
+  const PetscScalar xx = x/d - 0.5;
+  const PetscScalar yy = y/d - 0.5;
   return (xx*xx + yy*yy) > 0.3*0.3 ? ctx->eta1 : ctx->eta2;
 }
 
 /* Vertical layers */
-static StagBLReal getRho_gerya72(void *ptr,StagBLReal x,StagBLReal y)
+static PetscScalar getRho_gerya72(void *ptr,PetscScalar x,PetscScalar y)
 {
   Ctx ctx = (Ctx) ptr;
   if (x + 0.0*y < (ctx->xmax-ctx->xmin)/2.0) {
@@ -41,7 +41,7 @@ static StagBLReal getRho_gerya72(void *ptr,StagBLReal x,StagBLReal y)
   }
 }
 
-static StagBLReal getEta_gerya72(void *ptr,StagBLReal x,StagBLReal y)
+static PetscScalar getEta_gerya72(void *ptr,PetscScalar x,PetscScalar y)
 {
   Ctx ctx = (Ctx) ptr;
   if (x  + 0.0*y < (ctx->xmax-ctx->xmin)/2.0) {
