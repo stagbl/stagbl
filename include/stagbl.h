@@ -11,8 +11,6 @@
 StagBLErrorCode StagBLInitialize(int,char**,MPI_Comm);
 StagBLErrorCode StagBLFinalize();
 
-// Errors
-void StagBLErrorFileLine(MPI_Comm,const char*,const char*,long int);
 #define StagBLError(comm,msg) SETERRQ1(comm,PETSC_ERR_LIB,"StagBL Error: %s",msg);
 
 // StagBLGrid Data
