@@ -1,11 +1,18 @@
 StagBL Documentation
 --------------------
 
-Like all of StagBL, the documentation is intended to be minimal and maintainable.
 As much as possible, documentation is by example.
-StagBLDemo provides most of this, demonstrating functionality in terms of reproducing
-standard examples and benchmarks.
 
-Some unit/integration tests in tests/ might also do double duty as examples.
+The demos in `../demos` are central in this, demonstrating functionality in
+terms of reproducing standard examples and benchmarks.
 
-Any additional documentation will be generated using Sphinx (based on .rst files).
+The DMStag tutorials in `$PETSC_DIR/src/dm/impls/examples/tutorials` may also
+be useful.
+
+Some unit/integration tests in `../tests` might also be of use to some users.
+
+Any additional documentation is generated using Sphinx. From this directory,
+
+  make html
+
+And see `_build/html/index.html`.

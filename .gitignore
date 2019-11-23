@@ -10,3 +10,7 @@ arch-*
 
 # Misc temporary files
 *.tmp
+
+# Generated documentation
+docs/_build
+docs/_static
