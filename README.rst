@@ -16,13 +16,12 @@ particle-based advection scheme.
 It aims to be as lightweight as possible while still providing the
 flexibility and extensibility required for scientific application codes.
 This accomplished with careful design and interfaces to powerful
-external libraries.  In particular, its parallel staggered-grid date structure
+external libraries. In particular, its parallel staggered-grid data structure
 leverages the DMStag component within `PETSc <https://www.mcs.anl.gov/petsc>`__.
 
 Dependencies
 ------------
 
--  MPI
 -  PETSc
 -  Python (for configuration)
 
