@@ -19,4 +19,7 @@ struct _p_StagBLGrid
   void          *data;
 };
 
+#define STAGBLGRIDPETSC "petsc"
+StagBLErrorCode StagBLGridCreate_PETSc(StagBLGrid);
+
 #endif

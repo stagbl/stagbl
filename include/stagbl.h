@@ -36,11 +36,8 @@ StagBLErrorCode StagBLGridCreateStagBLArray(StagBLGrid,StagBLArray*);
 StagBLErrorCode StagBLGridCreateStagBLSystem(StagBLGrid,StagBLSystem*);
 StagBLErrorCode StagBLGridDestroy(StagBLGrid*);
 
-// StagBLGrid impls
-#define STAGBLGRIDPETSC "petsc"
-StagBLErrorCode StagBLGridCreate_PETSc(StagBLGrid); // TODO this and similar functions are private, so need to be moved to a private header
 StagBLErrorCode StagBLGridPETScGetDM(StagBLGrid,DM*);
-StagBLErrorCode StagBLGridPETScGetDMPointer(StagBLGrid,DM**); // TODO this may not be needed anymore
+StagBLErrorCode StagBLGridPETScGetDMPointer(StagBLGrid,DM**);
 
 // StagBLArray Functions
 StagBLErrorCode StagBLArrayCreate(StagBLGrid,StagBLArray*); // TODO this needn't be public (or even exist?) because we can only create StagBLArrays from StagBLGrids
