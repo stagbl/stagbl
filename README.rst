@@ -5,6 +5,10 @@
     :target: https://travis-ci.com/stagbl/stagbl
     :alt: CI Status
 
+.. image:: https://readthedocs.org/projects/stagbl/badge/?version=latest
+    :target: https://stagbl.readthedocs.io/en/latest/?badge=latest
+    :alt: Documentation Status
+
 About
 -----
 
