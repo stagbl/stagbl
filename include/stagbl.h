@@ -8,6 +8,8 @@ PetscErrorCode StagBLFinalize();
 
 #define StagBLError(comm,msg) SETERRQ1(comm,PETSC_ERR_LIB,"StagBL Error: %s",msg);
 
+#define STAGBL_UNUSED(x) (void) x
+
 // StagBLGrid Data
 struct _p_StagBLGrid;
 typedef struct _p_StagBLGrid *StagBLGrid;
