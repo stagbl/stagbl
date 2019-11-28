@@ -5,7 +5,7 @@
 #include <petsc.h>
 
 typedef struct {
-  KSP ksp;
+  SNES snes;
 } StagBLSolver_PETSc;
 
 #endif

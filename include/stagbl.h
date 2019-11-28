@@ -62,6 +62,8 @@ PetscErrorCode StagBLSystemPETScGetMat(StagBLSystem,Mat*);
 PetscErrorCode StagBLSystemPETScGetMatPointer(StagBLSystem,Mat**);
 PetscErrorCode StagBLSystemPETScGetVec(StagBLSystem,Vec*);
 PetscErrorCode StagBLSystemPETScGetVecPointer(StagBLSystem,Vec**);
+PetscErrorCode StagBLSystemPETScGetResidualFunction(StagBLSystem,PetscErrorCode (**f)(SNES,Vec,Vec,void*));
+PetscErrorCode StagBLSystemPETScGetJacobianFunction(StagBLSystem,PetscErrorCode (**f)(SNES,Vec,Mat,Mat,void*));
 
 // StagBLSolver Functions
 PetscErrorCode StagBLSolverCreate(StagBLSystem,StagBLSolver*);
