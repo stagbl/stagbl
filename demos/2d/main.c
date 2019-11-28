@@ -20,7 +20,6 @@ static const char *help = "StagBLDemo2D: Demonstrate features and usage of StagB
     discretization and solver "base layer". */
 
 int main(int argc, char** argv)
-
 {
   PetscErrorCode ierr;
   int             rank,size;
@@ -29,10 +28,16 @@ int main(int argc, char** argv)
   StagBLSolver    solver;
   MPI_Comm        comm;
   char            mode[1024];
-  PetscInt       systemtype;
+  PetscInt        systemtype;
   Ctx             ctx;
 
-  /* Initialize MPI and print a message */
+  /* Initialize MPI and print a message
+
+     This is not required: one can simply call StagBLInitialize,
+     which will also initialize MPI and allow one to work
+     with PETSC_COMM_WORLD. We include this logic here to
+     demonstrate how one can work with StagBL as a library within
+     a larger appliation which already uses MPI.  */
   MPI_Init(&argc,&argv);
   comm = MPI_COMM_WORLD;
   MPI_Comm_size(comm,&size);
@@ -41,6 +46,7 @@ int main(int argc, char** argv)
     printf("=== StagBLDemo2d ===\n");
     printf("%d ranks\n",size);
   }
+  fflush(stdout);
   MPI_Barrier(comm);
 
   /* Initialize StagBL (which will initialize PETSc, and MPI if not initialized) */
@@ -108,6 +114,7 @@ int main(int argc, char** argv)
   ierr = StagBLGridDestroy(&ctx->stokesGrid);CHKERRQ(ierr);
   ierr = StagBLGridDestroy(&ctx->coeffGrid);CHKERRQ(ierr);
 
-  StagBLFinalize();
-  return 0;
+  /* Finalize StagBL (which includes finalizing PETSc) */
+  ierr = StagBLFinalize();
+  return ierr;
 }
