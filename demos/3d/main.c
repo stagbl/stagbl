@@ -1,3 +1,5 @@
+static const char *help = "StagBLDemo3D: Demonstrate features and usage of StagBL, in 3 dimensions, with simple geodynamic box model setups\n\n";
+
 #include <stagbl.h>
 #include <stdio.h>
 #include <petsc.h> // Note that we still have work to do guarding for the non-PETSc case (probably define STAGBL_HAVE_PETSC in a configured include file eventually)
@@ -99,7 +101,7 @@ int main(int argc, char** argv)
   MPI_Barrier(comm);
 
   /* Initialize StagBL (which will initialize PETSc if needbe) */
-  StagBLInitialize(argc,argv,comm);
+  ierr = StagBLInitialize(argc,argv,help,comm);CHKERRQ(ierr);
 
   /* Populate application context */
   ierr = PetscMalloc1(1,&ctx);CHKERRQ(ierr);

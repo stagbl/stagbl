@@ -3,7 +3,7 @@
 
 #include <petsc.h>
 
-PetscErrorCode StagBLInitialize(int,char**,MPI_Comm);
+PetscErrorCode StagBLInitialize(int,char**,const char*,MPI_Comm);
 PetscErrorCode StagBLFinalize();
 
 #define StagBLError(comm,msg) SETERRQ1(comm,PETSC_ERR_LIB,"StagBL Error: %s",msg);

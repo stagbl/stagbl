@@ -1,3 +1,5 @@
+static const char *help = "StagBLDemo2D: Demonstrate features and usage of StagBL, in 2 dimensions, with simple geodynamic box model setups\n\n";
+
 #include "args.h"
 #include "coeff.h"
 #include "ctx.h"
@@ -41,8 +43,8 @@ int main(int argc, char** argv)
   }
   MPI_Barrier(comm);
 
-  /* Initialize StagBL (which will initialize PETSc if needbe) */
-  StagBLInitialize(argc,argv,comm);
+  /* Initialize StagBL (which will initialize PETSc, and MPI if not initialized) */
+  ierr = StagBLInitialize(argc,argv,help,comm);CHKERRQ(ierr);
 
   /* Accept an argument for the "mode". StagBLDemo2D is not intended
      to be a full application, but rather a demonstration, test case,
