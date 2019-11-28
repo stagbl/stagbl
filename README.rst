@@ -57,16 +57,17 @@ From the ``stagbl`` directory that is created,
     ./configure.py         # follow instructions to make
     cd demos/2d
     make
-    ./stagbldemo2d -pc_type lu -pc_factor_mat_solver_type umfpack
+    ./stagbldemo2d
     paraview out_element.vtr &
 
 .. image:: docs/resources/stagbldemo2d_quickstart.png
    :alt: stagbl2ddemo quickstart
-In parallel, if you have configured PETSc with MUMPS, also try
+
+In parallel, if you have configured PETSc with SuperLU_dist, also try
 
 ::
 
-    $PETSC_DIR/$PETSC_ARCH/bin/mpiexec -np 4 ./stagbldemo2d -pc_type lu -pc_factor_mat_solver_type mumps -mat_mumps_icntl_23 100 -structure 2 -stag_grid_x 30 -stag_grid_y 50
+    $PETSC_DIR/$PETSC_ARCH/bin/mpiexec -np 4 ./stagbldemo2d -structure 2 -stag_grid_x 30 -stag_grid_y 50
 
 .. image:: docs/resources/stagbldemo2d_quickstart2.png
    :alt: stagbl2ddemo quickstart 2

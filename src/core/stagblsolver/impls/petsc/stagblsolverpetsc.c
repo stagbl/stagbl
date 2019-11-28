@@ -48,6 +48,29 @@ PetscErrorCode StagBLSolverSolve_PETSc(StagBLSolver solver,StagBLArray sol)
     ierr = StagBLSystemPETScGetMat(solver->system,&mat);CHKERRQ(ierr);
     ierr = KSPCreate(PetscObjectComm((PetscObject)dm),&data->ksp);CHKERRQ(ierr);
     ierr = KSPSetOperators(data->ksp,mat,mat);CHKERRQ(ierr);
+    /* Set default solve as direct, if possible */
+    {
+      PetscMPIInt size;
+      PC          pc;
+
+
+      ierr = MPI_Comm_size(PetscObjectComm((PetscObject)dm),&size);CHKERRQ(ierr);
+      if (size == 1) {
+#ifdef PETSC_HAVE_SUITESPARSE
+        ierr = KSPSetType(data->ksp,KSPFGMRES);CHKERRQ(ierr);
+        ierr = KSPGetPC(data->ksp,&pc);CHKERRQ(ierr);
+        ierr = PCSetType(pc,PCLU);CHKERRQ(ierr);
+        ierr = PCFactorSetMatSolverType(pc,MATSOLVERUMFPACK);CHKERRQ(ierr);
+#endif
+      } else {
+#ifdef PETSC_HAVE_SUPERLU_DIST
+        ierr = KSPSetType(data->ksp,KSPFGMRES);CHKERRQ(ierr);
+        ierr = KSPGetPC(data->ksp,&pc);CHKERRQ(ierr);
+        ierr = PCSetType(pc,PCLU);CHKERRQ(ierr);
+        ierr = PCFactorSetMatSolverType(pc,MATSOLVERSUPERLU_DIST);CHKERRQ(ierr);
+#endif
+      }
+    }
     ierr = KSPSetFromOptions(data->ksp);CHKERRQ(ierr); // TODO this might become problematic - need to figure out prefixes
   }
 
