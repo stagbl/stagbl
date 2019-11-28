@@ -3,5 +3,6 @@ standalone.pdf
 *.log
 *.fdb_latexmk
 *.fls
+*.dvi
 
 .*.swp
