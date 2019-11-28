@@ -37,7 +37,7 @@ int main(int argc, char** argv)
      which will also initialize MPI and allow one to work
      with PETSC_COMM_WORLD. We include this logic here to
      demonstrate how one can work with StagBL as a library within
-     a larger appliation which already uses MPI.  */
+     a larger application which already uses MPI.  */
   MPI_Init(&argc,&argv);
   comm = MPI_COMM_WORLD;
   MPI_Comm_size(comm,&size);
@@ -80,11 +80,11 @@ int main(int argc, char** argv)
   ierr = CtxSetupFromGrid(ctx);CHKERRQ(ierr);
 
   /* Create another, compatible grid to represent coefficients */
- {
-   const PetscInt dofPerVertex  = 2;
-   const PetscInt dofPerElement = 1;
-   ierr = StagBLGridCreateCompatibleStagBLGrid(ctx->stokesGrid,dofPerVertex,0,dofPerElement,0,&ctx->coeffGrid);CHKERRQ(ierr);
- }
+  {
+    const PetscInt dofPerVertex  = 2;
+    const PetscInt dofPerElement = 1;
+    ierr = StagBLGridCreateCompatibleStagBLGrid(ctx->stokesGrid,dofPerVertex,0,dofPerElement,0,&ctx->coeffGrid);CHKERRQ(ierr);
+  }
 
   /* Coefficient data */
   ierr = PopulateCoefficientData(ctx,mode);CHKERRQ(ierr);
@@ -98,8 +98,7 @@ int main(int argc, char** argv)
     ierr = CreateSystem2(ctx,system);CHKERRQ(ierr);
   } else StagBLError(ctx->comm,"Unsupported system type");
 
-  /* Solve the system (you will likely want to specify a solver from the command line,
-     e.g. -pc_type lu -pc_factor_mat_solver_type umfpack) */
+  /* Solve the system  */
   ierr = StagBLSystemCreateStagBLSolver(system,&solver);CHKERRQ(ierr);
   ierr = StagBLGridCreateStagBLArray(ctx->stokesGrid,&x);CHKERRQ(ierr);
   ierr = StagBLSolverSolve(solver,x);CHKERRQ(ierr);
