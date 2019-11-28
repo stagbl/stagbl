@@ -74,7 +74,6 @@ int main(int argc, char** argv)
   StagBLGrid   grid;
   StagBLArray  x;
   StagBLSystem system;
-  StagBLSolver solver;
   MPI_Comm     comm;
   PetscInt     Nx,Ny,Nz;
 
@@ -86,7 +85,6 @@ int main(int argc, char** argv)
   Vec            vecx,vecb;
   Mat            *pmatA;
   Mat            matA;
-  KSP            *pksp;
   KSP            ksp;
 
   /* Initialize MPI and print a message */
@@ -180,12 +178,8 @@ int main(int argc, char** argv)
   matA = *pmatA;
   vecb = *pvecb;
 
-  // Solve the system (you will likely want to choose a solver from the command line)
-  ierr = StagBLSolverCreate(system,&solver);CHKERRQ(ierr);
-  ierr = StagBLSolverPETScGetKSPPointer(solver,&pksp);CHKERRQ(ierr);
-
-  ierr = KSPCreate(ctx->comm,pksp);CHKERRQ(ierr);
-  ksp = *pksp;
+  // Solve the system (here just with a KSP, but later we'll use a proper StagBLSolver)
+  ierr = KSPCreate(ctx->comm,&ksp);CHKERRQ(ierr);
   ierr = KSPSetOperators(ksp,matA,matA);CHKERRQ(ierr);
   ierr = KSPSetFromOptions(ksp);CHKERRQ(ierr);
   ierr = KSPSolve(ksp,vecb,vecx);CHKERRQ(ierr);
@@ -203,7 +197,6 @@ int main(int argc, char** argv)
   ierr = VecDestroy(&ctx->coeff);CHKERRQ(ierr);
   ierr = StagBLArrayDestroy(&x);CHKERRQ(ierr);
   ierr = StagBLSystemDestroy(&system);CHKERRQ(ierr);
-  ierr = StagBLSolverDestroy(&solver);CHKERRQ(ierr);
   ierr = StagBLGridDestroy(&grid);CHKERRQ(ierr);
   ierr = DMDestroy(&ctx->dmCoeff);CHKERRQ(ierr);
   ierr = PetscFree(ctx);CHKERRQ(ierr);

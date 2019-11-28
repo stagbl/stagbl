@@ -5,19 +5,14 @@
 PetscErrorCode StagBLSolverDestroy_PETSc(StagBLSolver solver)
 {
   StagBLSolver_PETSc *data = (StagBLSolver_PETSc*) solver->data;
-  if (data->ksp) {
-    KSPDestroy(&data->ksp);
+
+  PetscFunctionBegin;
+  if (data->snes) {
+    SNESDestroy(&data->snes);
   }
   free(solver->data);
   solver->data = NULL;
-  return 0;
-}
-
-PetscErrorCode StagBLSolverPETScGetKSPPointer(StagBLSolver stagblsolver,KSP **ksp)
-{
-  StagBLSolver_PETSc * const data = (StagBLSolver_PETSc*) stagblsolver->data;
-  *ksp = &(data->ksp);
-  return 0;
+  PetscFunctionReturn(0);
 }
 
 PetscErrorCode StagBLSolverSolve_PETSc(StagBLSolver solver,StagBLArray sol)

@@ -70,7 +70,6 @@ PetscErrorCode StagBLSolverSolve(StagBLSolver,StagBLArray);
 // StagBLSolver impls
 #define STAGBLSOLVERPETSC "petsc"
 PetscErrorCode StagBLSolverCreate_PETSc(StagBLSolver);
-PetscErrorCode StagBLSolverPETScGetKSPPointer(StagBLSolver,KSP**);
 
 // Stokes
 PetscErrorCode StagBLGridCreateStokes2DBox(MPI_Comm,PetscInt,PetscInt,PetscScalar,PetscScalar,PetscScalar,PetscScalar,StagBLGrid*);
