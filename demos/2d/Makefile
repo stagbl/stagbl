@@ -6,7 +6,7 @@ endif
 
 EXNAME = stagbldemo2d
 
-OBJ = args.o coeff.o ctx.o dump.o main.o system.o system2.o
+OBJ = args.o coeff.o ctx.o dump.o main.o
 
 all : $(EXNAME)
 

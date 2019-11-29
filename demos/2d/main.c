@@ -4,8 +4,6 @@ static const char *help = "StagBLDemo2D: Demonstrate features and usage of StagB
 #include "coeff.h"
 #include "ctx.h"
 #include "dump.h"
-#include "system.h"
-#include "system2.h"
 #include <stagbl.h>
 #include <stdio.h>
 #include <mpi.h>
@@ -28,7 +26,6 @@ int main(int argc, char** argv)
   StagBLSolver    solver;
   MPI_Comm        comm;
   char            mode[1024];
-  PetscInt        systemtype;
   Ctx             ctx;
 
   /* Initialize MPI and print a message
@@ -60,10 +57,6 @@ int main(int argc, char** argv)
      mode. Other options can of course modify some of these */
   ierr = GetStringArg("-mode","gerya72",sizeof(mode),mode);CHKERRQ(ierr);
 
-  /* Accept argument for system type and coefficient structure */
-  // TODO : make a special gerya72_repro mode which uses the other system...
-  systemtype = 1;
-
   /* Populate application context (Create with a given mode, then set up) */
   ierr = CtxCreate(comm,mode,&ctx);CHKERRQ(ierr);
 
@@ -89,14 +82,8 @@ int main(int argc, char** argv)
   /* Coefficient data */
   ierr = PopulateCoefficientData(ctx,mode);CHKERRQ(ierr);
 
-  /* Create a system */
-  ierr = StagBLGridCreateStagBLSystem(ctx->stokesGrid,&system);CHKERRQ(ierr);
-
-  if (systemtype == 1) {
-    ierr = CreateSystem(ctx,system);CHKERRQ(ierr);
-  } else if (systemtype == 2) {
-    ierr = CreateSystem2(ctx,system);CHKERRQ(ierr);
-  } else StagBLError(ctx->comm,"Unsupported system type");
+  /* Create a simple Stokes system, using a simple interface which doesn't expose many options */
+  ierr = StagBLCreateSimpleStokesSystem(ctx->stokesGrid,ctx->coeffArray,&system);CHKERRQ(ierr);
 
   /* Solve the system  */
   ierr = StagBLSystemCreateStagBLSolver(system,&solver);CHKERRQ(ierr);
