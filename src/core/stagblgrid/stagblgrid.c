@@ -5,8 +5,8 @@ PetscErrorCode StagBLGridCreate(StagBLGrid *stagblgrid)
 {
   PetscErrorCode ierr;
 
-  *stagblgrid = malloc(sizeof(struct _p_StagBLGrid));
-  (*stagblgrid)->ops = calloc(1,sizeof(struct _p_StagBLGridOps));
+  ierr = PetscMalloc1(1,stagblgrid);CHKERRQ(ierr);
+  ierr = PetscCalloc1(1,&(*stagblgrid)->ops);CHKERRQ(ierr);
 
   // Setting Type and calling creation routine hard-coded for now
   (*stagblgrid)->type = STAGBLGRIDPETSC;
@@ -19,44 +19,48 @@ PetscErrorCode StagBLGridCreateCompatibleStagBLGrid(StagBLGrid grid,PetscInt dof
 {
   PetscErrorCode ierr;
 
+  PetscFunctionBegin;
   if (grid->ops->createcompatiblestagblgrid) {
     ierr = (grid->ops->createcompatiblestagblgrid)(grid,dof0,dof1,dof2,dof3,newgrid);CHKERRQ(ierr);
   } else {
     StagBLError(MPI_COMM_SELF,"StagBLCreateCompatibleStagBLGrid not implemented for this type");
   }
-  return 0;
+  PetscFunctionReturn(0);
 }
 
 PetscErrorCode StagBLGridCreateStagBLArray(StagBLGrid grid,StagBLArray *array)
 {
   PetscErrorCode ierr;
 
+  PetscFunctionBegin;
   if (grid->ops->createstagblarray) {
     ierr = (grid->ops->createstagblarray)(grid,array);CHKERRQ(ierr);
   } else {
     StagBLError(MPI_COMM_SELF,"StagBLGridCreateStagBLArray not implemented for this type");
   }
-  return 0;
-} 
+  PetscFunctionReturn(0);
+}
 
 PetscErrorCode StagBLGridCreateStagBLSystem(StagBLGrid grid,StagBLSystem *system)
 {
   PetscErrorCode ierr;
-  // TODO this is basically a placeholder, creating a generic system
+
+  PetscFunctionBegin;
   ierr = StagBLSystemCreate(grid,system);CHKERRQ(ierr);
-  return 0;
-} 
+  PetscFunctionReturn(0);
+}
 
 PetscErrorCode StagBLGridDestroy(StagBLGrid *stagblgrid)
 {
   PetscErrorCode ierr;
 
-  if (!*stagblgrid) return 0;
+  PetscFunctionBegin;
+  if (!*stagblgrid) PetscFunctionReturn(0);
   if ((*stagblgrid)->ops->destroy) {
     ierr = ((*stagblgrid)->ops->destroy)(*stagblgrid);CHKERRQ(ierr);
   }
-  free((*stagblgrid)->ops);
-  free(*stagblgrid);
+  ierr = PetscFree((*stagblgrid)->ops);CHKERRQ(ierr);
+  ierr = PetscFree(*stagblgrid);CHKERRQ(ierr);
   *stagblgrid = NULL;
-  return 0;
+  PetscFunctionReturn(0);
 }

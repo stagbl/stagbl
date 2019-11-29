@@ -5,8 +5,9 @@ PetscErrorCode StagBLSolverCreate(StagBLSystem system,StagBLSolver *stagblsolver
 {
   PetscErrorCode ierr;
 
-  *stagblsolver = malloc(sizeof(struct _p_StagBLSolver));
-  (*stagblsolver)->ops = calloc(1,sizeof(struct _p_StagBLSolverOps));
+  PetscFunctionBegin;
+  ierr = PetscMalloc1(1,stagblsolver);CHKERRQ(ierr);
+  ierr = PetscCalloc1(1,&(*stagblsolver)->ops);CHKERRQ(ierr);
 
   (*stagblsolver)->system = system;
 
@@ -14,38 +15,44 @@ PetscErrorCode StagBLSolverCreate(StagBLSystem system,StagBLSolver *stagblsolver
   (*stagblsolver)->type = STAGBLSOLVERPETSC;
   (*stagblsolver)->ops->create = StagBLSolverCreate_PETSc; // Sets other ops
   ierr = ((*stagblsolver)->ops->create)(*stagblsolver);CHKERRQ(ierr);
-  return 0;
+  PetscFunctionReturn(0);
 }
 
 PetscErrorCode StagBLSolverGetSystem(StagBLSolver solver,StagBLSystem *system)
 {
+  PetscFunctionBegin;
   *system = solver->system;
-  return 0;
+  PetscFunctionReturn(0);
 }
 
 PetscErrorCode StagBLSolverDestroy(StagBLSolver *solver)
 {
   PetscErrorCode ierr;
 
+  PetscFunctionBegin;
   if (!*solver) return 0;
   if ((*solver)->ops->destroy) {
     ierr = ((*solver)->ops->destroy)(*solver);CHKERRQ(ierr);
   }
-  free((*solver)->ops);
-  free(*solver);
+  ierr = PetscFree((*solver)->ops);CHKERRQ(ierr);
+  ierr = PetscFree(*solver);CHKERRQ(ierr);
   *solver = NULL;
-  return 0;
+  PetscFunctionReturn(0);
 }
 
+/**
+  * Note: it doesn't make much sense to call this function if the array
+  * and the solver's system don't correspond to compatible grids.
+  */
 PetscErrorCode StagBLSolverSolve(StagBLSolver stagblsolver, StagBLArray sol)
 {
   PetscErrorCode ierr;
-  // TODO check that solver's stored grid and sol's stored grid are compatible and have the same number of dof (or could even be stronger and assert that they must be the same object..)
-  
+
+  PetscFunctionBegin;
   if (stagblsolver->ops->solve) {
     ierr = (stagblsolver->ops->solve)(stagblsolver,sol);CHKERRQ(ierr);
   } else {
     StagBLError(MPI_COMM_SELF,"StagBLSolverSolver not implemented for this type");
   }
-  return 0;
+  PetscFunctionReturn(0);
 }

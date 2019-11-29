@@ -5,8 +5,9 @@ PetscErrorCode StagBLSystemCreate(StagBLGrid grid,StagBLSystem *system)
 {
   PetscErrorCode ierr;
 
-  *system = malloc(sizeof(struct _p_StagBLSystem));
-  (*system)->ops = calloc(1,sizeof(struct _p_StagBLSystemOps));
+  PetscFunctionBegin;
+  ierr = PetscMalloc1(1,system);CHKERRQ(ierr);
+  ierr = PetscCalloc1(1,&(*system)->ops);CHKERRQ(ierr);
 
   (*system)->grid = grid;
 
@@ -14,32 +15,36 @@ PetscErrorCode StagBLSystemCreate(StagBLGrid grid,StagBLSystem *system)
   (*system)->type = STAGBLSYSTEMPETSC;
   (*system)->ops->create = StagBLSystemCreate_PETSc; // Sets other ops
   ierr = ((*system)->ops->create)(*system);CHKERRQ(ierr);
-  return 0;
+  PetscFunctionReturn(0);
 }
 
 PetscErrorCode StagBLSystemCreateStagBLSolver(StagBLSystem system,StagBLSolver *solver)
 {
   PetscErrorCode ierr;
+
+  PetscFunctionBegin;
   ierr = StagBLSolverCreate(system,solver);CHKERRQ(ierr);
-  return 0;
+  PetscFunctionReturn(0);
 }
 
 PetscErrorCode StagBLSystemDestroy(StagBLSystem *system)
 {
   PetscErrorCode ierr;
 
-  if (!*system) return 0;
+  PetscFunctionBegin;
+  if (!*system) PetscFunctionReturn(0);
   if ((*system)->ops->destroy) {
     ierr = ((*system)->ops->destroy)(*system);CHKERRQ(ierr);
   }
-  free((*system)->ops);
-  free(*system);
+  ierr = PetscFree((*system)->ops);CHKERRQ(ierr);
+  ierr = PetscFree(*system);CHKERRQ(ierr);
   *system = NULL;
-  return 0;
+  PetscFunctionReturn(0);
 }
 
 PetscErrorCode StagBLSystemGetGrid(StagBLSystem system,StagBLGrid *grid)
 {
+  PetscFunctionBegin;
   *grid = system->grid;
-  return 0;
+  PetscFunctionReturn(0);
 }
