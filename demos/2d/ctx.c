@@ -26,10 +26,18 @@ PetscErrorCode CtxCreate(MPI_Comm comm,const char* mode,Ctx *pctx)
     ctx->eta1 = 1e20;
     ctx->eta2 = 1e22;
     ctx->gy   = 10.0;
-    PetscFunctionReturn(0);
-  }
+  } else SETERRQ1(comm,PETSC_ERR_SUP,"Unrecognized mode %s",mode);CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
 
-  SETERRQ1(comm,PETSC_ERR_SUP,"Unrecognized mode %s",mode);CHKERRQ(ierr);
+PetscErrorCode CtxDestroy(Ctx *pctx)
+{
+  PetscErrorCode ierr;
+
+  PetscFunctionBeginUser;
+  ierr = PetscFree(*pctx);CHKERRQ(ierr);
+  *pctx = NULL;
+  PetscFunctionReturn(0);
 }
 
 PetscErrorCode CtxSetupFromGrid(Ctx ctx)
@@ -39,9 +47,8 @@ PetscErrorCode CtxSetupFromGrid(Ctx ctx)
   PetscInt  N[2];
   PetscScalar hxAvgInv;
 
-  /* Escape hatch */
-  ierr = StagBLGridPETScGetDM(ctx->stokesGrid,&dmStokes);CHKERRQ(ierr);
-
+  PetscFunctionBeginUser;
+  ierr = StagBLGridPETScGetDM(ctx->stokes_grid,&dmStokes);CHKERRQ(ierr);
   ierr = DMStagGetGlobalSizes(dmStokes,&N[0],&N[1],NULL);CHKERRQ(ierr);
   ctx->hxCharacteristic = (ctx->xmax-ctx->xmin)/N[0];
   ctx->hyCharacteristic = (ctx->ymax-ctx->ymin)/N[1];
@@ -51,5 +58,5 @@ PetscErrorCode CtxSetupFromGrid(Ctx ctx)
   ctx->Kbound = ctx->etaCharacteristic*hxAvgInv*hxAvgInv;
   if (N[0] < 2) SETERRQ(ctx->comm,PETSC_ERR_SUP,"Not implemented for a single element in the x direction");
   ctx->pinx = 1; ctx->piny = 0;
-  return 0;
+  PetscFunctionReturn(0);
 }

@@ -68,7 +68,7 @@ int main(int argc, char** argv)
      single-grid choice is appropriate for monolithic mulitigrid or direct solution,
      whereas two grids would be appropriated for segregated or Approximate block
      factorization-based solvers. */
-  ierr = StagBLGridCreateStokes2DBox(comm,30,20,0.0,ctx->xmax,0.0,ctx->ymax,&ctx->stokesGrid);CHKERRQ(ierr);
+  ierr = StagBLGridCreateStokes2DBox(comm,30,20,0.0,ctx->xmax,0.0,ctx->ymax,&ctx->stokes_grid);CHKERRQ(ierr);
 
   /* Get scaling constants and node to pin, knowing grid dimensions */
   ierr = CtxSetupFromGrid(ctx);CHKERRQ(ierr);
@@ -77,17 +77,17 @@ int main(int argc, char** argv)
   {
     const PetscInt dofPerVertex  = 2;
     const PetscInt dofPerElement = 1;
-    ierr = StagBLGridCreateCompatibleStagBLGrid(ctx->stokesGrid,dofPerVertex,0,dofPerElement,0,&ctx->coeffGrid);CHKERRQ(ierr);
+    ierr = StagBLGridCreateCompatibleStagBLGrid(ctx->stokes_grid,dofPerVertex,0,dofPerElement,0,&ctx->coefficient_grid);CHKERRQ(ierr);
   }
 
-  /* Coefficient data */
+  /* Coefficient data in an application-determined way */
   ierr = PopulateCoefficientData(ctx,mode);CHKERRQ(ierr);
 
-  /* Create a simple Stokes system, but directly populating some fields
+  /* Create a simple Stokes system by directly populating some fields
      of a struct and passing to a StagBL function */
   ierr = StagBLStokesParametersCreate(&parameters);CHKERRQ(ierr);
-  parameters->coefficient_array  = ctx->coeffArray;
-  parameters->stokes_grid        = ctx->stokesGrid;
+  parameters->coefficient_array  = ctx->coefficient_array;
+  parameters->stokes_grid        = ctx->stokes_grid;
   parameters->uniform_grid       = PETSC_TRUE;
   parameters->xmin               = 0;
   parameters->xmax               = 1e6;
@@ -100,7 +100,7 @@ int main(int argc, char** argv)
 
   /* Solve the system  */
   ierr = StagBLSystemCreateStagBLSolver(system,&solver);CHKERRQ(ierr);
-  ierr = StagBLGridCreateStagBLArray(ctx->stokesGrid,&x);CHKERRQ(ierr);
+  ierr = StagBLGridCreateStagBLArray(ctx->stokes_grid,&x);CHKERRQ(ierr);
   ierr = StagBLSolverSolve(solver,x);CHKERRQ(ierr);
 
   /* Dump solution by converting to DMDAs and dumping */
@@ -108,10 +108,12 @@ int main(int argc, char** argv)
 
   /* Free data */
   ierr = StagBLArrayDestroy(&x);CHKERRQ(ierr);
+  ierr = StagBLArrayDestroy(&ctx->coefficient_array);CHKERRQ(ierr);
   ierr = StagBLSystemDestroy(&system);CHKERRQ(ierr);
   ierr = StagBLSolverDestroy(&solver);CHKERRQ(ierr);
-  ierr = StagBLGridDestroy(&ctx->stokesGrid);CHKERRQ(ierr);
-  ierr = StagBLGridDestroy(&ctx->coeffGrid);CHKERRQ(ierr);
+  ierr = StagBLGridDestroy(&ctx->stokes_grid);CHKERRQ(ierr);
+  ierr = StagBLGridDestroy(&ctx->coefficient_grid);CHKERRQ(ierr);
+  ierr = CtxDestroy(&ctx);CHKERRQ(ierr);
 
   /* Finalize StagBL (which includes finalizing PETSc) */
   ierr = StagBLFinalize();

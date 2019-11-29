@@ -16,9 +16,9 @@ PetscErrorCode DumpSolution(Ctx ctx,StagBLArray x)
   /* Use the "escape hatch" */
   ierr = StagBLArrayPETScGetGlobalVec(x,&vecx);CHKERRQ(ierr);
   ierr = PetscObjectSetName((PetscObject)vecx,"solution");CHKERRQ(ierr);
-  ierr = StagBLGridPETScGetDM(ctx->stokesGrid,&dmStokes);CHKERRQ(ierr);
-  ierr = StagBLGridPETScGetDM(ctx->coeffGrid,&dmCoeff);CHKERRQ(ierr);
-  ierr = StagBLArrayPETScGetLocalVec(ctx->coeffArray,&vecCoeffLocal);CHKERRQ(ierr);
+  ierr = StagBLGridPETScGetDM(ctx->stokes_grid,&dmStokes);CHKERRQ(ierr);
+  ierr = StagBLGridPETScGetDM(ctx->coefficient_grid,&dmCoeff);CHKERRQ(ierr);
+  ierr = StagBLArrayPETScGetLocalVec(ctx->coefficient_array,&vecCoeffLocal);CHKERRQ(ierr);
 
   /* For convenience, create a new DM and Vec which will hold averaged velocities
      Note that this could also be accomplished with direct array access, using
@@ -74,7 +74,7 @@ PetscErrorCode DumpSolution(Ctx ctx,StagBLArray x)
   ierr = DMStagVecSplitToDMDA(dmVelAvg,velAvg,DMSTAG_ELEMENT,-3,&daVelAvg,&vecVelAvg);CHKERRQ(ierr); /* note -3 : pad with zero */
   ierr = PetscObjectSetName((PetscObject)vecVelAvg,"Velocity (Averaged)");CHKERRQ(ierr);
 
-  ierr = DMRestoreLocalVector(dmCoeff,&vecCoeff);CHKERRQ(ierr);
+  ierr = DMRestoreGlobalVector(dmCoeff,&vecCoeff);CHKERRQ(ierr);
 
   /* Dump element-based fields to a .vtr file */
   {

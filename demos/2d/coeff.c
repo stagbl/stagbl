@@ -89,11 +89,11 @@ PetscErrorCode PopulateCoefficientData(Ctx ctx,const char* mode)
     SETERRQ1(ctx->comm,PETSC_ERR_ARG_OUTOFRANGE,"Unrecognized mode %s",mode);
   }
 
-  ierr = StagBLGridCreateStagBLArray(ctx->coeffGrid,&ctx->coeffArray);CHKERRQ(ierr);
+  ierr = StagBLGridCreateStagBLArray(ctx->coefficient_grid,&ctx->coefficient_array);CHKERRQ(ierr);
 
   /* Escape Hatch */
-  ierr = StagBLGridPETScGetDM(ctx->coeffGrid,&dmCoeff);CHKERRQ(ierr);
-  ierr = StagBLArrayPETScGetLocalVecPointer(ctx->coeffArray,&pcoeffLocal);CHKERRQ(ierr);
+  ierr = StagBLGridPETScGetDM(ctx->coefficient_grid,&dmCoeff);CHKERRQ(ierr);
+  ierr = StagBLArrayPETScGetLocalVecPointer(ctx->coefficient_array,&pcoeffLocal);CHKERRQ(ierr);
 
   ierr = DMCreateLocalVector(dmCoeff,pcoeffLocal);CHKERRQ(ierr);
   coeffLocal = *pcoeffLocal;
