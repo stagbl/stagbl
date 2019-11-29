@@ -76,15 +76,19 @@ PetscErrorCode StagBLSolverSolve(StagBLSolver,StagBLArray);
 PetscErrorCode StagBLSolverCreate_PETSc(StagBLSolver);
 
 /* Stokes */
-typedef struct {
-  StagBLGrid stokes_grid;
+typedef struct data_StagBLStokesParameters {
+  StagBLGrid  stokes_grid;
   StagBLArray coefficient_array;
-  PetscReal xmin,xmax,ymin,ymax,zmin,zmax;
-  PetscReal gy,eta1,eta2;
-} StagBLStokesParameters;
+  PetscBool   uniform_grid;
+  PetscReal   xmin,xmax,ymin,ymax,zmin,zmax;
+  PetscReal   gy,eta_characteristic;
+} data_StagBLStokesParameters;
+typedef struct data_StagBLStokesParameters *StagBLStokesParameters;
+
+PetscErrorCode StagBLStokesParametersCreate(StagBLStokesParameters*);
+PetscErrorCode StagBLStokesParametersDestroy(StagBLStokesParameters*);
 
 PetscErrorCode StagBLGridCreateStokes2DBox(MPI_Comm,PetscInt,PetscInt,PetscScalar,PetscScalar,PetscScalar,PetscScalar,StagBLGrid*);
-PetscErrorCode StagBLCreateSimpleStokesSystem(StagBLGrid,StagBLArray,StagBLSystem*);
-PetscErrorCode StagBLCreateStokesSystem(StagBLGrid,StagBLStokesParameters,StagBLSystem*);
+PetscErrorCode StagBLCreateStokesSystem(StagBLStokesParameters,StagBLSystem*);
 
 #endif

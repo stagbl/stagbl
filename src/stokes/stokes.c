@@ -1,12 +1,31 @@
 #include "stagbl.h"
 
+PetscErrorCode StagBLStokesParametersCreate(StagBLStokesParameters *parameters)
+{
+  PetscErrorCode ierr;
+
+  PetscFunctionBegin;
+  ierr = PetscCalloc1(1,parameters);CHKERRQ(ierr); /* Zero all fields */
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode StagBLStokesParametersDestroy(StagBLStokesParameters *parameters)
+{
+  PetscErrorCode ierr;
+
+  PetscFunctionBegin;
+  ierr = PetscFree(*parameters);CHKERRQ(ierr);
+  *parameters = NULL;
+  PetscFunctionReturn(0);
+}
+
 PetscErrorCode StagBLGridCreateStokes2DBox(MPI_Comm comm, PetscInt nx,PetscInt ny,PetscScalar xmin, PetscScalar xmax, PetscScalar ymin, PetscScalar ymax,StagBLGrid *pgrid)
 {
-  // TODO this function assumes PETSc is included, and that the defaults types for things are PETSc
   PetscErrorCode ierr;
   DM *pdm;
   DM dm_stokes;
 
+  PetscFunctionBegin;
   StagBLGridCreate(pgrid);
   StagBLGridPETScGetDMPointer(*pgrid,&pdm);
   ierr = DMStagCreate2d(
@@ -23,49 +42,24 @@ PetscErrorCode StagBLGridCreateStokes2DBox(MPI_Comm comm, PetscInt nx,PetscInt n
   ierr = DMSetFromOptions(dm_stokes);CHKERRQ(ierr);
   ierr = DMSetUp(dm_stokes);CHKERRQ(ierr);
   ierr = DMStagSetUniformCoordinatesProduct(dm_stokes,xmin,xmax,ymin,ymax,0.0,0.0);CHKERRQ(ierr);
-  return 0;
-}
-
-PetscErrorCode StagBLCreateSimpleStokesSystem(StagBLGrid stokes_grid, StagBLArray coefficient_array, StagBLSystem *system)
-{
-  PetscErrorCode         ierr;
-  StagBLStokesParameters parameters;
-
-  PetscFunctionBegin;
-  /* Check that the grids are compatible and have the correct numbers of dof */
-  // TODO
-
-  /* Pass to the general function */
-  parameters.coefficient_array = coefficient_array;
-  parameters.stokes_grid = stokes_grid;
-  // TODO this is all temp - this needs to be computed from the grid and coordinate arrays
-  parameters.xmin = 0; // TODO temp, rather just have coordinate arrays for now (later could optimize)
-  parameters.xmax = 1e6;
-  parameters.ymin = 0.0;
-  parameters.ymax = 1.5e6;
-  parameters.gy   = 10.0;
-    parameters.eta1 = 1e20; // TODO should just have eta_characteristic field which you can supply, otherwise supply from coefficient_array
-    parameters.eta2 = 1e22;
-
-  ierr = StagBLCreateStokesSystem(stokes_grid,parameters,system);CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
 // TODO temp as we refactor
-static PetscErrorCode CreateSystem_Temp(StagBLStokesParameters *parameters,StagBLSystem system);
+static PetscErrorCode CreateSystem_Temp(StagBLStokesParameters parameters,StagBLSystem system);
 
 /**
   * A general function which creates Stokes StagBLSystem objects. It accepts
   * a struct containing all relevant parameters.
   */
-PetscErrorCode StagBLCreateStokesSystem(StagBLGrid stokes_grid, StagBLStokesParameters parameters, StagBLSystem *system)
+PetscErrorCode StagBLCreateStokesSystem(StagBLStokesParameters parameters, StagBLSystem *system)
 {
   PetscErrorCode ierr;
 
   PetscFunctionBegin;
   // TODO this is temporary, as we refactor
-  ierr = StagBLGridCreateStagBLSystem(stokes_grid,system);CHKERRQ(ierr);
-  ierr = CreateSystem_Temp(&parameters,*system);CHKERRQ(ierr);
+  ierr = StagBLGridCreateStagBLSystem(parameters->stokes_grid,system);CHKERRQ(ierr);
+  ierr = CreateSystem_Temp(parameters,*system);CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
@@ -82,7 +76,7 @@ PetscErrorCode StagBLCreateStokesSystem(StagBLGrid stokes_grid, StagBLStokesPara
 #define UP         DMSTAG_UP
 #define UP_RIGHT   DMSTAG_UP_RIGHT
 
-static PetscErrorCode CreateSystem_Temp(StagBLStokesParameters *parameters,StagBLSystem system)
+static PetscErrorCode CreateSystem_Temp(StagBLStokesParameters parameters,StagBLSystem system)
 {
   PetscErrorCode  ierr;
   DM              dm_stokes,dm_coefficient;
@@ -92,7 +86,7 @@ static PetscErrorCode CreateSystem_Temp(StagBLStokesParameters *parameters,StagB
   Vec             *pRhs;
   Mat             A;
   Vec             rhs;
-  PetscReal       hx,hy,hxAvgInv,Kcont,Kbound,etaCharacteristic;
+  PetscReal       hx,hy,hxAvgInv,Kcont,Kbound;
   PetscInt        pinx,piny;
   const PetscBool pinPressure = PETSC_TRUE;
   Vec             coeffLocal;
@@ -112,10 +106,9 @@ static PetscErrorCode CreateSystem_Temp(StagBLStokesParameters *parameters,StagB
   ierr = DMStagGetGlobalSizes(dm_stokes,&N[0],&N[1],NULL);CHKERRQ(ierr);
   hx = (parameters->xmax-parameters->xmin)/N[0];
   hy = (parameters->ymax-parameters->ymin)/N[1];
-  etaCharacteristic = PetscMin(parameters->eta1,parameters->eta2);
   hxAvgInv = 2.0/(hx + hy);
-  Kcont = etaCharacteristic*hxAvgInv;
-  Kbound = etaCharacteristic*hxAvgInv*hxAvgInv;
+  Kcont = parameters->eta_characteristic*hxAvgInv;
+  Kbound = parameters->eta_characteristic*hxAvgInv*hxAvgInv;
   if (N[0] < 2) SETERRQ(PetscObjectComm((PetscObject)dm_stokes),PETSC_ERR_SUP,"Not implemented for a single element in the x direction");
   pinx = 1; piny = 0;
 

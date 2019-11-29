@@ -19,14 +19,15 @@ static const char *help = "StagBLDemo2D: Demonstrate features and usage of StagB
 
 int main(int argc, char** argv)
 {
-  PetscErrorCode ierr;
-  int             rank,size;
-  StagBLArray     x;
-  StagBLSystem    system;
-  StagBLSolver    solver;
-  MPI_Comm        comm;
-  char            mode[1024];
-  Ctx             ctx;
+  PetscErrorCode         ierr;
+  int                    rank,size;
+  StagBLArray            x;
+  StagBLSystem           system;
+  StagBLSolver           solver;
+  MPI_Comm               comm;
+  char                   mode[1024];
+  Ctx                    ctx;
+  StagBLStokesParameters parameters;
 
   /* Initialize MPI and print a message
 
@@ -82,8 +83,20 @@ int main(int argc, char** argv)
   /* Coefficient data */
   ierr = PopulateCoefficientData(ctx,mode);CHKERRQ(ierr);
 
-  /* Create a simple Stokes system, using a simple interface which doesn't expose many options */
-  ierr = StagBLCreateSimpleStokesSystem(ctx->stokesGrid,ctx->coeffArray,&system);CHKERRQ(ierr);
+  /* Create a simple Stokes system, but directly populating some fields
+     of a struct and passing to a StagBL function */
+  ierr = StagBLStokesParametersCreate(&parameters);CHKERRQ(ierr);
+  parameters->coefficient_array  = ctx->coeffArray;
+  parameters->stokes_grid        = ctx->stokesGrid;
+  parameters->uniform_grid       = PETSC_TRUE;
+  parameters->xmin               = 0;
+  parameters->xmax               = 1e6;
+  parameters->ymin               = 0.0;
+  parameters->ymax               = 1.5e6;
+  parameters->gy                 = 10.0;
+  parameters->eta_characteristic = 1e20; /* A minimum viscosity */
+  ierr = StagBLCreateStokesSystem(parameters,&system);CHKERRQ(ierr);
+  ierr = StagBLStokesParametersDestroy(&parameters);CHKERRQ(ierr);
 
   /* Solve the system  */
   ierr = StagBLSystemCreateStagBLSolver(system,&solver);CHKERRQ(ierr);
