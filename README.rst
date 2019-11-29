@@ -38,9 +38,18 @@ Clone a custom branch of PETSc
 
     git clone -b master https://bitbucket.org/psanan/petsc -b psanan/stagbl-working-base petsc-stagbl
 
-Configure PETSc with ``--download-suitesparse``, build, and check. See
+Configure PETSc with SuiteSparse (includes UMFPACK) and SuperLU_dist, build, and check. See
 `the PETSc website <https://www.mcs.anl.gov/petsc/documentation/installation.html>`__
-for more.
+for full information. An example configuration command is:
+
+::
+
+    cd petsc-stagbl
+    ./configure --download-mpich --with-debugging=0 --download-suitesparse --download-superlu_dist --download-metis --download-parmetis --download-hdf5
+    # Build and check as instructed
+    cd ..
+
+Note the values of ``PETSC_ARCH`` and ``PETSC_DIR`` defined during configuration.
 
 Clone this repository, including submodules (using git 2.13 or later)
 
@@ -63,7 +72,7 @@ From the ``stagbl`` directory that is created,
 .. image:: docs/resources/stagbldemo2d_quickstart.png
    :alt: stagbl2ddemo quickstart
 
-In parallel, if you have configured PETSc with SuperLU_dist, also try
+In parallel, try
 
 ::
 
