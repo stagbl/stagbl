@@ -3,14 +3,14 @@
 
 #include "stagbl.h"
 
-struct _p_StagBLSystemOps {
+struct data_StagBLSystemOps {
   PetscErrorCode (*create)(StagBLSystem);
   PetscErrorCode (*destroy)(StagBLSystem);
 };
 
-typedef struct _p_StagBLSystemOps *StagBLSystemOps;
+typedef struct data_StagBLSystemOps *StagBLSystemOps;
 
-struct _p_StagBLSystem
+struct data_StagBLSystem
 {
   StagBLSystemOps ops;
   const char    *type;

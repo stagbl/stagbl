@@ -3,16 +3,16 @@
 
 #include "stagbl.h"
 
-struct _p_StagBLGridOps {
+struct data_StagBLGridOps {
   PetscErrorCode (*create)(StagBLGrid);
   PetscErrorCode (*createcompatiblestagblgrid)(StagBLGrid,PetscInt,PetscInt,PetscInt,PetscInt,StagBLGrid*);
   PetscErrorCode (*createstagblarray)(StagBLGrid,StagBLArray*);
   PetscErrorCode (*destroy)(StagBLGrid);
 };
 
-typedef struct _p_StagBLGridOps *StagBLGridOps;
+typedef struct data_StagBLGridOps *StagBLGridOps;
 
-struct _p_StagBLGrid
+struct data_StagBLGrid
 {
   StagBLGridOps ops;
   const char    *type;

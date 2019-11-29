@@ -12,20 +12,20 @@ PetscErrorCode StagBLFinalize();
 #define STAGBL_UNUSED(x) (void) x
 
 /* StagBLGrid Data */
-struct _p_StagBLGrid;
-typedef struct _p_StagBLGrid *StagBLGrid;
+struct data_StagBLGrid;
+typedef struct data_StagBLGrid *StagBLGrid;
 
 /* StagBLArray Data */
-struct _p_StagBLArray;
-typedef struct _p_StagBLArray *StagBLArray;
+struct data_StagBLArray;
+typedef struct data_StagBLArray *StagBLArray;
 
 /* StagBLSystem Data */
-struct _p_StagBLSystem;
-typedef struct _p_StagBLSystem *StagBLSystem;
+struct data_StagBLSystem;
+typedef struct data_StagBLSystem *StagBLSystem;
 
 /* StagBLSolver Data */
-struct _p_StagBLSolver;
-typedef struct _p_StagBLSolver *StagBLSolver;
+struct data_StagBLSolver;
+typedef struct data_StagBLSolver *StagBLSolver;
 
 /* StagBLGrid Functions */
 PetscErrorCode StagBLGridCreate(StagBLGrid*);

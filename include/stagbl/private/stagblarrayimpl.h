@@ -3,14 +3,14 @@
 
 #include "stagbl.h"
 
-struct _p_StagBLArrayOps {
+struct data_StagBLArrayOps {
   PetscErrorCode (*create)(StagBLArray);
   PetscErrorCode (*destroy)(StagBLArray);
 };
 
-typedef struct _p_StagBLArrayOps *StagBLArrayOps;
+typedef struct data_StagBLArrayOps *StagBLArrayOps;
 
-struct _p_StagBLArray
+struct data_StagBLArray
 {
   StagBLArrayOps ops;
   StagBLGrid     grid;
