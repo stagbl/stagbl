@@ -77,13 +77,13 @@ PetscErrorCode StagBLSolverSolve(StagBLSolver,StagBLArray);
 PetscErrorCode StagBLSolverCreate_PETSc(StagBLSolver);
 
 /* Stokes */
-typedef struct data_StagBLStokesParameters {
+struct data_StagBLStokesParameters {
   StagBLGrid  stokes_grid;
   StagBLArray coefficient_array;
   PetscBool   uniform_grid;
   PetscReal   xmin,xmax,ymin,ymax,zmin,zmax;
   PetscReal   gy,eta_characteristic;
-} data_StagBLStokesParameters;
+};
 typedef struct data_StagBLStokesParameters *StagBLStokesParameters;
 
 PetscErrorCode StagBLStokesParametersCreate(StagBLStokesParameters*);
