@@ -6,7 +6,8 @@
 PetscErrorCode StagBLInitialize(int,char**,const char*,MPI_Comm);
 PetscErrorCode StagBLFinalize();
 
-#define StagBLError(comm,msg) SETERRQ1(comm,PETSC_ERR_LIB,"StagBL Error: %s",msg);
+#define StagBLError(comm,str) SETERRQ(comm,PETSC_ERR_LIB,"StagBL Error: "str);
+#define StagBLError1(comm,str,arg) SETERRQ1(comm,PETSC_ERR_LIB,"StagBL Error: "str,arg);
 
 #define STAGBL_UNUSED(x) (void) x
 
