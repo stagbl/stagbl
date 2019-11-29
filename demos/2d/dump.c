@@ -124,6 +124,7 @@ PetscErrorCode DumpSolution(Ctx ctx,StagBLArray x)
   ierr = VecDestroy(&vecEtaCorner);CHKERRQ(ierr);
   ierr = VecDestroy(&vecEtaElement);CHKERRQ(ierr);
   ierr = VecDestroy(&vecRho);CHKERRQ(ierr);
+  ierr = VecDestroy(&velAvg);CHKERRQ(ierr);
   ierr = DMDestroy(&daVelAvg);CHKERRQ(ierr);
   ierr = DMDestroy(&daP);CHKERRQ(ierr);
   ierr = DMDestroy(&daEtaCorner);CHKERRQ(ierr);
