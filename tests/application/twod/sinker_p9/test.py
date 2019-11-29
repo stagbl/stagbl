@@ -6,6 +6,7 @@ def test() :
             [
                 '-mode sinker',
                 '-debug_ascii_dump',
+                '-pc_type lu','-pc_factor_mat_solver_type mumps','-mat_mumps_icntl_23 100',
             ],
             'x.matlabascii.txt'
             )
