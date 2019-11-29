@@ -1,9 +1,11 @@
+static const char *help = "StagBLDemo3D: Demonstrate features and usage of StagBL, in 3 dimensions, with simple geodynamic box model setups\n\n";
+
 #include <stagbl.h>
 #include <stdio.h>
-#include <petsc.h> // Note that we still have work to do guarding for the non-PETSc case (probably define STAGBL_HAVE_PETSC in a configured include file eventually)
+#include <petsc.h>
 
-// Note: This is not a complete demo yet. It is mainly here to test 3d grid functionality and will be completely changed.
-// TODO: error checking for all StagBL functions
+// Note: This is not a complete demo yet.
+// It is mainly here to test 3d grid functionality and will be completely changed.
 
 /* Shorter, more convenient names for DMStagLocation entries */
 #define BACK_DOWN_LEFT   DMSTAG_BACK_DOWN_LEFT
@@ -72,7 +74,6 @@ int main(int argc, char** argv)
   StagBLGrid   grid;
   StagBLArray  x;
   StagBLSystem system;
-  StagBLSolver solver;
   MPI_Comm     comm;
   PetscInt     Nx,Ny,Nz;
 
@@ -84,7 +85,6 @@ int main(int argc, char** argv)
   Vec            vecx,vecb;
   Mat            *pmatA;
   Mat            matA;
-  KSP            *pksp;
   KSP            ksp;
 
   /* Initialize MPI and print a message */
@@ -99,7 +99,7 @@ int main(int argc, char** argv)
   MPI_Barrier(comm);
 
   /* Initialize StagBL (which will initialize PETSc if needbe) */
-  StagBLInitialize(argc,argv,comm);
+  ierr = StagBLInitialize(argc,argv,help,comm);CHKERRQ(ierr);
 
   /* Populate application context */
   ierr = PetscMalloc1(1,&ctx);CHKERRQ(ierr);
@@ -127,8 +127,8 @@ int main(int argc, char** argv)
     ierr = PetscOptionsGetInt(NULL,NULL,"-ny",&Ny,NULL);CHKERRQ(ierr);
     ierr = PetscOptionsGetInt(NULL,NULL,"-nz",&Nz,NULL);CHKERRQ(ierr);
   }
-  StagBLGridCreate(&grid);
-  StagBLGridPETScGetDMPointer(grid,&pdm);
+  ierr = StagBLGridCreate(&grid);CHKERRQ(ierr);
+  ierr = StagBLGridPETScGetDMPointer(grid,&pdm);CHKERRQ(ierr);
   ierr = DMStagCreate3d(
       comm,
       DM_BOUNDARY_NONE,DM_BOUNDARY_NONE,DM_BOUNDARY_NONE,
@@ -165,25 +165,21 @@ int main(int argc, char** argv)
   ierr = PopulateCoefficientData(ctx);CHKERRQ(ierr);
 
   // Create a system
-  StagBLGridCreateStagBLSystem(grid,&system);
-  StagBLGridCreateStagBLArray(grid,&x);
+  ierr = StagBLGridCreateStagBLSystem(grid,&system);CHKERRQ(ierr);
+  ierr = StagBLGridCreateStagBLArray(grid,&x);CHKERRQ(ierr);
 
-  StagBLArrayPETScGetGlobalVecPointer(x,&pvecx);
+  ierr = StagBLArrayPETScGetGlobalVecPointer(x,&pvecx);CHKERRQ(ierr);
   ierr = DMCreateGlobalVector(ctx->dmStokes,pvecx);
   vecx = *pvecx;
 
-  StagBLSystemPETScGetVecPointer(system,&pvecb);
-  StagBLSystemPETScGetMatPointer(system,&pmatA);
+  ierr = StagBLSystemPETScGetVecPointer(system,&pvecb);CHKERRQ(ierr);
+  ierr = StagBLSystemPETScGetMatPointer(system,&pmatA);CHKERRQ(ierr);
   ierr = CreateSystem(ctx,pmatA,pvecb);CHKERRQ(ierr);
   matA = *pmatA;
   vecb = *pvecb;
 
-  // Solve the system (you will likely want to choose a solver from the command line)
-  StagBLSolverCreate(system,&solver);
-  StagBLSolverPETScGetKSPPointer(solver,&pksp);
-
-  ierr = KSPCreate(ctx->comm,pksp);CHKERRQ(ierr);
-  ksp = *pksp;
+  // Solve the system (here just with a KSP, but later we'll use a proper StagBLSolver)
+  ierr = KSPCreate(ctx->comm,&ksp);CHKERRQ(ierr);
   ierr = KSPSetOperators(ksp,matA,matA);CHKERRQ(ierr);
   ierr = KSPSetFromOptions(ksp);CHKERRQ(ierr);
   ierr = KSPSolve(ksp,vecb,vecx);CHKERRQ(ierr);
@@ -199,19 +195,18 @@ int main(int argc, char** argv)
   /* Free data */
   ierr = VecDestroy(pvecx);CHKERRQ(ierr);
   ierr = VecDestroy(&ctx->coeff);CHKERRQ(ierr);
-  StagBLArrayDestroy(&x);
-  StagBLSystemDestroy(&system);
-  StagBLSolverDestroy(&solver);
-  StagBLGridDestroy(&grid);
+  ierr = StagBLArrayDestroy(&x);CHKERRQ(ierr);
+  ierr = StagBLSystemDestroy(&system);CHKERRQ(ierr);
+  ierr = StagBLGridDestroy(&grid);CHKERRQ(ierr);
   ierr = DMDestroy(&ctx->dmCoeff);CHKERRQ(ierr);
   ierr = PetscFree(ctx);CHKERRQ(ierr);
 
-  StagBLFinalize();
+  ierr = StagBLFinalize();
 
-  return 0;
+  return ierr;
 }
 
-// TODO properly scale (if using this placeholder version)
+// Note: this is not  properly scaled
 static PetscErrorCode CreateSystem(const Ctx ctx,Mat *pA,Vec *pRhs)
 {
   PetscErrorCode ierr;

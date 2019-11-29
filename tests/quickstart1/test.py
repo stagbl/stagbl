@@ -15,7 +15,7 @@ def test() :
     if not STAGBL_ARCH :
         raise RuntimeError('STAGBL_ARCH not defined in environment')
 
-    command_details = "stagbldemo2d -pc_type lu -pc_factor_mat_solver_type umfpack"
+    command_details = "stagbldemo2d"
 
     # Search the README.md to make sure the expected command is there
     with open(os.path.join(STAGBL_DIR,'README.rst')) as readme_file :

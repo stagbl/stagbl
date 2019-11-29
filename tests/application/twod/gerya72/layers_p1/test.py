@@ -4,7 +4,6 @@ def test() :
             'stagbldemo2d',
             1,
             [
-                '-pc_type lu -pc_factor_mat_solver_type umfpack', 
                 '-debug_ascii_dump',
             ],
             'x.matlabascii.txt'

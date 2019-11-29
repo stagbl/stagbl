@@ -1,9 +1,9 @@
+static const char *help = "StagBLDemo2D: Demonstrate features and usage of StagBL, in 2 dimensions, with simple geodynamic box model setups\n\n";
+
 #include "args.h"
 #include "coeff.h"
 #include "ctx.h"
 #include "dump.h"
-#include "system.h"
-#include "system2.h"
 #include <stagbl.h>
 #include <stdio.h>
 #include <mpi.h>
@@ -18,19 +18,24 @@
     discretization and solver "base layer". */
 
 int main(int argc, char** argv)
-
 {
-  PetscErrorCode ierr;
-  int             rank,size;
-  StagBLArray     x;
-  StagBLSystem    system;
-  StagBLSolver    solver;
-  MPI_Comm        comm;
-  char            mode[1024];
-  PetscInt       systemtype;
-  Ctx             ctx;
+  PetscErrorCode         ierr;
+  int                    rank,size;
+  StagBLArray            x;
+  StagBLSystem           system;
+  StagBLSolver           solver;
+  MPI_Comm               comm;
+  char                   mode[1024];
+  Ctx                    ctx;
+  StagBLStokesParameters parameters;
 
-  /* Initialize MPI and print a message */
+  /* Initialize MPI and print a message
+
+     This is not required: one can simply call StagBLInitialize,
+     which will also initialize MPI and allow one to work
+     with PETSC_COMM_WORLD. We include this logic here to
+     demonstrate how one can work with StagBL as a library within
+     a larger application which already uses MPI.  */
   MPI_Init(&argc,&argv);
   comm = MPI_COMM_WORLD;
   MPI_Comm_size(comm,&size);
@@ -39,10 +44,11 @@ int main(int argc, char** argv)
     printf("=== StagBLDemo2d ===\n");
     printf("%d ranks\n",size);
   }
+  fflush(stdout);
   MPI_Barrier(comm);
 
-  /* Initialize StagBL (which will initialize PETSc if needbe) */
-  StagBLInitialize(argc,argv,comm);
+  /* Initialize StagBL (which will initialize PETSc, and MPI if not initialized) */
+  ierr = StagBLInitialize(argc,argv,help,comm);CHKERRQ(ierr);
 
   /* Accept an argument for the "mode". StagBLDemo2D is not intended
      to be a full application, but rather a demonstration, test case,
@@ -51,10 +57,6 @@ int main(int argc, char** argv)
      major modification, and most parameters are set by choosing a
      mode. Other options can of course modify some of these */
   ierr = GetStringArg("-mode","gerya72",sizeof(mode),mode);CHKERRQ(ierr);
-
-  /* Accept argument for system type and coefficient structure */
-  // TODO : make a special gerya72_repro mode which uses the other system...
-  systemtype = 1;
 
   /* Populate application context (Create with a given mode, then set up) */
   ierr = CtxCreate(comm,mode,&ctx);CHKERRQ(ierr);
@@ -72,26 +74,31 @@ int main(int argc, char** argv)
   ierr = CtxSetupFromGrid(ctx);CHKERRQ(ierr);
 
   /* Create another, compatible grid to represent coefficients */
- {
-   const PetscInt dofPerVertex  = 2;
-   const PetscInt dofPerElement = 1;
-   ierr = StagBLGridCreateCompatibleStagBLGrid(ctx->stokesGrid,dofPerVertex,0,dofPerElement,0,&ctx->coeffGrid);CHKERRQ(ierr);
- }
+  {
+    const PetscInt dofPerVertex  = 2;
+    const PetscInt dofPerElement = 1;
+    ierr = StagBLGridCreateCompatibleStagBLGrid(ctx->stokesGrid,dofPerVertex,0,dofPerElement,0,&ctx->coeffGrid);CHKERRQ(ierr);
+  }
 
   /* Coefficient data */
   ierr = PopulateCoefficientData(ctx,mode);CHKERRQ(ierr);
 
-  /* Create a system */
-  ierr = StagBLGridCreateStagBLSystem(ctx->stokesGrid,&system);CHKERRQ(ierr);
+  /* Create a simple Stokes system, but directly populating some fields
+     of a struct and passing to a StagBL function */
+  ierr = StagBLStokesParametersCreate(&parameters);CHKERRQ(ierr);
+  parameters->coefficient_array  = ctx->coeffArray;
+  parameters->stokes_grid        = ctx->stokesGrid;
+  parameters->uniform_grid       = PETSC_TRUE;
+  parameters->xmin               = 0;
+  parameters->xmax               = 1e6;
+  parameters->ymin               = 0.0;
+  parameters->ymax               = 1.5e6;
+  parameters->gy                 = 10.0;
+  parameters->eta_characteristic = 1e20; /* A minimum viscosity */
+  ierr = StagBLCreateStokesSystem(parameters,&system);CHKERRQ(ierr);
+  ierr = StagBLStokesParametersDestroy(&parameters);CHKERRQ(ierr);
 
-  if (systemtype == 1) {
-    ierr = CreateSystem(ctx,system);CHKERRQ(ierr);
-  } else if (systemtype == 2) {
-    ierr = CreateSystem2(ctx,system);CHKERRQ(ierr);
-  } else StagBLError(ctx->comm,"Unsupported system type");
-
-  /* Solve the system (you will likely want to specify a solver from the command line,
-     e.g. -pc_type lu -pc_factor_mat_solver_type umfpack) */
+  /* Solve the system  */
   ierr = StagBLSystemCreateStagBLSolver(system,&solver);CHKERRQ(ierr);
   ierr = StagBLGridCreateStagBLArray(ctx->stokesGrid,&x);CHKERRQ(ierr);
   ierr = StagBLSolverSolve(solver,x);CHKERRQ(ierr);
@@ -106,6 +113,7 @@ int main(int argc, char** argv)
   ierr = StagBLGridDestroy(&ctx->stokesGrid);CHKERRQ(ierr);
   ierr = StagBLGridDestroy(&ctx->coeffGrid);CHKERRQ(ierr);
 
-  StagBLFinalize();
-  return 0;
+  /* Finalize StagBL (which includes finalizing PETSc) */
+  ierr = StagBLFinalize();
+  return ierr;
 }

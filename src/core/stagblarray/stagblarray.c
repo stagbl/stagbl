@@ -4,6 +4,8 @@
 PetscErrorCode StagBLArrayCreate(StagBLGrid grid, StagBLArray *stagblarray)
 {
   PetscErrorCode ierr;
+
+  PetscFunctionBegin;
   *stagblarray = malloc(sizeof(struct _p_StagBLArray));
   (*stagblarray)->ops = calloc(1,sizeof(struct _p_StagBLArrayOps));
 
@@ -13,12 +15,14 @@ PetscErrorCode StagBLArrayCreate(StagBLGrid grid, StagBLArray *stagblarray)
   (*stagblarray)->type = STAGBLARRAYPETSC;
   (*stagblarray)->ops->create = StagBLArrayCreate_PETSc; // Sets other ops
   ierr = ((*stagblarray)->ops->create)(*stagblarray);CHKERRQ(ierr);
-  return 0;
+  PetscFunctionReturn(0);
 }
 
 PetscErrorCode StagBLArrayDestroy(StagBLArray *stagblarray)
 {
   PetscErrorCode ierr;
+
+  PetscFunctionBegin;
   if (!*stagblarray) return 0;
   if ((*stagblarray)->ops->destroy) {
     ierr = ((*stagblarray)->ops->destroy)(*stagblarray);CHKERRQ(ierr);
@@ -26,11 +30,12 @@ PetscErrorCode StagBLArrayDestroy(StagBLArray *stagblarray)
   free((*stagblarray)->ops);
   free(*stagblarray);
   *stagblarray = NULL;
-  return 0;
+  PetscFunctionReturn(0);
 }
 
 PetscErrorCode StagBLArrayGetStagBLGrid(StagBLArray stagblarray,StagBLGrid *grid)
 {
+  PetscFunctionBegin;
   *grid = stagblarray->grid;
-  return 0;
+  PetscFunctionReturn(0);
 }

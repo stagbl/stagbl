@@ -5,6 +5,7 @@ Welcome to StagBL's documentation!
 
 .. toctree ::
   design
+  demos
 
 ..
   This should show something, if you added some formatted comments (https://hawkmoth.readthedocs.io/en/latest/syntax.html)
