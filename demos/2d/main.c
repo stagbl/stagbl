@@ -70,8 +70,6 @@ int main(int argc, char** argv)
      factorization-based solvers. */
   ierr = StagBLGridCreateStokes2DBox(comm,30,20,0.0,ctx->xmax,0.0,ctx->ymax,&ctx->stokes_grid);CHKERRQ(ierr);
 
-  /* Get scaling constants and node to pin, knowing grid dimensions */
-  ierr = CtxSetupFromGrid(ctx);CHKERRQ(ierr);
 
   /* Create another, compatible grid to represent coefficients */
   {

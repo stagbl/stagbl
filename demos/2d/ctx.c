@@ -39,24 +39,3 @@ PetscErrorCode CtxDestroy(Ctx *pctx)
   *pctx = NULL;
   PetscFunctionReturn(0);
 }
-
-PetscErrorCode CtxSetupFromGrid(Ctx ctx)
-{
-  PetscErrorCode ierr;
-  DM         dmStokes;
-  PetscInt  N[2];
-  PetscScalar hxAvgInv;
-
-  PetscFunctionBeginUser;
-  ierr = StagBLGridPETScGetDM(ctx->stokes_grid,&dmStokes);CHKERRQ(ierr);
-  ierr = DMStagGetGlobalSizes(dmStokes,&N[0],&N[1],NULL);CHKERRQ(ierr);
-  ctx->hxCharacteristic = (ctx->xmax-ctx->xmin)/N[0];
-  ctx->hyCharacteristic = (ctx->ymax-ctx->ymin)/N[1];
-  ctx->etaCharacteristic = PetscMin(ctx->eta1,ctx->eta2);
-  hxAvgInv = 2.0/(ctx->hxCharacteristic + ctx->hyCharacteristic);
-  ctx->Kcont = ctx->etaCharacteristic*hxAvgInv;
-  ctx->Kbound = ctx->etaCharacteristic*hxAvgInv*hxAvgInv;
-  if (N[0] < 2) SETERRQ(ctx->comm,PETSC_ERR_SUP,"Not implemented for a single element in the x direction");
-  ctx->pinx = 1; ctx->piny = 0;
-  PetscFunctionReturn(0);
-}
