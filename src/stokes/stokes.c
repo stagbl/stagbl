@@ -104,8 +104,10 @@ static PetscErrorCode CreateSystem_Temp(StagBLStokesParameters parameters,StagBL
 
   /* Compute some parameters */
   ierr = DMStagGetGlobalSizes(dm_stokes,&N[0],&N[1],NULL);CHKERRQ(ierr);
-  hx = (parameters->xmax-parameters->xmin)/N[0];
-  hy = (parameters->ymax-parameters->ymin)/N[1];
+  if (parameters->uniform_grid) {
+    hx = (parameters->xmax-parameters->xmin)/N[0];
+    hy = (parameters->ymax-parameters->ymin)/N[1];
+  } else StagBLError(PetscObjectComm((PetscObject)dm_stokes),"Non-uniform grids not supported yet");
   hxAvgInv = 2.0/(hx + hy);
   Kcont = parameters->eta_characteristic*hxAvgInv;
   Kbound = parameters->eta_characteristic*hxAvgInv*hxAvgInv;
