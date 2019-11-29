@@ -5,6 +5,7 @@ PetscErrorCode StagBLGridCreate(StagBLGrid *stagblgrid)
 {
   PetscErrorCode ierr;
 
+  PetscFunctionBegin;
   ierr = PetscMalloc1(1,stagblgrid);CHKERRQ(ierr);
   ierr = PetscCalloc1(1,&(*stagblgrid)->ops);CHKERRQ(ierr);
 
@@ -12,7 +13,7 @@ PetscErrorCode StagBLGridCreate(StagBLGrid *stagblgrid)
   (*stagblgrid)->type = STAGBLGRIDPETSC;
   (*stagblgrid)->ops->create = StagBLGridCreate_PETSc; // Sets other ops
   ierr = ((*stagblgrid)->ops->create)(*stagblgrid);CHKERRQ(ierr);
-  return 0;
+  PetscFunctionReturn(0);
 }
 
 PetscErrorCode StagBLGridCreateCompatibleStagBLGrid(StagBLGrid grid,PetscInt dof0,PetscInt dof1,PetscInt dof2,PetscInt dof3,StagBLGrid *newgrid)
