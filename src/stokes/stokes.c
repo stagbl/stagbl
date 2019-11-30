@@ -66,6 +66,7 @@ PetscErrorCode StagBLCreateStokesSystem(StagBLStokesParameters parameters, StagB
 // TODO this is temporary as we refactor
 
 /* Shorter, more convenient names for DMStagLocation entries */
+// TODO get rid of this
 #define DOWN_LEFT  DMSTAG_DOWN_LEFT
 #define DOWN       DMSTAG_DOWN
 #define DOWN_RIGHT DMSTAG_DOWN_RIGHT
@@ -86,10 +87,10 @@ static PetscErrorCode CreateSystem_Temp(StagBLStokesParameters parameters,StagBL
   Vec             *pRhs;
   Mat             A;
   Vec             rhs;
-  PetscReal       hx,hy,hxAvgInv,Kcont,Kbound;
+  PetscReal       hx,hy,dv,hxAvgInv,Kcont,Kbound;
   PetscInt        pinx,piny;
-  const PetscBool pinPressure = PETSC_TRUE;
-  Vec             coeffLocal;
+  const PetscBool pin_pressure = PETSC_TRUE;
+  Vec             coeff_local;
   StagBLGrid      coefficient_grid;
 
   PetscFunctionBeginUser;
@@ -100,13 +101,14 @@ static PetscErrorCode CreateSystem_Temp(StagBLStokesParameters parameters,StagBL
   ierr = StagBLArrayGetStagBLGrid(parameters->coefficient_array,&coefficient_grid);CHKERRQ(ierr);
   ierr = StagBLGridPETScGetDM(parameters->stokes_grid,&dm_stokes);CHKERRQ(ierr);
   ierr = StagBLGridPETScGetDM(coefficient_grid,&dm_coefficient);CHKERRQ(ierr);
-  ierr = StagBLArrayPETScGetLocalVec(parameters->coefficient_array,&coeffLocal);CHKERRQ(ierr);
+  ierr = StagBLArrayPETScGetLocalVec(parameters->coefficient_array,&coeff_local);CHKERRQ(ierr);
 
   /* Compute some parameters */
   ierr = DMStagGetGlobalSizes(dm_stokes,&N[0],&N[1],NULL);CHKERRQ(ierr);
   if (parameters->uniform_grid) {
     hx = (parameters->xmax-parameters->xmin)/N[0];
     hy = (parameters->ymax-parameters->ymin)/N[1];
+    dv = hx*hy;
   } else StagBLError(PetscObjectComm((PetscObject)dm_stokes),"Non-uniform grids not supported yet");
   hxAvgInv = 2.0/(hx + hy);
   Kcont = parameters->eta_characteristic*hxAvgInv;
@@ -159,62 +161,62 @@ static PetscErrorCode CreateSystem_Temp(StagBLStokesParameters parameters,StagBL
         /* get rho values  and compute rhs value*/
         rhoPoint[0].i = ex; rhoPoint[0].j = ey; rhoPoint[0].loc = DOWN_LEFT;  rhoPoint[0].c = 1;
         rhoPoint[1].i = ex; rhoPoint[1].j = ey; rhoPoint[1].loc = DOWN_RIGHT; rhoPoint[1].c = 1;
-        ierr = DMStagVecGetValuesStencil(dm_coefficient,coeffLocal,2,rhoPoint,rho);CHKERRQ(ierr);
-        valRhs = -parameters->gy * 0.5 * (rho[0] + rho[1]);
+        ierr = DMStagVecGetValuesStencil(dm_coefficient,coeff_local,2,rhoPoint,rho);CHKERRQ(ierr);
+        valRhs = -parameters->gy * dv * 0.5 * (rho[0] + rho[1]);
 
         /* Get eta values */
         etaPoint[0].i = ex; etaPoint[0].j = ey;   etaPoint[0].loc = DOWN_LEFT;  etaPoint[0].c = 0; /* Left  */
         etaPoint[1].i = ex; etaPoint[1].j = ey;   etaPoint[1].loc = DOWN_RIGHT; etaPoint[1].c = 0; /* Right */
         etaPoint[2].i = ex; etaPoint[2].j = ey;   etaPoint[2].loc = ELEMENT;    etaPoint[2].c = 0; /* Up    */
         etaPoint[3].i = ex; etaPoint[3].j = ey-1; etaPoint[3].loc = ELEMENT;    etaPoint[3].c = 0; /* Down  */
-        ierr = DMStagVecGetValuesStencil(dm_coefficient,coeffLocal,4,etaPoint,eta);CHKERRQ(ierr);
+        ierr = DMStagVecGetValuesStencil(dm_coefficient,coeff_local,4,etaPoint,eta);CHKERRQ(ierr);
         etaLeft = eta[0]; etaRight = eta[1]; etaUp = eta[2]; etaDown = eta[3];
 
         if (ex == 0) {
           /* Left boundary y velocity stencil */
           nEntries = 10;
           row.i    = ex  ; row.j    = ey  ; row.loc    = DOWN;     row.c     = 0;
-          col[0].i = ex  ; col[0].j = ey  ; col[0].loc = DOWN;     col[0].c  = 0; valA[0]  = -2.0 * (etaDown + etaUp) / (hy*hy) - (etaRight) /(hx*hx);
-          col[1].i = ex  ; col[1].j = ey-1; col[1].loc = DOWN;     col[1].c  = 0; valA[1]  =  2.0 * etaDown  / (hy*hy);
-          col[2].i = ex  ; col[2].j = ey+1; col[2].loc = DOWN;     col[2].c  = 0; valA[2]  =  2.0 * etaUp    / (hy*hy);
+          col[0].i = ex  ; col[0].j = ey  ; col[0].loc = DOWN;     col[0].c  = 0; valA[0]  = -2.0 * dv * (etaDown + etaUp) / (hy*hy) - dv * (etaRight) /(hx*hx);
+          col[1].i = ex  ; col[1].j = ey-1; col[1].loc = DOWN;     col[1].c  = 0; valA[1]  =  2.0 * dv * etaDown  / (hy*hy);
+          col[2].i = ex  ; col[2].j = ey+1; col[2].loc = DOWN;     col[2].c  = 0; valA[2]  =  2.0 * dv * etaUp    / (hy*hy);
           /* No left entry */
-          col[3].i = ex+1; col[3].j = ey  ; col[3].loc = DOWN;     col[3].c  = 0; valA[3]  =        etaRight / (hx*hx);
-          col[4].i = ex  ; col[4].j = ey-1; col[4].loc = LEFT;     col[4].c  = 0; valA[4]  =        etaLeft  / (hx*hy); /* down left x edge */
-          col[5].i = ex  ; col[5].j = ey-1; col[5].loc = RIGHT;    col[5].c  = 0; valA[5]  = -      etaRight / (hx*hy); /* down right x edge */
-          col[6].i = ex  ; col[6].j = ey  ; col[6].loc = LEFT;     col[6].c  = 0; valA[6]  = -      etaLeft  / (hx*hy); /* up left x edge */
-          col[7].i = ex  ; col[7].j = ey  ; col[7].loc = RIGHT;    col[7].c  = 0; valA[7]  =        etaRight / (hx*hy); /* up right x edge */
-          col[8].i = ex  ; col[8].j = ey-1; col[8].loc = ELEMENT;  col[8].c  = 0; valA[8]  =  Kcont / hy;
-          col[9].i = ex  ; col[9].j = ey  ; col[9].loc = ELEMENT;  col[9].c  = 0; valA[9]  = -Kcont / hy;
+          col[3].i = ex+1; col[3].j = ey  ; col[3].loc = DOWN;     col[3].c  = 0; valA[3]  =        dv * etaRight / (hx*hx);
+          col[4].i = ex  ; col[4].j = ey-1; col[4].loc = LEFT;     col[4].c  = 0; valA[4]  =        dv * etaLeft  / (hx*hy); /* down left x edge */
+          col[5].i = ex  ; col[5].j = ey-1; col[5].loc = RIGHT;    col[5].c  = 0; valA[5]  = -1.0 * dv * etaRight / (hx*hy); /* down right x edge */
+          col[6].i = ex  ; col[6].j = ey  ; col[6].loc = LEFT;     col[6].c  = 0; valA[6]  = -1.0 * dv * etaLeft  / (hx*hy); /* up left x edge */
+          col[7].i = ex  ; col[7].j = ey  ; col[7].loc = RIGHT;    col[7].c  = 0; valA[7]  =        dv * etaRight / (hx*hy); /* up right x edge */
+          col[8].i = ex  ; col[8].j = ey-1; col[8].loc = ELEMENT;  col[8].c  = 0; valA[8]  =        Kcont * dv / hy;
+          col[9].i = ex  ; col[9].j = ey  ; col[9].loc = ELEMENT;  col[9].c  = 0; valA[9]  = -1.0 * Kcont * dv / hy;
         } else if (ex == N[0]-1) {
           /* Right boundary y velocity stencil */
           nEntries = 10;
           row.i    = ex  ; row.j    = ey  ; row.loc    = DOWN;     row.c     = 0;
-          col[0].i = ex  ; col[0].j = ey  ; col[0].loc = DOWN;     col[0].c  = 0; valA[0]  = -2.0 * (etaDown + etaUp) / (hy*hy) - (etaLeft) /(hx*hx );
-          col[1].i = ex  ; col[1].j = ey-1; col[1].loc = DOWN;     col[1].c  = 0; valA[1]  =  2.0 * etaDown  / (hy*hy);
-          col[2].i = ex  ; col[2].j = ey+1; col[2].loc = DOWN;     col[2].c  = 0; valA[2]  =  2.0 * etaUp    / (hy*hy);
-          col[3].i = ex-1; col[3].j = ey  ; col[3].loc = DOWN;     col[3].c  = 0; valA[3]  =        etaLeft  / (hx*hx);
+          col[0].i = ex  ; col[0].j = ey  ; col[0].loc = DOWN;     col[0].c  = 0; valA[0]  = -2.0 * dv * (etaDown + etaUp) / (hy*hy) - dv * (etaLeft) /(hx*hx);
+          col[1].i = ex  ; col[1].j = ey-1; col[1].loc = DOWN;     col[1].c  = 0; valA[1]  =  2.0 * dv * etaDown  / (hy*hy);
+          col[2].i = ex  ; col[2].j = ey+1; col[2].loc = DOWN;     col[2].c  = 0; valA[2]  =  2.0 * dv * etaUp    / (hy*hy);
+          col[3].i = ex-1; col[3].j = ey  ; col[3].loc = DOWN;     col[3].c  = 0; valA[3]  =        dv * etaLeft  / (hx*hx);
           /* No right element */
-          col[4].i = ex  ; col[4].j = ey-1; col[4].loc = LEFT;     col[4].c  = 0; valA[4]  =        etaLeft  / (hx*hy); /* down left x edge */
-          col[5].i = ex  ; col[5].j = ey-1; col[5].loc = RIGHT;    col[5].c  = 0; valA[5]  = -      etaRight / (hx*hy); /* down right x edge */
-          col[6].i = ex  ; col[6].j = ey  ; col[6].loc = LEFT;     col[6].c  = 0; valA[7]  = -      etaLeft  / (hx*hy); /* up left x edge */
-          col[7].i = ex  ; col[7].j = ey  ; col[7].loc = RIGHT;    col[7].c  = 0; valA[7]  =        etaRight / (hx*hy); /* up right x edge */
-          col[8].i = ex  ; col[8].j = ey-1; col[8].loc = ELEMENT;  col[8].c  = 0; valA[8]  =  Kcont / hy;
-          col[9].i = ex  ; col[9].j = ey  ; col[9].loc = ELEMENT;  col[9].c  = 0; valA[9]  = -Kcont / hy;
+          col[4].i = ex  ; col[4].j = ey-1; col[4].loc = LEFT;     col[4].c  = 0; valA[4]  =        dv * etaLeft  / (hx*hy); /* down left x edge */
+          col[5].i = ex  ; col[5].j = ey-1; col[5].loc = RIGHT;    col[5].c  = 0; valA[5]  = -1.0 * dv * etaRight / (hx*hy); /* down right x edge */
+          col[6].i = ex  ; col[6].j = ey  ; col[6].loc = LEFT;     col[6].c  = 0; valA[7]  = -1.0 * dv * etaLeft  / (hx*hy); /* up left x edge */
+          col[7].i = ex  ; col[7].j = ey  ; col[7].loc = RIGHT;    col[7].c  = 0; valA[7]  =        dv * etaRight / (hx*hy); /* up right x edge */
+          col[8].i = ex  ; col[8].j = ey-1; col[8].loc = ELEMENT;  col[8].c  = 0; valA[8]  =        Kcont * dv / hy;
+          col[9].i = ex  ; col[9].j = ey  ; col[9].loc = ELEMENT;  col[9].c  = 0; valA[9]  = -1.0 * Kcont * dv / hy;
         } else {
           /* U_y interior equation */
           nEntries = 11;
           row.i    = ex  ; row.j     = ey  ; row.loc     = DOWN;     row.c     = 0;
-          col[0].i = ex  ; col[0].j  = ey  ; col[0].loc  = DOWN;     col[0].c  = 0; valA[0]  = -2.0 * (etaDown + etaUp) / (hy*hy) - (etaLeft + etaRight) /(hx*hx);
-          col[1].i = ex  ; col[1].j  = ey-1; col[1].loc  = DOWN;     col[1].c  = 0; valA[1]  =  2.0 * etaDown  / (hy*hy);
-          col[2].i = ex  ; col[2].j  = ey+1; col[2].loc  = DOWN;     col[2].c  = 0; valA[2]  =  2.0 * etaUp    / (hy*hy);
-          col[3].i = ex-1; col[3].j  = ey  ; col[3].loc  = DOWN;     col[3].c  = 0; valA[3]  =        etaLeft  / (hx*hx);
-          col[4].i = ex+1; col[4].j  = ey  ; col[4].loc  = DOWN;     col[4].c  = 0; valA[4]  =        etaRight / (hx*hx);
-          col[5].i = ex  ; col[5].j  = ey-1; col[5].loc  = LEFT;     col[5].c  = 0; valA[5]  =        etaLeft  / (hx*hy); /* down left x edge */
-          col[6].i = ex  ; col[6].j  = ey-1; col[6].loc  = RIGHT;    col[6].c  = 0; valA[6]  = -      etaRight / (hx*hy); /* down right x edge */
-          col[7].i = ex  ; col[7].j  = ey  ; col[7].loc  = LEFT;     col[7].c  = 0; valA[7]  = -      etaLeft  / (hx*hy); /* up left x edge */
-          col[8].i = ex  ; col[8].j  = ey  ; col[8].loc  = RIGHT;    col[8].c  = 0; valA[8]  =        etaRight / (hx*hy); /* up right x edge */
-          col[9].i = ex  ; col[9].j  = ey-1; col[9].loc  = ELEMENT;  col[9].c  = 0; valA[9]  =  Kcont / hy;
-          col[10].i = ex ; col[10].j = ey  ; col[10].loc = ELEMENT; col[10].c  = 0; valA[10] = -Kcont / hy;
+          col[0].i = ex  ; col[0].j  = ey  ; col[0].loc  = DOWN;     col[0].c  = 0; valA[0]  = -2.0 * dv * (etaDown + etaUp) / (hy*hy) - dv * (etaLeft + etaRight) /(hx*hx);
+          col[1].i = ex  ; col[1].j  = ey-1; col[1].loc  = DOWN;     col[1].c  = 0; valA[1]  =  2.0 * dv * etaDown  / (hy*hy);
+          col[2].i = ex  ; col[2].j  = ey+1; col[2].loc  = DOWN;     col[2].c  = 0; valA[2]  =  2.0 * dv * etaUp    / (hy*hy);
+          col[3].i = ex-1; col[3].j  = ey  ; col[3].loc  = DOWN;     col[3].c  = 0; valA[3]  =        dv * etaLeft  / (hx*hx);
+          col[4].i = ex+1; col[4].j  = ey  ; col[4].loc  = DOWN;     col[4].c  = 0; valA[4]  =        dv * etaRight / (hx*hx);
+          col[5].i = ex  ; col[5].j  = ey-1; col[5].loc  = LEFT;     col[5].c  = 0; valA[5]  =        dv * etaLeft  / (hx*hy); /* down left x edge */
+          col[6].i = ex  ; col[6].j  = ey-1; col[6].loc  = RIGHT;    col[6].c  = 0; valA[6]  = -1.0 * dv * etaRight / (hx*hy); /* down right x edge */
+          col[7].i = ex  ; col[7].j  = ey  ; col[7].loc  = LEFT;     col[7].c  = 0; valA[7]  = -1.0 * dv * etaLeft  / (hx*hy); /* up left x edge */
+          col[8].i = ex  ; col[8].j  = ey  ; col[8].loc  = RIGHT;    col[8].c  = 0; valA[8]  =        dv * etaRight / (hx*hy); /* up right x edge */
+          col[9].i = ex  ; col[9].j  = ey-1; col[9].loc  = ELEMENT;  col[9].c  = 0; valA[9]  =        Kcont * dv / hy;
+          col[10].i = ex ; col[10].j = ey  ; col[10].loc = ELEMENT; col[10].c  = 0; valA[10] = -1.0 * Kcont * dv / hy;
         }
 
         /* Insert Y-momentum entries */
@@ -256,56 +258,56 @@ static PetscErrorCode CreateSystem_Temp(StagBLStokesParameters parameters,StagBL
         etaPoint[1].i = ex;   etaPoint[1].j = ey; etaPoint[1].loc = ELEMENT;   etaPoint[1].c = 0; /* Right */
         etaPoint[2].i = ex;   etaPoint[2].j = ey; etaPoint[2].loc = UP_LEFT;   etaPoint[2].c = 0; /* Up    */
         etaPoint[3].i = ex;   etaPoint[3].j = ey; etaPoint[3].loc = DOWN_LEFT; etaPoint[3].c = 0; /* Down  */
-        ierr = DMStagVecGetValuesStencil(dm_coefficient,coeffLocal,4,etaPoint,eta);CHKERRQ(ierr);
+        ierr = DMStagVecGetValuesStencil(dm_coefficient,coeff_local,4,etaPoint,eta);CHKERRQ(ierr);
         etaLeft = eta[0]; etaRight = eta[1]; etaUp = eta[2]; etaDown = eta[3];
 
         if (ey == 0) {
           /* Bottom boundary x velocity stencil (with zero vel deriv) */
           nEntries = 10;
           row.i     = ex  ; row.j     = ey  ; row.loc     = LEFT;    row.c      = 0;
-          col[0].i  = ex  ; col[0].j  = ey  ; col[0].loc  = LEFT;    col[0].c   = 0; valA[0]  = -2.0 * (etaLeft + etaRight) / (hx*hx) -(etaUp) / (hy*hy);
+          col[0].i  = ex  ; col[0].j  = ey  ; col[0].loc  = LEFT;    col[0].c   = 0; valA[0]  = -2.0 * dv * (etaLeft + etaRight) / (hx*hx) - dv * (etaUp) / (hy*hy);
           /* Missing element below */
-          col[1].i  = ex  ; col[1].j  = ey+1; col[1].loc  = LEFT;    col[1].c   = 0; valA[1]  =        etaUp    / (hy*hy);
-          col[2].i  = ex-1; col[2].j  = ey  ; col[2].loc  = LEFT;    col[2].c   = 0; valA[2]  =  2.0 * etaLeft  / (hx*hx);
-          col[3].i  = ex+1; col[3].j  = ey  ; col[3].loc  = LEFT;    col[3].c   = 0; valA[3]  =  2.0 * etaRight / (hx*hx);
-          col[4].i  = ex-1; col[4].j  = ey  ; col[4].loc  = DOWN;    col[4].c   = 0; valA[4]  =        etaDown  / (hx*hy); /* down left */
-          col[5].i  = ex  ; col[5].j  = ey  ; col[5].loc  = DOWN;    col[5].c   = 0; valA[5]  = -      etaDown  / (hx*hy); /* down right */
-          col[6].i  = ex-1; col[6].j  = ey  ; col[6].loc  = UP;      col[6].c   = 0; valA[6]  = -      etaUp    / (hx*hy); /* up left */
-          col[7].i  = ex  ; col[7].j  = ey  ; col[7].loc  = UP;      col[7].c   = 0; valA[7]  =        etaUp    / (hx*hy); /* up right */
-          col[8].i  = ex-1; col[8].j  = ey  ; col[8].loc  = ELEMENT; col[8].c   = 0; valA[8]  =  Kcont / hx;
-          col[9].i = ex   ; col[9].j  = ey  ; col[9].loc  = ELEMENT; col[9].c   = 0; valA[9]  = -Kcont / hx;
+          col[1].i = ex  ; col[1].j  = ey+1; col[1].loc  = LEFT;    col[1].c   = 0; valA[1]  =        dv * etaUp    / (hy*hy);
+          col[2].i = ex-1; col[2].j  = ey  ; col[2].loc  = LEFT;    col[2].c   = 0; valA[2]  =  2.0 * dv * etaLeft  / (hx*hx);
+          col[3].i = ex+1; col[3].j  = ey  ; col[3].loc  = LEFT;    col[3].c   = 0; valA[3]  =  2.0 * dv * etaRight / (hx*hx);
+          col[4].i = ex-1; col[4].j  = ey  ; col[4].loc  = DOWN;    col[4].c   = 0; valA[4]  =        dv * etaDown  / (hx*hy); /* down left */
+          col[5].i = ex  ; col[5].j  = ey  ; col[5].loc  = DOWN;    col[5].c   = 0; valA[5]  = -1.0 * dv * etaDown  / (hx*hy); /* down right */
+          col[6].i = ex-1; col[6].j  = ey  ; col[6].loc  = UP;      col[6].c   = 0; valA[6]  = -1.0 * dv * etaUp    / (hx*hy); /* up left */
+          col[7].i = ex  ; col[7].j  = ey  ; col[7].loc  = UP;      col[7].c   = 0; valA[7]  =        dv * etaUp    / (hx*hy); /* up right */
+          col[8].i = ex-1; col[8].j  = ey  ; col[8].loc  = ELEMENT; col[8].c   = 0; valA[8]  =        Kcont * dv / hx;
+          col[9].i = ex  ; col[9].j  = ey  ; col[9].loc  = ELEMENT; col[9].c   = 0; valA[9]  = -1.0 * Kcont * dv / hx;
           valRhs = 0.0;
         } else if (ey == N[1]-1) {
           /* Top boundary x velocity stencil */
           nEntries = 10;
-          row.i     = ex  ; row.j     = ey  ; row.loc    = LEFT;    row.c     = 0;
-          col[0].i  = ex  ; col[0].j  = ey  ; col[0].loc = LEFT;    col[0].c  = 0; valA[0]  = -2.0 * (etaLeft + etaRight) / (hx*hx) -(etaDown) / (hy*hy);
-          col[1].i  = ex  ; col[1].j  = ey-1; col[1].loc = LEFT;    col[1].c  = 0; valA[1]  =        etaDown  / (hy*hy);
+          row.i    = ex  ; row.j     = ey  ; row.loc     = LEFT;    row.c     = 0;
+          col[0].i = ex  ; col[0].j  = ey  ; col[0].loc  = LEFT;    col[0].c  = 0; valA[0]  = -2.0 * dv * (etaLeft + etaRight) / (hx*hx) - dv * (etaDown) / (hy*hy);
+          col[1].i = ex  ; col[1].j  = ey-1; col[1].loc  = LEFT;    col[1].c  = 0; valA[1]  =        dv * etaDown  / (hy*hy);
           /* Missing element above */
-          col[2].i  = ex-1; col[2].j  = ey  ; col[2].loc = LEFT;    col[2].c  = 0; valA[2]  =  2.0 * etaLeft  / (hx*hx);
-          col[3].i  = ex+1; col[3].j  = ey  ; col[3].loc = LEFT;    col[3].c  = 0; valA[3]  =  2.0 * etaRight / (hx*hx);
-          col[4].i  = ex-1; col[4].j  = ey  ; col[4].loc = DOWN;    col[4].c  = 0; valA[4]  =        etaDown  / (hx*hy); /* down left */
-          col[5].i  = ex  ; col[5].j  = ey  ; col[5].loc = DOWN;    col[5].c  = 0; valA[5]  = -      etaDown  / (hx*hy); /* down right */
-          col[6].i  = ex-1; col[6].j  = ey  ; col[6].loc = UP;      col[6].c  = 0; valA[6]  = -      etaUp    / (hx*hy); /* up left */
-          col[7].i  = ex  ; col[7].j  = ey  ; col[7].loc = UP;      col[7].c  = 0; valA[7]  =        etaUp    / (hx*hy); /* up right */
-          col[8].i  = ex-1; col[8].j  = ey  ; col[8].loc = ELEMENT; col[8].c  = 0; valA[8]  =  Kcont / hx;
-          col[9].i  = ex  ; col[9].j  = ey  ; col[9].loc = ELEMENT; col[9].c  = 0; valA[9]  = -Kcont / hx;
+          col[2].i = ex-1; col[2].j  = ey  ; col[2].loc  = LEFT;    col[2].c  = 0; valA[2]  =  2.0 * dv * etaLeft  / (hx*hx);
+          col[3].i = ex+1; col[3].j  = ey  ; col[3].loc  = LEFT;    col[3].c  = 0; valA[3]  =  2.0 * dv * etaRight / (hx*hx);
+          col[4].i = ex-1; col[4].j  = ey  ; col[4].loc  = DOWN;    col[4].c  = 0; valA[4]  =        dv * etaDown  / (hx*hy); /* down left */
+          col[5].i = ex  ; col[5].j  = ey  ; col[5].loc  = DOWN;    col[5].c  = 0; valA[5]  = -1.0 * dv * etaDown  / (hx*hy); /* down right */
+          col[6].i = ex-1; col[6].j  = ey  ; col[6].loc  = UP;      col[6].c  = 0; valA[6]  = -1.0 * dv * etaUp    / (hx*hy); /* up left */
+          col[7].i = ex  ; col[7].j  = ey  ; col[7].loc  = UP;      col[7].c  = 0; valA[7]  =        dv * etaUp    / (hx*hy); /* up right */
+          col[8].i = ex-1; col[8].j  = ey  ; col[8].loc  = ELEMENT; col[8].c  = 0; valA[8]  =        Kcont * dv / hx;
+          col[9].i = ex  ; col[9].j  = ey  ; col[9].loc = ELEMENT;  col[9].c  = 0; valA[9]  = -1.0 * Kcont * dv / hx;
           valRhs = 0.0;
         } else {
           /* U_x interior equation */
           nEntries = 11;
           row.i     = ex  ; row.j     = ey  ; row.loc     = LEFT;    row.c      = 0;
-          col[0].i  = ex  ; col[0].j  = ey  ; col[0].loc  = LEFT;    col[0].c   = 0; valA[0]  = -2.0 * (etaLeft + etaRight) / (hx*hx) -(etaUp + etaDown) / (hy*hy);
-          col[1].i  = ex  ; col[1].j  = ey-1; col[1].loc  = LEFT;    col[1].c   = 0; valA[1]  =        etaDown  / (hy*hy);
-          col[2].i  = ex  ; col[2].j  = ey+1; col[2].loc  = LEFT;    col[2].c   = 0; valA[2]  =        etaUp    / (hy*hy);
-          col[3].i  = ex-1; col[3].j  = ey  ; col[3].loc  = LEFT;    col[3].c   = 0; valA[3]  =  2.0 * etaLeft  / (hx*hx);
-          col[4].i  = ex+1; col[4].j  = ey  ; col[4].loc  = LEFT;    col[4].c   = 0; valA[4]  =  2.0 * etaRight / (hx*hx);
-          col[5].i  = ex-1; col[5].j  = ey  ; col[5].loc  = DOWN;    col[5].c   = 0; valA[5]  =        etaDown  / (hx*hy); /* down left */
-          col[6].i  = ex  ; col[6].j  = ey  ; col[6].loc  = DOWN;    col[6].c   = 0; valA[6]  = -      etaDown  / (hx*hy); /* down right */
-          col[7].i  = ex-1; col[7].j  = ey  ; col[7].loc  = UP;      col[7].c   = 0; valA[7]  = -      etaUp    / (hx*hy); /* up left */
-          col[8].i  = ex  ; col[8].j  = ey  ; col[8].loc  = UP;      col[8].c   = 0; valA[8]  =        etaUp    / (hx*hy); /* up right */
-          col[9].i  = ex-1; col[9].j  = ey  ; col[9].loc  = ELEMENT; col[9].c   = 0; valA[9]  =  Kcont / hx;
-          col[10].i = ex  ; col[10].j = ey  ; col[10].loc = ELEMENT; col[10].c  = 0; valA[10] = -Kcont / hx;
+          col[0].i  = ex  ; col[0].j  = ey  ; col[0].loc  = LEFT;    col[0].c   = 0; valA[0]  = -2.0 * dv * (etaLeft + etaRight) / (hx*hx) - dv * (etaUp + etaDown) / (hy*hy);
+          col[1].i  = ex  ; col[1].j  = ey-1; col[1].loc  = LEFT;    col[1].c   = 0; valA[1]  =        dv * etaDown  / (hy*hy);
+          col[2].i  = ex  ; col[2].j  = ey+1; col[2].loc  = LEFT;    col[2].c   = 0; valA[2]  =        dv * etaUp    / (hy*hy);
+          col[3].i  = ex-1; col[3].j  = ey  ; col[3].loc  = LEFT;    col[3].c   = 0; valA[3]  =  2.0 * dv * etaLeft  / (hx*hx);
+          col[4].i  = ex+1; col[4].j  = ey  ; col[4].loc  = LEFT;    col[4].c   = 0; valA[4]  =  2.0 * dv * etaRight / (hx*hx);
+          col[5].i  = ex-1; col[5].j  = ey  ; col[5].loc  = DOWN;    col[5].c   = 0; valA[5]  =        dv * etaDown  / (hx*hy); /* down left */
+          col[6].i  = ex  ; col[6].j  = ey  ; col[6].loc  = DOWN;    col[6].c   = 0; valA[6]  = -1.0 * dv * etaDown  / (hx*hy); /* down right */
+          col[7].i  = ex-1; col[7].j  = ey  ; col[7].loc  = UP;      col[7].c   = 0; valA[7]  = -1.0 * dv * etaUp    / (hx*hy); /* up left */
+          col[8].i  = ex  ; col[8].j  = ey  ; col[8].loc  = UP;      col[8].c   = 0; valA[8]  =        dv * etaUp    / (hx*hy); /* up right */
+          col[9].i  = ex-1; col[9].j  = ey  ; col[9].loc  = ELEMENT; col[9].c   = 0; valA[9]  =        Kcont * dv / hx;
+          col[10].i = ex  ; col[10].j = ey  ; col[10].loc = ELEMENT; col[10].c  = 0; valA[10] = -1.0 * Kcont * dv / hx;
           valRhs = 0.0;
         }
         ierr = DMStagMatSetValuesStencil(dm_stokes,A,1,&row,nEntries,col,valA,INSERT_VALUES);CHKERRQ(ierr);
@@ -314,8 +316,10 @@ static PetscErrorCode CreateSystem_Temp(StagBLStokesParameters parameters,StagBL
 
       /* P equation : u_x + v_y = 0
          Note that this includes an explicit zero on the diagonal. This is only needed for
-         direct solvers (not required if using an iterative solver and setting the constant-pressure nullspace) */
-      if (pinPressure && ex == pinx && ey == piny) { /* Pin a pressure node to zero, if requested */
+         direct solvers (not required if using an iterative solver and setting the constant-pressure nullspace)
+
+         Note: the scaling by dv is not chosen in a principled way and is likely sub-optimal */
+      if (pin_pressure && ex == pinx && ey == piny) { /* Pin a pressure node to zero, if requested */
         DMStagStencil row;
         PetscScalar valA,valRhs;
         row.i = ex; row.j = ey; row.loc = ELEMENT; row.c = 0;
@@ -328,10 +332,10 @@ static PetscErrorCode CreateSystem_Temp(StagBLStokesParameters parameters,StagBL
         PetscScalar   valA[5],valRhs;
 
         row.i    = ex; row.j    = ey; row.loc    = ELEMENT; row.c    = 0;
-        col[0].i = ex; col[0].j = ey; col[0].loc = LEFT;    col[0].c = 0; valA[0] = -Kcont / hx;
-        col[1].i = ex; col[1].j = ey; col[1].loc = RIGHT;   col[1].c = 0; valA[1] =  Kcont / hx;
-        col[2].i = ex; col[2].j = ey; col[2].loc = DOWN;    col[2].c = 0; valA[2] = -Kcont / hy;
-        col[3].i = ex; col[3].j = ey; col[3].loc = UP;      col[3].c = 0; valA[3] =  Kcont / hy;
+        col[0].i = ex; col[0].j = ey; col[0].loc = LEFT;    col[0].c = 0; valA[0] = - 1.0 * Kcont * dv / hx;
+        col[1].i = ex; col[1].j = ey; col[1].loc = RIGHT;   col[1].c = 0; valA[1] =         Kcont * dv / hx;
+        col[2].i = ex; col[2].j = ey; col[2].loc = DOWN;    col[2].c = 0; valA[2] = - 1.0 * Kcont * dv / hy;
+        col[3].i = ex; col[3].j = ey; col[3].loc = UP;      col[3].c = 0; valA[3] =         Kcont * dv / hy;
         col[4] = row;                                                     valA[4] = 0.0;
         ierr = DMStagMatSetValuesStencil(dm_stokes,A,1,&row,5,col,valA,INSERT_VALUES);CHKERRQ(ierr);
         valRhs = 0.0;
