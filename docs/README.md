@@ -16,3 +16,6 @@ Any additional documentation is generated using Sphinx. From this directory,
   make html
 
 And see `_build/html/index.html`.
+
+Prefer to document functions, macros, etc. with javadoc-style comment blocks,
+e.g. `/** ... */`, as these are recognized by Hawkmoth and Doxygen.

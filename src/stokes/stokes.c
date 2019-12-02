@@ -92,10 +92,12 @@ static PetscErrorCode CreateSystem_Temp(StagBLStokesParameters parameters,StagBL
   const PetscBool pin_pressure = PETSC_TRUE;
   Vec             coeff_local;
   StagBLGrid      coefficient_grid;
+  DM              dm_temperature;
+  Vec             temperature,temperature_local;
+  PetscScalar     ***arr_temperature;
+  PetscInt        slotTempDownLeft,slotTempDownRight,slotTempUpLeft,slotTempUpRight;
 
   PetscFunctionBeginUser;
-
-  /* Use the "escape hatch" */
   ierr = StagBLSystemPETScGetMatPointer(system,&pA);CHKERRQ(ierr);
   ierr = StagBLSystemPETScGetVecPointer(system,&pRhs);CHKERRQ(ierr);
   ierr = StagBLArrayGetStagBLGrid(parameters->coefficient_array,&coefficient_grid);CHKERRQ(ierr);
@@ -121,7 +123,19 @@ static PetscErrorCode CreateSystem_Temp(StagBLStokesParameters parameters,StagBL
   ierr = DMCreateGlobalVector(dm_stokes,pRhs);CHKERRQ(ierr);
   rhs = *pRhs;
   ierr = DMStagGetCorners(dm_stokes,&startx,&starty,NULL,&nx,&ny,NULL,NULL,NULL,NULL);CHKERRQ(ierr);
-  ierr = DMStagGetGlobalSizes(dm_stokes,&N[0],&N[1],NULL);CHKERRQ(ierr);
+
+  /* If using Boussinesq forcing from a temperature field, get access */
+  if (parameters->boussinesq_forcing) {
+    ierr = StagBLGridPETScGetDM(parameters->temperature_grid,&dm_temperature);CHKERRQ(ierr);
+    ierr = StagBLArrayPETScGetGlobalVec(parameters->temperature_array,&temperature);CHKERRQ(ierr);
+    ierr = DMGetLocalVector(dm_temperature,&temperature_local);CHKERRQ(ierr);
+    ierr = DMGlobalToLocal(dm_temperature,temperature,INSERT_VALUES,temperature_local);CHKERRQ(ierr);
+    ierr = DMStagVecGetArrayRead(dm_temperature,temperature_local,&arr_temperature);CHKERRQ(ierr);
+    ierr = DMStagGetLocationSlot(dm_temperature,DMSTAG_DOWN_LEFT,0,&slotTempDownLeft);CHKERRQ(ierr);
+    ierr = DMStagGetLocationSlot(dm_temperature,DMSTAG_DOWN_RIGHT,0,&slotTempDownRight);CHKERRQ(ierr);
+    ierr = DMStagGetLocationSlot(dm_temperature,DMSTAG_UP_LEFT,0,&slotTempUpLeft);CHKERRQ(ierr);
+    ierr = DMStagGetLocationSlot(dm_temperature,DMSTAG_UP_RIGHT,0,&slotTempUpRight);CHKERRQ(ierr);
+  }
 
   /* Loop over all local elements. Note that it may be more efficient in real
      applications to loop over each boundary separately */
@@ -163,6 +177,23 @@ static PetscErrorCode CreateSystem_Temp(StagBLStokesParameters parameters,StagBL
         rhoPoint[1].i = ex; rhoPoint[1].j = ey; rhoPoint[1].loc = DOWN_RIGHT; rhoPoint[1].c = 1;
         ierr = DMStagVecGetValuesStencil(dm_coefficient,coeff_local,2,rhoPoint,rho);CHKERRQ(ierr);
         valRhs = -parameters->gy * dv * 0.5 * (rho[0] + rho[1]);
+
+        /* get rho values  */
+        rhoPoint[0].i = ex; rhoPoint[0].j = ey; rhoPoint[0].loc = DOWN_LEFT;  rhoPoint[0].c = 1;
+        rhoPoint[1].i = ex; rhoPoint[1].j = ey; rhoPoint[1].loc = DOWN_RIGHT; rhoPoint[1].c = 1;
+        ierr = DMStagVecGetValuesStencil(dm_coefficient,coeff_local,2,rhoPoint,rho);CHKERRQ(ierr);
+
+        /* Compute forcing */
+        {
+          const PetscReal rho_avg = 0.5 * (rho[0] + rho[1]);
+
+          /* Note Boussinesq forcing has the opposite sign */
+          if (parameters->boussinesq_forcing) {
+            valRhs = parameters->alpha * rho_avg * parameters->gy * dv * arr_temperature[ey][ex][slotTempDownLeft];
+          } else {
+            valRhs = -parameters->gy * dv * rho_avg;
+          }
+        }
 
         /* Get eta values */
         etaPoint[0].i = ex; etaPoint[0].j = ey;   etaPoint[0].loc = DOWN_LEFT;  etaPoint[0].c = 0; /* Left  */
@@ -343,6 +374,12 @@ static PetscErrorCode CreateSystem_Temp(StagBLStokesParameters parameters,StagBL
       }
     }
   }
+
+  if (parameters->boussinesq_forcing) {
+    ierr = DMStagVecRestoreArrayRead(dm_temperature,temperature_local,&arr_temperature);CHKERRQ(ierr);
+    ierr = DMRestoreLocalVector(dm_temperature,&temperature_local);CHKERRQ(ierr);
+  }
+
   ierr = MatAssemblyBegin(A,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
   ierr = VecAssemblyBegin(rhs);CHKERRQ(ierr);
   ierr = MatAssemblyEnd(A,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);

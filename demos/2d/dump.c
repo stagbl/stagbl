@@ -1,6 +1,6 @@
 #include "dump.h"
 
-PetscErrorCode DumpSolution(Ctx ctx,StagBLArray x)
+PetscErrorCode DumpStokes(Ctx ctx,PetscInt timestep)
 {
   PetscErrorCode ierr;
   DM             dmStokes,dmCoeff;
@@ -10,10 +10,12 @@ PetscErrorCode DumpSolution(Ctx ctx,StagBLArray x)
   DM             daVelAvg,daP,daEtaElement,daEtaCorner,daRho;
   Vec            vecVelAvg,vecP,vecEtaElement,vecEtaCorner,vecRho;
   Vec            vecCoeff,vecCoeffLocal;
+  StagBLArray    x;
 
   PetscFunctionBeginUser;
 
   /* Use the "escape hatch" */
+  x = ctx->stokes_array;
   ierr = StagBLArrayPETScGetGlobalVec(x,&vecx);CHKERRQ(ierr);
   ierr = PetscObjectSetName((PetscObject)vecx,"solution");CHKERRQ(ierr);
   ierr = StagBLGridPETScGetDM(ctx->stokes_grid,&dmStokes);CHKERRQ(ierr);
@@ -79,7 +81,10 @@ PetscErrorCode DumpSolution(Ctx ctx,StagBLArray x)
   /* Dump element-based fields to a .vtr file */
   {
     PetscViewer viewer;
-    ierr = PetscViewerVTKOpen(PetscObjectComm((PetscObject)daVelAvg),"out_element.vtr",FILE_MODE_WRITE,&viewer);CHKERRQ(ierr);
+    char        filename[PETSC_MAX_PATH_LEN];
+
+    ierr = PetscSNPrintf(filename,PETSC_MAX_PATH_LEN-1,"out_element_%.4D.vtr",timestep);CHKERRQ(ierr);
+    ierr = PetscViewerVTKOpen(PetscObjectComm((PetscObject)daVelAvg),filename,FILE_MODE_WRITE,&viewer);CHKERRQ(ierr);
     ierr = VecView(vecVelAvg,viewer);CHKERRQ(ierr);
     ierr = VecView(vecP,viewer);CHKERRQ(ierr);
     ierr = VecView(vecEtaElement,viewer);CHKERRQ(ierr);
@@ -89,24 +94,19 @@ PetscErrorCode DumpSolution(Ctx ctx,StagBLArray x)
   /* Dump vertex-based fields to a second .vtr file */
   {
     PetscViewer viewer;
-    ierr = PetscViewerVTKOpen(PetscObjectComm((PetscObject)daEtaCorner),"out_vertex.vtr",FILE_MODE_WRITE,&viewer);CHKERRQ(ierr);
+    char        filename[PETSC_MAX_PATH_LEN];
+
+    ierr = PetscSNPrintf(filename,PETSC_MAX_PATH_LEN-1,"out_vertex_%.4D.vtr",timestep);CHKERRQ(ierr);
+    ierr = PetscViewerVTKOpen(PetscObjectComm((PetscObject)daEtaCorner),filename,FILE_MODE_WRITE,&viewer);CHKERRQ(ierr);
     ierr = VecView(vecEtaCorner,viewer);CHKERRQ(ierr);
     ierr = VecView(vecRho,viewer);CHKERRQ(ierr);
-    ierr = PetscViewerDestroy(&viewer);CHKERRQ(ierr);
-  }
-
-  /* Dump velavg to regular binary view */
-  {
-    PetscViewer viewer;
-    PetscViewerBinaryOpen(PetscObjectComm((PetscObject)daVelAvg),"velavg.petscbin",FILE_MODE_WRITE,&viewer);CHKERRQ(ierr);
-    ierr = VecView(vecVelAvg,viewer);CHKERRQ(ierr);
     ierr = PetscViewerDestroy(&viewer);CHKERRQ(ierr);
   }
 
   /* Edge-based fields could similarly be dumped */
 
   /* For testing, option to dump the solution to an ASCII file */
-  {
+  if (timestep == 0) {
     PetscBool debug_ascii_dump = PETSC_FALSE;
     ierr = PetscOptionsGetBool(NULL,NULL,"-debug_ascii_dump",&debug_ascii_dump,NULL);CHKERRQ(ierr);
     if (debug_ascii_dump) {
@@ -131,5 +131,35 @@ PetscErrorCode DumpSolution(Ctx ctx,StagBLArray x)
   ierr = DMDestroy(&daEtaElement);CHKERRQ(ierr);
   ierr = DMDestroy(&daRho);CHKERRQ(ierr);
   ierr = DMDestroy(&dmVelAvg);CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode DumpTemperature(Ctx ctx, PetscInt timestep)
+{
+  PetscErrorCode ierr;
+  DM             dmTemp,daTemp;
+  Vec            vecTemp,vecTempDa;
+  PetscViewer    viewer;
+  char           filename[PETSC_MAX_PATH_LEN];
+
+  PetscFunctionBeginUser;
+
+  /* Use the "escape hatch" */
+  ierr = StagBLArrayPETScGetGlobalVec(ctx->temperature_array,&vecTemp);CHKERRQ(ierr);
+  ierr = StagBLGridPETScGetDM(ctx->temperature_grid,&dmTemp);CHKERRQ(ierr);
+
+  /* Split to DMDA */
+  ierr = DMStagVecSplitToDMDA(dmTemp,vecTemp,DMSTAG_DOWN_LEFT,0,&daTemp,&vecTempDa);CHKERRQ(ierr);
+  ierr = PetscObjectSetName((PetscObject)vecTempDa,"Temperature");CHKERRQ(ierr);
+
+  /* View */
+  ierr = PetscSNPrintf(filename,PETSC_MAX_PATH_LEN-1,"out_temp_vertex_%.4D.vtr",timestep);CHKERRQ(ierr);
+  ierr = PetscViewerVTKOpen(PetscObjectComm((PetscObject)daTemp),filename,FILE_MODE_WRITE,&viewer);CHKERRQ(ierr);
+  ierr = VecView(vecTempDa,viewer);CHKERRQ(ierr);
+  ierr = PetscViewerDestroy(&viewer);CHKERRQ(ierr);
+
+  /* Destroy DMDAs and Vecs */
+  ierr = VecDestroy(&vecTempDa);CHKERRQ(ierr);
+  ierr = DMDestroy(&daTemp);CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
