@@ -3,6 +3,13 @@
 
 #include "stagbl.h"
 
+/**
+  * A single object which represents settings and state for a 2D application
+  *  code.
+  *
+  * For simplicity, it combines both settings and pointers to objects
+  * representing the state of the simulation.
+  */
 typedef struct {
   MPI_Comm     comm;
   char         mode[1024];
@@ -20,8 +27,8 @@ typedef struct {
   PetscScalar (*getEta)(void*,PetscScalar,PetscScalar);
   PetscScalar (*getRho)(void*,PetscScalar,PetscScalar);
   DM           dm_particles;
-} CtxData;
-typedef CtxData* Ctx;
+} data_Ctx;
+typedef data_Ctx* Ctx;
 
 PetscErrorCode CtxCreate(MPI_Comm,const char* mode,Ctx*);
 PetscErrorCode CtxDestroy(Ctx*);
