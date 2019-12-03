@@ -30,7 +30,7 @@ int main(int argc, char** argv)
   StagBLStokesParameters parameters;
   PetscInt               timestep;
   PetscReal              t;
-  PetscBool              test_teleport;
+  PetscBool              test_magmatism;
 
   /* Initialize MPI and print a message
 
@@ -62,8 +62,8 @@ int main(int argc, char** argv)
   ierr = PetscPrintf(PETSC_COMM_WORLD,"Mode: %s\n",mode);CHKERRQ(ierr);
 
   // TODO clean up later
-  test_teleport = PETSC_FALSE;
-  ierr = PetscOptionsGetBool(NULL,NULL,"-test_teleport",&test_teleport,NULL);CHKERRQ(ierr);
+  test_magmatism = PETSC_FALSE;
+  ierr = PetscOptionsGetBool(NULL,NULL,"-test_magmatism",&test_magmatism,NULL);CHKERRQ(ierr);
 
   /* Populate application context (Create with a given mode, then set up) */
   ierr = CtxCreate(comm,mode,&ctx);CHKERRQ(ierr);
@@ -141,8 +141,7 @@ int main(int argc, char** argv)
     }
 
     /* Interpolate temperature from grid to particles */
-    // TODO did this work befor?
-    //ierr = InterpolateTemperatureToParticles(ctx);CHKERRQ(ierr);
+    ierr = InterpolateTemperatureToParticles(ctx);CHKERRQ(ierr);
 
     /* (Re-)Populate Coefficient data */
     ierr = PopulateCoefficientData(ctx,mode);CHKERRQ(ierr);
@@ -177,9 +176,9 @@ int main(int argc, char** argv)
       ierr = DMSwarmMigrate(ctx->dm_particles,PETSC_TRUE);CHKERRQ(ierr);
     }
 
-    /* Test particle teleportation */
-    if (test_teleport) {
-      ierr = TestTeleport(ctx);CHKERRQ(ierr);
+    /* Test particle "teleportation" for use with magmatic processes */
+    if (test_magmatism) {
+      ierr = TestMagmatism(ctx);CHKERRQ(ierr);
       ierr = DMSwarmMigrate(ctx->dm_particles,PETSC_TRUE);CHKERRQ(ierr);
     }
 
@@ -189,7 +188,7 @@ int main(int argc, char** argv)
   } while (timestep <= ctx->totalTimesteps);
 
   /* Free data */
-  ierr = StagBLStokesParametersDestroy(&parameters);CHKERRQ(ierr); // TODO put in ctx as well?
+  ierr = StagBLStokesParametersDestroy(&parameters);CHKERRQ(ierr);
   ierr = CtxDestroy(&ctx);CHKERRQ(ierr);
 
   /* Finalize StagBL (which includes finalizing PETSc) */

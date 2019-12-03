@@ -17,10 +17,10 @@ PetscErrorCode CreateParticleSystem(Ctx ctx)
   ierr = DMStagGetLocalSizes(dmStokes,&n[0],&n[1],NULL);CHKERRQ(ierr);
   nel = n[0]*n[1];
   ierr = DMSwarmSetCellDM(ctx->dm_particles,dmStokes);CHKERRQ(ierr);
-  // TODO actually carry things on the particles
+  // TODO actually carry coefficients on the particles
   //ierr = DMSwarmRegisterPetscDatatypeField(ctx->dm_particles,"rho",1,PETSC_REAL);CHKERRQ(ierr);
   //ierr = DMSwarmRegisterPetscDatatypeField(ctx->dm_particles,"eta",1,PETSC_REAL);CHKERRQ(ierr);
-  //ierr = DMSwarmRegisterPetscDatatypeField(ctx->dm_particles,"Temperature",1,PETSC_REAL);CHKERRQ(ierr);
+  ierr = DMSwarmRegisterPetscDatatypeField(ctx->dm_particles,"Temperature",1,PETSC_REAL);CHKERRQ(ierr);
   ierr = DMSwarmFinalizeFieldRegister(ctx->dm_particles);CHKERRQ(ierr);
   ierr = DMSwarmSetLocalSizes(ctx->dm_particles,nel*particlesPerElementPerDim,100);CHKERRQ(ierr);
 
@@ -90,14 +90,9 @@ PetscErrorCode CreateParticleSystem(Ctx ctx)
      into different cells, or off the local subdomain */
   ierr = DMSwarmMigrate(ctx->dm_particles,PETSC_TRUE);CHKERRQ(ierr);
 
-  /* View DMSwarm object */
-  ierr = DMView(ctx->dm_particles,PETSC_VIEWER_STDOUT_WORLD);CHKERRQ(ierr);
-  // TODO temp
-
   PetscFunctionReturn(0);
 }
 
-// TODO this is dead code at the moment:
 PetscErrorCode InterpolateTemperatureToParticles(Ctx ctx)
 {
   PetscErrorCode ierr;
@@ -145,7 +140,7 @@ PetscErrorCode InterpolateTemperatureToParticles(Ctx ctx)
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TestTeleport(Ctx ctx)
+PetscErrorCode TestMagmatism(Ctx ctx)
 {
   PetscErrorCode ierr;
   DM             dmCell;
@@ -162,13 +157,12 @@ PetscErrorCode TestTeleport(Ctx ctx)
   ierr = DMStagGetGlobalSizes(dmCell,&N[0],&N[1],NULL);CHKERRQ(ierr);
   ierr = DMStagGetCorners(dmCell,&start[0],&start[1],NULL,&n[0],&n[1],NULL,NULL,NULL,NULL);CHKERRQ(ierr);
 
-  /* These arrays hold mass before and after teleportation, and displacements
+  /* These arrays hold mass before and after "teleport", and displacements
      at each boundary in y */
   ierr = PetscMalloc3(n[0],&massBefore,n[0],&massAfter,n[0],&displacement);CHKERRQ(ierr);
   for (eyloc=0; eyloc<n[0]; ++eyloc) {
     ierr = PetscCalloc3(n[1],&massBefore[eyloc],n[1],&massAfter[eyloc],n[1]+1,&displacement[eyloc]);CHKERRQ(ierr);
   }
-
 
   ierr = DMSwarmGetField(ctx->dm_particles,DMSwarmPICField_coor,NULL,NULL,(void**)&mpfield_coor);CHKERRQ(ierr);
   ierr = DMSwarmGetField(ctx->dm_particles,DMSwarmPICField_cellid,NULL,NULL,(void**)&mpfield_cell);CHKERRQ(ierr);
@@ -215,7 +209,6 @@ PetscErrorCode TestTeleport(Ctx ctx)
     PetscInt          slotPrev,slotNext;
     const PetscMPIInt key = 0;
 
-
     ierr = DMStagGetProductCoordinateLocationSlot(dmCell,DMSTAG_LEFT,&slotPrev);CHKERRQ(ierr);
     ierr = DMStagGetProductCoordinateLocationSlot(dmCell,DMSTAG_RIGHT,&slotNext);CHKERRQ(ierr);
     ierr = DMStagGetProductCoordinateArraysRead(dmCell,NULL,&arrCoordY,NULL);CHKERRQ(ierr);
@@ -253,7 +246,7 @@ PetscErrorCode TestTeleport(Ctx ctx)
     eyloc = ind[1]-start[1];
     exloc = ind[0]-start[0];
 
-    /* Displace down */
+    /* Displace (down since these values are expected to be negative) */
     coor_p[1] += displacement[exloc][eyloc];
   }
   ierr = DMSwarmRestoreField(ctx->dm_particles,DMSwarmPICField_cellid,NULL,NULL,(void**)&mpfield_cell);CHKERRQ(ierr);
