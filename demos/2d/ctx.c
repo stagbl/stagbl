@@ -85,6 +85,7 @@ PetscErrorCode CtxDestroy(Ctx *pctx)
   ierr = StagBLSolverDestroy(&(*pctx)->stokes_solver);CHKERRQ(ierr);
   ierr = StagBLGridDestroy(&(*pctx)->stokes_grid);CHKERRQ(ierr);
   ierr = StagBLGridDestroy(&(*pctx)->coefficient_grid);CHKERRQ(ierr);
+  ierr = StagBLArrayDestroy(&(*pctx)->coefficient_array);CHKERRQ(ierr);
   ierr = StagBLGridDestroy(&(*pctx)->temperature_grid);CHKERRQ(ierr);
   ierr = StagBLArrayDestroy(&(*pctx)->temperature_array);CHKERRQ(ierr);
   ierr = StagBLSystemDestroy(&(*pctx)->temperature_system);CHKERRQ(ierr);
