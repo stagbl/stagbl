@@ -20,9 +20,12 @@ include $(STAGBL_DIR)/rules.mk
 $(EXNAME) : $(OBJ)
 	$(STAGBL_LINK) $^ $(STAGBL_LIB)
 
-clean :
+clean_output:
+	rm -f *.vtr *.pbin *.xmf
+
+clean : clean_output
 	rm -f $(EXNAME)
 	rm -f $(OBJ)
 	rm -rf $(EXNAME).dSYM
 
-.PHONY : all clean
+.PHONY : all clean clean_output
