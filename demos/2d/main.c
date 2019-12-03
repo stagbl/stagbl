@@ -6,6 +6,7 @@ static const char *help = "StagBLDemo2D: Demonstrate features and usage of StagB
 #include "dump.h"
 #include "temperature.h"
 #include "particles.h"
+#include "nusselt.h"
 #include <stagbl.h>
 #include <mpi.h>
 #include <stdio.h>
@@ -94,8 +95,8 @@ int main(int argc, char** argv)
   ierr = StagBLSystemCreateStagBLSolver(ctx->temperature_system,&ctx->temperature_solver);CHKERRQ(ierr);
   ierr = StagBLGridCreateStagBLArray(ctx->temperature_grid,&ctx->temperature_array);CHKERRQ(ierr);
 
-  /* Create a System of Particles using PETSc DMSwarm object 
-      
+  /* Create a System of Particles using PETSc DMSwarm object
+
      Note that StagBL does not force you to use any particular particle system,
      but this is a convenient one, as we have added code allow interaction
      between DMSwarm and DMStag, which was written as part of the StagBL project.
@@ -209,6 +210,8 @@ int main(int argc, char** argv)
   parameters->eta_characteristic = 1e20; /* A minimum viscosity */
   parameters->boussinesq_forcing = ctx->boussinesq_forcing;
 
+  // TODO print Rayleigh number?
+
   /* Main solver loop */
   timestep = 0;
   t = 0.0;
@@ -218,7 +221,7 @@ int main(int argc, char** argv)
     }
     ierr = MPI_Barrier(comm);CHKERRQ(ierr);
 
-    /* Initialize or Update Temperature Field */
+    /* initialize or update temperature field */
     if (timestep == 0) {
       ierr = InitializeTemperature(ctx);CHKERRQ(ierr);
     } else {
@@ -226,7 +229,12 @@ int main(int argc, char** argv)
       ierr = UpdateTemperature(ctx);CHKERRQ(ierr);
     }
 
-    /* Dump Temperature field */
+    /* Analyze and/or dump temperature field */
+    if (ctx->compute_nusselt_number) {
+      PetscScalar nu;
+      ierr = ComputeNusseltNumber(ctx,&nu);CHKERRQ(ierr);
+      ierr = PetscPrintf(PETSC_COMM_WORLD,"Nusselt Number: %g\n",(double)nu);CHKERRQ(ierr);
+    }
     ierr = DumpTemperature(ctx,timestep);CHKERRQ(ierr);
 
     /* Dump Particles */

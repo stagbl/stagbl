@@ -15,15 +15,7 @@ PetscErrorCode CtxCreate(MPI_Comm comm,const char* mode,Ctx *pctx)
   ierr = PetscStrcpy(ctx->mode,mode);CHKERRQ(ierr);
   ctx->comm = comm;
 
-  ctx->stokes_array = NULL;
-  ctx->coefficient_array = NULL;
-  ctx->temperature_array = NULL;
-  ctx->stokes_system = NULL;
-  ctx->stokes_solver = NULL;
-  ctx->temperature_system = NULL;
-  ctx->temperature_solver = NULL;
-
-  // TODO timestepper stuff hardcoded now for testing.
+  /* Default Settings */
   ctx->totalTimesteps     = 3;
   ierr = PetscOptionsGetInt(NULL,NULL,"-nsteps",&ctx->totalTimesteps,NULL);CHKERRQ(ierr);
   ctx->dt                 = 1e13;
@@ -36,6 +28,18 @@ PetscErrorCode CtxCreate(MPI_Comm comm,const char* mode,Ctx *pctx)
   ctx->alpha = 2.5e-5;
   ctx->KTemp = 1.0; // TODO compute from material paramets (Check Gerya2009 for a recommendation?)
 
+  ctx->compute_nusselt_number = PETSC_FALSE;
+
+  /* Initialize Data */
+  ctx->stokes_array = NULL;
+  ctx->coefficient_array = NULL;
+  ctx->temperature_array = NULL;
+  ctx->stokes_system = NULL;
+  ctx->stokes_solver = NULL;
+  ctx->temperature_system = NULL;
+  ctx->temperature_solver = NULL;
+
+  /* Additional, mode-dependent settings */
   flg = PETSC_FALSE;
   ierr = PetscStrcmp(mode,"gerya72",&flg);CHKERRQ(ierr);
   if (!flg) {
@@ -60,6 +64,7 @@ PetscErrorCode CtxCreate(MPI_Comm comm,const char* mode,Ctx *pctx)
   if (flg) {
     ctx->uniform_grid = PETSC_TRUE;
     ctx->boussinesq_forcing = PETSC_TRUE;
+    ctx->compute_nusselt_number = PETSC_TRUE;
     ctx->xmin = 0.0;
     ctx->xmax = 1e6;
     ctx->ymin = 0.0;
