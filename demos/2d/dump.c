@@ -1,5 +1,16 @@
 #include "dump.h"
 
+PetscErrorCode DumpParticles(Ctx ctx,PetscInt timestep)
+{
+  PetscErrorCode ierr;
+  char           filename[PETSC_MAX_PATH_LEN];
+
+  PetscFunctionBeginUser;
+  ierr = PetscSNPrintf(filename,PETSC_MAX_PATH_LEN-1,"particles_%.4D.xmf",timestep);CHKERRQ(ierr);
+  ierr = DMSwarmViewXDMF(ctx->dm_particles,filename);CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
 PetscErrorCode DumpStokes(Ctx ctx,PetscInt timestep)
 {
   PetscErrorCode ierr;

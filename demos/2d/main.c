@@ -140,23 +140,6 @@ int main(int argc, char** argv)
       ierr = UpdateTemperature(ctx);CHKERRQ(ierr);
     }
 
-    /* Analyze and/or dump temperature field */
-    if (ctx->compute_nusselt_number) {
-      PetscScalar nu;
-      ierr = ComputeNusseltNumber(ctx,&nu);CHKERRQ(ierr);
-      ierr = PetscPrintf(PETSC_COMM_WORLD,"Nusselt Number: %g\n",(double)nu);CHKERRQ(ierr);
-    }
-    ierr = DumpTemperature(ctx,timestep);CHKERRQ(ierr);
-
-    /* Dump Particles */
-    // TODO put in dump.c
-    {
-      char filename[PETSC_MAX_PATH_LEN];
-
-      ierr = PetscSNPrintf(filename,PETSC_MAX_PATH_LEN-1,"particles_%.4D.xmf",timestep);CHKERRQ(ierr);
-      ierr = DMSwarmViewXDMF(ctx->dm_particles,filename);CHKERRQ(ierr);
-    }
-
     /* Interpolate temperature from grid to particles */
     // TODO did this work befor?
     //ierr = InterpolateTemperatureToParticles(ctx);CHKERRQ(ierr);
@@ -173,8 +156,17 @@ int main(int argc, char** argv)
     ierr = StagBLSystemDestroy(&ctx->stokes_system);CHKERRQ(ierr);
     ierr = StagBLSolverDestroy(&ctx->stokes_solver);CHKERRQ(ierr); // TODO this sucks - we want to keep the solver and upate the system..
 
-    /* Dump Stokes solution */
+    /* Analyze temperature field */
+    if (ctx->compute_nusselt_number) {
+      PetscScalar nu;
+      ierr = ComputeNusseltNumber(ctx,&nu);CHKERRQ(ierr);
+      ierr = PetscPrintf(PETSC_COMM_WORLD,"Nusselt Number: %g\n",(double)nu);CHKERRQ(ierr);
+    }
+
+    /* Output stokes data, temperature data, and particle data to files */
     ierr = DumpStokes(ctx,timestep);CHKERRQ(ierr);
+    ierr = DumpTemperature(ctx,timestep);CHKERRQ(ierr);
+    ierr = DumpParticles(ctx,timestep);CHKERRQ(ierr);
 
     /* Advect and Migrate */
     {
@@ -191,6 +183,7 @@ int main(int argc, char** argv)
       ierr = DMSwarmMigrate(ctx->dm_particles,PETSC_TRUE);CHKERRQ(ierr);
     }
 
+    /* Update timestepping state */
     ++timestep;
     t += ctx->dt;
   } while (timestep <= ctx->totalTimesteps);
