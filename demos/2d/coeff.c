@@ -93,14 +93,21 @@ PetscErrorCode PopulateCoefficientData(Ctx ctx,const char* mode)
     SETERRQ1(ctx->comm,PETSC_ERR_ARG_OUTOFRANGE,"Unrecognized mode %s",mode);
   }
 
-  ierr = StagBLGridCreateStagBLArray(ctx->coefficient_grid,&ctx->coefficient_array);CHKERRQ(ierr);
-
-  /* Escape Hatch */
+  /* Pull out DM object */
   ierr = StagBLGridPETScGetDM(ctx->coefficient_grid,&dmCoeff);CHKERRQ(ierr);
-  ierr = StagBLArrayPETScGetLocalVecPointer(ctx->coefficient_array,&pcoeffLocal);CHKERRQ(ierr);
 
-  ierr = DMCreateLocalVector(dmCoeff,pcoeffLocal);CHKERRQ(ierr);
-  coeffLocal = *pcoeffLocal;
+  /* If array doesnt exist, create it an pull out a local Vec. Otherwise,
+     zero the local Vec */
+  if (!ctx->coefficient_array) {
+    ierr = StagBLGridCreateStagBLArray(ctx->coefficient_grid,&ctx->coefficient_array);CHKERRQ(ierr);
+    ierr = StagBLArrayPETScGetLocalVecPointer(ctx->coefficient_array,&pcoeffLocal);CHKERRQ(ierr);
+
+    ierr = DMCreateLocalVector(dmCoeff,pcoeffLocal);CHKERRQ(ierr);
+    coeffLocal = *pcoeffLocal;
+  } else {
+    ierr = StagBLArrayPETScGetLocalVec(ctx->coefficient_array,&coeffLocal);CHKERRQ(ierr);
+  }
+
   ierr = DMStagGetGhostCorners(dmCoeff,&startx,&starty,NULL,&nx,&ny,NULL);CHKERRQ(ierr); /* Iterate over all local elements */
   ierr = DMStagGetGlobalSizes(dmCoeff,&N[0],&N[1],NULL);CHKERRQ(ierr);
   ierr = DMStagGetLocationSlot(dmCoeff,DMSTAG_DOWN_LEFT,0,&ietaCorner);CHKERRQ(ierr);
