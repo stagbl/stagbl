@@ -144,7 +144,7 @@ PetscErrorCode TestMagmatism(Ctx ctx)
 {
   PetscErrorCode ierr;
   DM             dmCell;
-  PetscInt       N[2],ex,ey,exloc,eyloc,n[2],start[2];
+  PetscInt       N[2],exloc,eyloc,n[2],start[2];
   PetscInt       p,npoints;
   PetscInt       *mpfield_cell;
   PetscReal      *mpfield_coor;
@@ -186,7 +186,7 @@ PetscErrorCode TestMagmatism(Ctx ctx)
     massBefore[exloc][eyloc] += 1.0;
     /* Teleport the third particle, in a given band */
     if (massBefore[exloc][eyloc] == 3.0 && ind[1] > 0.4*N[1] && ind[1] < N[1]-1) {
-      coor_p[1] = ctx->ymax - 0.5 * (ctx->ymax-ctx->ymin)/N[1];
+      coor_p[1] = ctx->ymax - 0.5 * (ctx->ymax-ctx->ymin)/N[1]; /* in top element */
       array_temperature[p] = 0;
     } else {
       massAfter[exloc][eyloc] += 1.0;
@@ -196,6 +196,7 @@ PetscErrorCode TestMagmatism(Ctx ctx)
   ierr = DMSwarmRestoreField(ctx->dm_particles,DMSwarmPICField_coor,NULL,NULL,(void**)&mpfield_coor);CHKERRQ(ierr);
   ierr = DMSwarmRestoreField(ctx->dm_particles,"Temperature",NULL,NULL,(void**)&array_temperature);CHKERRQ(ierr);
 
+#if 0
   /* Iterate over the auxiliary arrays.
      Compute a local displacement for the top edge relative to the bottom edge,
      by seeing how much mass was removed. Use a columnwise MPI communicator to perform
@@ -206,6 +207,7 @@ PetscErrorCode TestMagmatism(Ctx ctx)
     MPI_Comm          comm_column;
     PetscMPIInt       rankx;
     const PetscScalar **arrCoordY;
+    PetscInt          ex,ey;
     PetscInt          slotPrev,slotNext;
     const PetscMPIInt key = 0;
 
@@ -251,6 +253,7 @@ PetscErrorCode TestMagmatism(Ctx ctx)
   }
   ierr = DMSwarmRestoreField(ctx->dm_particles,DMSwarmPICField_cellid,NULL,NULL,(void**)&mpfield_cell);CHKERRQ(ierr);
   ierr = DMSwarmRestoreField(ctx->dm_particles,DMSwarmPICField_coor,NULL,NULL,(void**)&mpfield_coor);CHKERRQ(ierr);
+#endif
 
   for (eyloc=0; eyloc<n[0]; ++eyloc) { /* eyloc abused for local element number */
     ierr = PetscFree3(massBefore[eyloc],massAfter[eyloc],displacement[eyloc]);CHKERRQ(ierr);
