@@ -46,6 +46,32 @@ PetscErrorCode StagBLGridCreateStokes2DBox(MPI_Comm comm, PetscInt nx,PetscInt n
 }
 
 // TODO temp as we refactor
+PetscErrorCode StagBLGridCreateStokes3DBox(MPI_Comm comm, PetscInt nx,PetscInt ny,PetscInt nz,PetscScalar xmin, PetscScalar xmax, PetscScalar ymin, PetscScalar ymax, PetscScalar zmin, PetscScalar zmax, StagBLGrid *pgrid)
+{
+  PetscErrorCode ierr;
+  DM *pdm;
+  DM dm_stokes;
+
+  PetscFunctionBegin;
+  StagBLGridCreate(pgrid);
+  StagBLGridPETScGetDMPointer(*pgrid,&pdm);
+  ierr = DMStagCreate3d(
+      comm,
+      DM_BOUNDARY_NONE,DM_BOUNDARY_NONE,DM_BOUNDARY_NONE,
+      nx,ny,nz,                                /* Global element counts */
+      PETSC_DECIDE,PETSC_DECIDE,PETSC_DECIDE,  /* Determine parallel decomposition automatically */
+      0,0,1,1,                                 /* dof: 1 per face, 1 per element */
+      DMSTAG_STENCIL_BOX,
+      1,                                       /* elementwise stencil width */
+      NULL,NULL,NULL,
+      pdm);
+  dm_stokes = *pdm;
+  ierr = DMSetFromOptions(dm_stokes);CHKERRQ(ierr);
+  ierr = DMSetUp(dm_stokes);CHKERRQ(ierr);
+  ierr = DMStagSetUniformCoordinatesProduct(dm_stokes,xmin,xmax,ymin,ymax,zmin,zmax);CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
 static PetscErrorCode CreateSystem_Temp(StagBLStokesParameters parameters,StagBLSystem system);
 
 /**
