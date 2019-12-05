@@ -61,12 +61,10 @@ $(srcs.d) : ;
 # to clean and rebuild them with their own makefiles, clumsily moving the resulting
 # binary.
 demos : library $(BINDIR)/.DIR
-	$(MAKE) -C $(STAGBL_DIR)/demos/2d clean
-	$(MAKE) -C $(STAGBL_DIR)/demos/2d
-	mv $(STAGBL_DIR)/demos/2d/stagbldemo2d $(BINDIR)
-	$(MAKE) -C $(STAGBL_DIR)/demos/3d clean
-	$(MAKE) -C $(STAGBL_DIR)/demos/3d
-	mv $(STAGBL_DIR)/demos/3d/stagbldemo3d $(BINDIR)
+	$(MAKE) -C $(STAGBL_DIR)/demos clean
+	$(MAKE) -C $(STAGBL_DIR)/demos all
+	mv $(STAGBL_DIR)/demos/stagbldemo2d $(BINDIR)
+	mv $(STAGBL_DIR)/demos/stagbldemo3d $(BINDIR)
 
 .PHONY: demos
 
