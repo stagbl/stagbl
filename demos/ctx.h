@@ -24,7 +24,7 @@ typedef struct {
   PetscScalar (*getEta)(void*,PetscScalar,PetscScalar);
   PetscScalar (*getRho)(void*,PetscScalar,PetscScalar);
   PetscReal    temperature_top,temperature_bottom,kappa,alpha;
-  PetscScalar  eta1,eta2,rho1,rho2,gy;
+  PetscScalar  eta1,eta2,eta_characteristic,rho1,rho2,gy;
 
   /* Timestepping */
   PetscInt     totalTimesteps; /* can be 0, only compute initial temperature field and solve Stokes once */
