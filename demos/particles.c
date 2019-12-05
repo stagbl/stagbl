@@ -56,7 +56,7 @@ PetscErrorCode CreateParticleSystem(Ctx ctx)
     //ierr = DMSwarmGetField(ctx->dm_particles,"rho",               NULL,NULL,(void**)&array_r);CHKERRQ(ierr);
     ierr = DMSwarmGetLocalSize(ctx->dm_particles,&npoints);CHKERRQ(ierr);
     for (p = 0; p < npoints; p++) {
-      PetscReal x_p[2];
+      //PetscReal x_p[2];
 
       if (jiggle > 0.0) {
         PetscReal rr[2];
@@ -67,8 +67,8 @@ PetscErrorCode CreateParticleSystem(Ctx ctx)
       }
 
       /* Get the coordinates of point p */
-      x_p[0] = array_x[2*p + 0];
-      x_p[1] = array_x[2*p + 1];
+      //x_p[0] = array_x[2*p + 0];
+      //x_p[1] = array_x[2*p + 1];
 
       /* Call functions to compute eta and rho at that location */
       // TODO actually carry things on the particles
@@ -133,6 +133,7 @@ PetscErrorCode InterpolateTemperatureToParticles(Ctx ctx)
           + arr[ind[1]][ind[0]][slotUpRight]
         );
   }
+  ierr = DMStagVecRestoreArrayRead(dmTemp,tempLocal,&arr);CHKERRQ(ierr);
   ierr = DMSwarmRestoreField(ctx->dm_particles,"Temperature",NULL,NULL,(void**)&array_temperature);CHKERRQ(ierr);
   ierr = DMSwarmRestoreField(dm_mpoint,DMSwarmPICField_cellid,NULL,NULL,(void**)&mpfield_cell);CHKERRQ(ierr);
 
@@ -351,6 +352,7 @@ PetscErrorCode MaterialPoint_AdvectRK1(Ctx ctx,Vec vp,PetscReal dt)
     }
   }
 
+  ierr = DMStagRestoreProductCoordinateArraysRead(dm_vp,&cArrX,&cArrY,NULL);CHKERRQ(ierr);
   ierr = DMSwarmRestoreField(dm_mpoint,DMSwarmPICField_cellid,NULL,NULL,(void**)&mpfield_cell);CHKERRQ(ierr);
   ierr = DMSwarmRestoreField(dm_mpoint,DMSwarmPICField_coor,NULL,NULL,(void**)&mpfield_coor);CHKERRQ(ierr);
   ierr = DMStagVecRestoreArrayRead(dm_vp,vp_l,&LA_vp);CHKERRQ(ierr);

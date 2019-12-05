@@ -56,6 +56,7 @@ PetscErrorCode CtxCreate(MPI_Comm comm,const char* mode,Ctx *pctx)
     ctx->rho2 = 3300;
     ctx->eta1 = 1e20;
     ctx->eta2 = 1e22;
+    ctx->eta_characteristic = 1e20;
     ctx->gy   = 10.0; /* gravity points in positive y direction */
     PetscFunctionReturn(0);
   }
@@ -73,6 +74,7 @@ PetscErrorCode CtxCreate(MPI_Comm comm,const char* mode,Ctx *pctx)
     ctx->rho2 = 4400; /* not used normally */
     ctx->eta1 = 2.5e21; /* case 1a */
     ctx->eta2 = 2.5e21; /* Not normally used */
+    ctx->eta_characteristic = ctx->eta1;
     ctx->gy   = -10.0; /* gravity points in negative y direction */
     PetscFunctionReturn(0);
   }
@@ -95,6 +97,7 @@ PetscErrorCode CtxDestroy(Ctx *pctx)
   ierr = StagBLArrayDestroy(&(*pctx)->temperature_array);CHKERRQ(ierr);
   ierr = StagBLSystemDestroy(&(*pctx)->temperature_system);CHKERRQ(ierr);
   ierr = StagBLSolverDestroy(&(*pctx)->temperature_solver);CHKERRQ(ierr);
+  ierr = DMDestroy(&(*pctx)->dm_particles);CHKERRQ(ierr);
   ierr = PetscFree(*pctx);CHKERRQ(ierr);
   *pctx = NULL;
   PetscFunctionReturn(0);

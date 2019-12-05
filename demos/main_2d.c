@@ -87,6 +87,7 @@ int main(int argc, char** argv)
   /* Create another, compatible grid for the temperature field */
   ierr = StagBLGridCreateCompatibleStagBLGrid(ctx->stokes_grid,1,0,0,0,&ctx->temperature_grid);CHKERRQ(ierr);
 
+  // TODO remove!
   /* Coefficient data in an application-determined way */
   ierr = PopulateCoefficientData(ctx,mode);CHKERRQ(ierr);
 
@@ -105,13 +106,14 @@ int main(int argc, char** argv)
 
 
   /* Create parameters for a Stokes system by directly populating some fields
-     of a struct and passing to a StagBL function  */
+     of a struct, from our application's data, and passing to a StagBL function  */
   ierr = StagBLStokesParametersCreate(&parameters);CHKERRQ(ierr);
   parameters->coefficient_array  = ctx->coefficient_array;
   parameters->stokes_grid        = ctx->stokes_grid;
   parameters->temperature_grid   = ctx->temperature_grid;
   parameters->temperature_array  = ctx->temperature_array;
   parameters->uniform_grid       = ctx->uniform_grid;
+  // TODO WRONG NEED TO USE VALUES FROM ctx !!
   parameters->xmin               = ctx->xmin;
   parameters->xmax               = ctx->xmax;
   parameters->ymin               = ctx->ymin;
@@ -122,6 +124,9 @@ int main(int argc, char** argv)
   parameters->boussinesq_forcing = ctx->boussinesq_forcing;
 
   // TODO print Rayleigh number?
+
+  // TODO ugly - should be somewhere else I guess
+    ierr = StagBLGridCreateStagBLArray(ctx->stokes_grid,&ctx->stokes_array);CHKERRQ(ierr);
 
   /* Main solver loop */
   timestep = 0;
@@ -150,7 +155,6 @@ int main(int argc, char** argv)
     /* Solve the system  */
     ierr = StagBLCreateStokesSystem(parameters,&ctx->stokes_system);CHKERRQ(ierr);
     ierr = StagBLSystemCreateStagBLSolver(ctx->stokes_system,&ctx->stokes_solver);CHKERRQ(ierr);
-    ierr = StagBLGridCreateStagBLArray(ctx->stokes_grid,&ctx->stokes_array);CHKERRQ(ierr);
     ierr = StagBLSolverSolve(ctx->stokes_solver,ctx->stokes_array);CHKERRQ(ierr);
     ierr = StagBLSystemDestroy(&ctx->stokes_system);CHKERRQ(ierr);
     ierr = StagBLSolverDestroy(&ctx->stokes_solver);CHKERRQ(ierr); // TODO this sucks - we want to keep the solver and upate the system..

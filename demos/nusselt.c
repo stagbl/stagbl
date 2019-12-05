@@ -52,6 +52,7 @@ PetscErrorCode ComputeNusseltNumber(Ctx ctx,PetscReal *nusselt_number)
       sum_local += hx * dT / hy;
     }
   }
+  ierr = DMStagVecRestoreArrayRead(dm_temperature,vec_temperature_local,&arr_temperature);CHKERRQ(ierr);
   ierr = DMStagRestoreProductCoordinateArraysRead(dm_temperature,&arr_coordinates_x,&arr_coordinates_y,NULL);CHKERRQ(ierr);
   ierr = DMRestoreLocalVector(dm_temperature,&vec_temperature_local);CHKERRQ(ierr);
 

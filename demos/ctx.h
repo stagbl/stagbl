@@ -4,8 +4,8 @@
 #include "stagbl.h"
 
 /**
-  * A single object which represents settings and state for a 2D application
-  *  code.
+  * A single object which represents settings and state for a 2D  or 3D
+  * application code.
   *
   * For simplicity, it combines both settings and "data", mainly pointer to
   * objects representing the state of the simulation.
@@ -16,23 +16,25 @@ typedef struct {
 
   /* Domain and boundary conditions */
   PetscBool    uniform_grid;
-  PetscScalar  xmax,ymax,xmin,ymin,hxCharacteristic,hyCharacteristic;
+  PetscScalar  xmax,ymax,xmin,ymin,zmin,zmax;
+  // TODO these are only used for the temperature system assembly and will be moved:
+  PetscScalar  hxCharacteristic,hyCharacteristic,hzCharacteristic; // TODO use hx_characteristic etc.
 
   /* Settings */
   PetscBool    boussinesq_forcing;
   PetscBool    compute_nusselt_number;
-  PetscScalar (*getEta)(void*,PetscScalar,PetscScalar);
-  PetscScalar (*getRho)(void*,PetscScalar,PetscScalar);
+  PetscScalar (*getEta)(void*,PetscScalar,PetscScalar,PetscScalar);
+  PetscScalar (*getRho)(void*,PetscScalar,PetscScalar,PetscScalar);
   PetscReal    temperature_top,temperature_bottom,kappa,alpha;
-  PetscScalar  eta1,eta2,rho1,rho2,gy;
+  PetscScalar  eta1,eta2,eta_characteristic,rho1,rho2,gy;
 
   /* Timestepping */
   PetscInt     totalTimesteps; /* can be 0, only compute initial temperature field and solve Stokes once */
   PetscReal    dt;
 
   /* Derived/Computed Parameters */
-  PetscScalar  Kbound,Kcont,etaCharacteristic,KTemp;
-  PetscInt     pinx,piny;
+  // TODO this will be removed once temperature system assembly is moved to the library src proper
+  PetscScalar  KTemp;
 
   /* Data */
   MPI_Comm     comm;

@@ -253,6 +253,7 @@ PetscErrorCode PopulateTemperatureSystem(Ctx ctx)
     }
   }
 
+  ierr = DMStagVecRestoreArrayRead(dmStokes,stokesLocal,&arrStokes);CHKERRQ(ierr);
   ierr = DMRestoreLocalVector(dmStokes,&stokesLocal);CHKERRQ(ierr);
   ierr = DMStagVecRestoreArrayRead(dmTemp,tempPrevLocal,&arr);CHKERRQ(ierr);
   ierr = DMRestoreLocalVector(dmTemp,&tempPrevLocal);CHKERRQ(ierr);
