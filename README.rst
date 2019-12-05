@@ -64,8 +64,8 @@ From the ``stagbl`` directory that is created,
     export PETSC_DIR=yyy   # use value from your PETSc build
     export PETSC_ARCH=xxx  # use value from your PETSc build
     ./configure.py         # follow instructions to make
-    cd demos/2d
-    make
+    cd demos
+    make 2d
     ./stagbldemo2d
     paraview out_element.vtr &
 

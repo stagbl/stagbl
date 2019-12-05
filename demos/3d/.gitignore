@@ -1,7 +1,0 @@
-stagbldemo3d
-
-*.o
-*.d
-*.dSYM
-
-*.vtr
