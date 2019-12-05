@@ -87,6 +87,7 @@ int main(int argc, char** argv)
   /* Create another, compatible grid for the temperature field */
   ierr = StagBLGridCreateCompatibleStagBLGrid(ctx->stokes_grid,1,0,0,0,&ctx->temperature_grid);CHKERRQ(ierr);
 
+  // TODO remove!
   /* Coefficient data in an application-determined way */
   ierr = PopulateCoefficientData(ctx,mode);CHKERRQ(ierr);
 
@@ -105,13 +106,14 @@ int main(int argc, char** argv)
 
 
   /* Create parameters for a Stokes system by directly populating some fields
-     of a struct and passing to a StagBL function  */
+     of a struct, from our application's data, and passing to a StagBL function  */
   ierr = StagBLStokesParametersCreate(&parameters);CHKERRQ(ierr);
   parameters->coefficient_array  = ctx->coefficient_array;
   parameters->stokes_grid        = ctx->stokes_grid;
   parameters->temperature_grid   = ctx->temperature_grid;
   parameters->temperature_array  = ctx->temperature_array;
   parameters->uniform_grid       = ctx->uniform_grid;
+  // TODO WRONG NEED TO USE VALUES FROM ctx !!
   parameters->xmin               = 0;
   parameters->xmax               = 1e6;
   parameters->ymin               = 0.0;
