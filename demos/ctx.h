@@ -23,8 +23,8 @@ typedef struct {
   /* Settings */
   PetscBool    boussinesq_forcing;
   PetscBool    compute_nusselt_number;
-  PetscScalar (*getEta)(void*,PetscScalar,PetscScalar);
-  PetscScalar (*getRho)(void*,PetscScalar,PetscScalar);
+  PetscScalar (*getEta)(void*,PetscScalar,PetscScalar,PetscScalar);
+  PetscScalar (*getRho)(void*,PetscScalar,PetscScalar,PetscScalar);
   PetscReal    temperature_top,temperature_bottom,kappa,alpha;
   PetscScalar  eta1,eta2,eta_characteristic,rho1,rho2,gy;
 

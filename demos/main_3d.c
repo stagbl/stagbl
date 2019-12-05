@@ -93,13 +93,13 @@ int main(int argc, char** argv)
   parameters->eta_characteristic = ctx->eta_characteristic;
   parameters->boussinesq_forcing = ctx->boussinesq_forcing;
 
-  // TODO from here down should error, test that it actually does!
-#if 0
   /* Main solve */
 
   /* Populate Coefficient data */
   ierr = PopulateCoefficientData(ctx,mode);CHKERRQ(ierr);
 
+  // TODO from here down should error, test that it actually does!
+#if 0
   /* Create the Stokes system */
   ierr = StagBLCreateStokesSystem(parameters,&ctx->stokes_system);CHKERRQ(ierr);
   ierr = StagBLSystemCreateStagBLSolver(ctx->stokes_system,&ctx->stokes_solver);CHKERRQ(ierr);
