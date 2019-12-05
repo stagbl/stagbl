@@ -77,6 +77,7 @@ In parallel, try
 ::
 
     $PETSC_DIR/$PETSC_ARCH/bin/mpiexec -np 4 ./stagbldemo2d -mode sinker -stag_grid_x 30 -stag_grid_y 50
+    paraview out_element.vtr &
 
 .. image:: docs/resources/stagbldemo2d_quickstart2.png
    :alt: stagbl2ddemo quickstart 2
