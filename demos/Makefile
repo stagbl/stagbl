@@ -13,7 +13,7 @@ EXNAME3D = stagbldemo3d
 3d: $(EXNAME3D)
 
 OBJ2D = args.o coeff.o ctx.o dump.o main_2d.o nusselt.o particles.o temperature.o
-OBJ3D = main_3d.o
+OBJ3D = args.o coeff.o ctx.o dump.o main_3d.o
 
 all : $(EXNAME)
 
