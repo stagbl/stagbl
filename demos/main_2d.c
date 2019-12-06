@@ -113,17 +113,24 @@ int main(int argc, char** argv)
   parameters->temperature_grid   = ctx->temperature_grid;
   parameters->temperature_array  = ctx->temperature_array;
   parameters->uniform_grid       = ctx->uniform_grid;
-  // TODO WRONG NEED TO USE VALUES FROM ctx !!
   parameters->xmin               = ctx->xmin;
   parameters->xmax               = ctx->xmax;
   parameters->ymin               = ctx->ymin;
   parameters->ymax               = ctx->ymax;
   parameters->gy                 = ctx->gy;
   parameters->alpha              = ctx->alpha;
-  parameters->eta_characteristic = 1e20; /* A minimum viscosity */ // TODO wrong
+  parameters->eta_characteristic = ctx->eta_characteristic;
   parameters->boussinesq_forcing = ctx->boussinesq_forcing;
 
-  // TODO print Rayleigh number?
+  /* Compute and print the Rayleigh number (may only be relevant for Blankenbach case) */
+  {
+    PetscScalar Ra,hy,dT;
+
+    hy = ctx->ymax - ctx->ymin;
+    dT = ctx->temperature_bottom - ctx->temperature_top;
+    Ra = ctx->alpha * PetscAbsScalar(ctx->gy) * dT * (hy * hy * hy) / (ctx->kappa * ctx->eta_characteristic);
+    ierr = PetscPrintf(ctx->comm,"Rayleigh number: %g\n",Ra);CHKERRQ(ierr);
+  }
 
   // TODO ugly - should be somewhere else I guess
     ierr = StagBLGridCreateStagBLArray(ctx->stokes_grid,&ctx->stokes_array);CHKERRQ(ierr);

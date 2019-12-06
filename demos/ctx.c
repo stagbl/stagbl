@@ -72,8 +72,8 @@ PetscErrorCode CtxCreate(MPI_Comm comm,const char* mode,Ctx *pctx)
     ctx->ymax = 1e6;
     ctx->rho1 = 4000;
     ctx->rho2 = 4400; /* not used normally */
-    ctx->eta1 = 2.5e21; /* case 1a */
-    ctx->eta2 = 2.5e21; /* Not normally used */
+    ctx->eta1 = 2.5e19; /* case 1a */
+    ctx->eta2 = 2.5e19; /* Not normally used */
     ctx->eta_characteristic = ctx->eta1;
     ctx->gy   = -10.0; /* gravity points in negative y direction */
     PetscFunctionReturn(0);
