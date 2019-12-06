@@ -16,7 +16,8 @@ PetscErrorCode ComputeNusseltNumber(Ctx ctx,PetscReal *nusselt_number)
   PetscBool      is_top_rank;
   PetscScalar    ***arr_temperature;
   PetscScalar    **arr_coordinates_x,**arr_coordinates_y;
-  PetscInt       slot_vertex,slot_prev,slot_next;
+  PetscInt       slot_temperature_upleft,slot_temperature_upright,slot_temperature_downleft,slot_temperature_downright;
+  PetscInt       slot_prev,slot_next;
   PetscReal      sum_local,sum_global;
 
   PetscFunctionBeginUser;
@@ -31,20 +32,27 @@ PetscErrorCode ComputeNusseltNumber(Ctx ctx,PetscReal *nusselt_number)
   ierr = DMGetLocalVector(dm_temperature,&vec_temperature_local);CHKERRQ(ierr);
   ierr = DMGlobalToLocal(dm_temperature,vec_temperature,INSERT_VALUES,vec_temperature_local);CHKERRQ(ierr);
   ierr = DMStagVecGetArrayRead(dm_temperature,vec_temperature_local,&arr_temperature);CHKERRQ(ierr);
-  ierr = DMStagGetLocationSlot(dm_temperature,DMSTAG_UP_LEFT,0,&slot_vertex);CHKERRQ(ierr);
+  ierr = DMStagGetLocationSlot(dm_temperature,DMSTAG_UP_LEFT,   0,&slot_temperature_upleft);CHKERRQ(ierr);
+  ierr = DMStagGetLocationSlot(dm_temperature,DMSTAG_UP_RIGHT,  0,&slot_temperature_upright);CHKERRQ(ierr);
+  ierr = DMStagGetLocationSlot(dm_temperature,DMSTAG_DOWN_LEFT, 0,&slot_temperature_downleft);CHKERRQ(ierr);
+  ierr = DMStagGetLocationSlot(dm_temperature,DMSTAG_DOWN_RIGHT,0,&slot_temperature_downright);CHKERRQ(ierr);
   ierr = DMStagGetProductCoordinateLocationSlot(dm_temperature,DMSTAG_LEFT,&slot_prev);CHKERRQ(ierr);
   ierr = DMStagGetProductCoordinateLocationSlot(dm_temperature,DMSTAG_RIGHT,&slot_next);CHKERRQ(ierr);
   ierr = DMStagGetProductCoordinateArraysRead(dm_temperature,&arr_coordinates_x,&arr_coordinates_y,NULL);CHKERRQ(ierr);
   sum_local = 0.0;
   if (is_top_rank) {
     const PetscInt ey = starty+ny-1; /* The top element */
-    for (ex=0; ex<startx+nx+nextrax; ++ex) { /* Include "extra" vertex on the right */
+    for (ex=startx; ex<startx+nx; ++ex) {
       PetscScalar hx = arr_coordinates_x[ex][slot_next]-arr_coordinates_x[ex][slot_prev];
       PetscScalar hy = arr_coordinates_y[ey][slot_next]-arr_coordinates_y[ey][slot_prev];
-      const PetscScalar dT = arr_temperature[ey][ex][slot_vertex] - arr_temperature[ey-1][ex][slot_vertex];
+      /* (somewhat redundantly) compute an average of the vertical gradients on each side of each element */
+      const PetscScalar dT = 0.5 *(
+          arr_temperature[ey][ex][slot_temperature_upleft]  - arr_temperature[ey][ex][slot_temperature_downleft]
+        + arr_temperature[ey][ex][slot_temperature_upright] - arr_temperature[ey][ex][slot_temperature_downright]);
       sum_local += hx * dT / hy;
     }
   }
+  ierr = DMStagRestoreProductCoordinateArraysRead(dm_temperature,&arr_coordinates_x,&arr_coordinates_y,NULL);CHKERRQ(ierr);
   ierr = DMRestoreLocalVector(dm_temperature,&vec_temperature_local);CHKERRQ(ierr);
 
   /* Perform a reduction */

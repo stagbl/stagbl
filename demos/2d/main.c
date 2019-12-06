@@ -112,13 +112,13 @@ int main(int argc, char** argv)
   parameters->temperature_grid   = ctx->temperature_grid;
   parameters->temperature_array  = ctx->temperature_array;
   parameters->uniform_grid       = ctx->uniform_grid;
-  parameters->xmin               = 0;
-  parameters->xmax               = 1e6;
-  parameters->ymin               = 0.0;
-  parameters->ymax               = 1.5e6;
-  parameters->gy                 = 10.0;
+  parameters->xmin               = ctx->xmin;
+  parameters->xmax               = ctx->xmax;
+  parameters->ymin               = ctx->ymin;
+  parameters->ymax               = ctx->ymax;
+  parameters->gy                 = ctx->gy;
   parameters->alpha              = ctx->alpha;
-  parameters->eta_characteristic = 1e20; /* A minimum viscosity */
+  parameters->eta_characteristic = 1e20; /* A minimum viscosity */ // TODO wrong
   parameters->boussinesq_forcing = ctx->boussinesq_forcing;
 
   // TODO print Rayleigh number?
