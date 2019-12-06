@@ -18,7 +18,7 @@ typedef struct {
   PetscBool    uniform_grid;
   PetscScalar  xmax,ymax,xmin,ymin,zmin,zmax;
   // TODO these are only used for the temperature system assembly and will be moved:
-  PetscScalar  hxCharacteristic,hyCharacteristic,hzCharacteristic; // TODO use hx_characteristic etc.
+  PetscScalar  hx_characteristic,hy_characteristic,hz_characteristic;
 
   /* Settings */
   PetscBool    boussinesq_forcing;

@@ -38,8 +38,6 @@ PetscErrorCode InitializeTemperature(Ctx ctx)
   ierr = DMStagVecRestoreArray(dmTemp,tempLocal,&arr);CHKERRQ(ierr);
   ierr = DMLocalToGlobal(dmTemp,tempLocal,INSERT_VALUES,temp);CHKERRQ(ierr);
   ierr = DMRestoreLocalVector(dmTemp,&tempLocal);CHKERRQ(ierr);
-
-// TODO check mode here and set something coordinate-based (say give bouyant hot anomaly on the left!)
   PetscFunctionReturn(0);
 }
 
@@ -61,9 +59,9 @@ PetscErrorCode PopulateTemperatureSystem(Ctx ctx)
   PetscReal       hx,hy;
   Vec             tempPrev,tempPrevLocal;
   PetscScalar     ***arr;
-  PetscInt        slot;
+  PetscInt        slot_temperature_downleft;
   PetscScalar     ***arrStokes;
-  PetscInt        slotVxLeft,slotVyDown;
+  PetscInt        slot_vx_left,slot_vy_down;
   Vec             stokes,stokesLocal;
 
   PetscFunctionBeginUser;
@@ -75,12 +73,12 @@ PetscErrorCode PopulateTemperatureSystem(Ctx ctx)
   ierr = DMGetLocalVector(dmTemp,&tempPrevLocal);CHKERRQ(ierr);
   ierr = DMGlobalToLocal(dmTemp,tempPrev,INSERT_VALUES,tempPrevLocal);CHKERRQ(ierr);
   ierr = DMStagVecGetArrayRead(dmTemp,tempPrevLocal,&arr);CHKERRQ(ierr);
-  slot = 0; // TODO lazy
+  ierr = DMStagGetLocationSlot(dmTemp,DMSTAG_DOWN_LEFT,0,&slot_temperature_downleft);CHKERRQ(ierr);
 
   ierr = StagBLArrayPETScGetGlobalVec(ctx->stokes_array,&stokes);CHKERRQ(ierr);
   ierr = StagBLGridPETScGetDM(ctx->stokes_grid,&dmStokes);CHKERRQ(ierr);
-  ierr = DMStagGetLocationSlot(dmStokes,DMSTAG_LEFT,0,&slotVxLeft);CHKERRQ(ierr);
-  ierr = DMStagGetLocationSlot(dmStokes,DMSTAG_DOWN,0,&slotVyDown);CHKERRQ(ierr);
+  ierr = DMStagGetLocationSlot(dmStokes,DMSTAG_LEFT,0,&slot_vx_left);CHKERRQ(ierr);
+  ierr = DMStagGetLocationSlot(dmStokes,DMSTAG_DOWN,0,&slot_vy_down);CHKERRQ(ierr);
   ierr = DMGetLocalVector(dmStokes,&stokesLocal);CHKERRQ(ierr);
   ierr = DMGlobalToLocal(dmStokes,stokes,INSERT_VALUES,stokesLocal);CHKERRQ(ierr);
   ierr = DMStagVecGetArrayRead(dmStokes,stokesLocal,&arrStokes);CHKERRQ(ierr);
@@ -97,8 +95,8 @@ PetscErrorCode PopulateTemperatureSystem(Ctx ctx)
   ierr = DMStagGetIsLastRank(dmTemp,&isLastx,&isLasty,NULL);CHKERRQ(ierr);
   ierr = DMStagGetIsFirstRank(dmTemp,&isFirstx,&isFirsty,NULL);CHKERRQ(ierr);
   ierr = DMStagGetGlobalSizes(dmTemp,&N[0],&N[1],NULL);CHKERRQ(ierr);
-  hx = ctx->hxCharacteristic;
-  hy = ctx->hyCharacteristic;
+  hx = ctx->hx_characteristic;
+  hy = ctx->hy_characteristic;
   if (ctx->uniform_grid) {
     hx = (ctx->xmax-ctx->xmin)/N[0];
     hy = (ctx->ymax-ctx->ymin)/N[1];
@@ -155,9 +153,9 @@ PetscErrorCode PopulateTemperatureSystem(Ctx ctx)
       col[3].i = ex;   col[3].j = ey+1; col[3].c = 0; col[3].loc=DMSTAG_DOWN_LEFT; valA[3] = -1.0*ctx->kappa/(hy*hy);
 
       /* Additional terms from upwinding (note +=) */
-      vx = 0.5*(arrStokes[ey][ex][slotVxLeft] + arrStokes[ey-1][ex][slotVxLeft]);
+      vx = 0.5*(arrStokes[ey][ex][slot_vx_left] + arrStokes[ey-1][ex][slot_vx_left]);
       avx = PetscAbsScalar(vx); vxp = 0.5*(vx+avx);
-      vy = arrStokes[ey][ex-1][slotVyDown]; /* only one entry (assume free slip) */
+      vy = arrStokes[ey][ex-1][slot_vy_down]; /* only one entry (assume free slip) */
       avy = PetscAbsScalar(vy); vyp = 0.5*(vy+avy); vym = 0.5*(vy-avy);
       valA[0] +=  avx/hx + avy/hy;
       valA[1] += -vxp/hx;
@@ -169,7 +167,7 @@ PetscErrorCode PopulateTemperatureSystem(Ctx ctx)
       valA[0] += 1.0/ctx->dt;
 
       ierr = DMStagMatSetValuesStencil(dmTemp,A,1,&row,4,col,valA,INSERT_VALUES);CHKERRQ(ierr);
-      valRhs = arr[ey][ex][slot]/ctx->dt; /* No heat source */
+      valRhs = arr[ey][ex][slot_temperature_downleft]/ctx->dt; /* No heat source */
 
       ierr = DMStagVecSetValuesStencil(dmTemp,rhs,1,&row,&valRhs,INSERT_VALUES);CHKERRQ(ierr);
     }
@@ -195,9 +193,9 @@ PetscErrorCode PopulateTemperatureSystem(Ctx ctx)
       col[3].i = ex;   col[3].j = ey+1; col[3].c = 0; col[3].loc=DMSTAG_DOWN_LEFT; valA[3] = -1.0*ctx->kappa/(hy*hy);
 
       /* Additional terms from upwinding (note +=) */
-      vx = 0.5*(arrStokes[ey][ex][slotVxLeft] + arrStokes[ey-1][ex][slotVxLeft]);
+      vx = 0.5*(arrStokes[ey][ex][slot_vx_left] + arrStokes[ey-1][ex][slot_vx_left]);
       avx = PetscAbsScalar(vx); vxm = 0.5*(vx-avx);
-      vy = arrStokes[ey][ex][slotVyDown]; /* only use one value  (assume free slip) */
+      vy = arrStokes[ey][ex][slot_vy_down]; /* only use one value  (assume free slip) */
       avy = PetscAbsScalar(vy); vyp = 0.5*(vy+avy); vym = 0.5*(vy-avy);
       valA[0] +=  avx/hx + avy/hy;
       /* Missing left */ // TODO WRONG forgot something??
@@ -209,7 +207,7 @@ PetscErrorCode PopulateTemperatureSystem(Ctx ctx)
       valA[0] += 1.0/ctx->dt;
 
       ierr = DMStagMatSetValuesStencil(dmTemp,A,1,&row,4,col,valA,INSERT_VALUES);CHKERRQ(ierr);
-      valRhs = arr[ey][ex][slot]/ctx->dt; /* No heat source */
+      valRhs = arr[ey][ex][slot_temperature_downleft]/ctx->dt; /* No heat source */
 
       ierr = DMStagVecSetValuesStencil(dmTemp,rhs,1,&row,&valRhs,INSERT_VALUES);CHKERRQ(ierr);
     }
@@ -233,9 +231,9 @@ PetscErrorCode PopulateTemperatureSystem(Ctx ctx)
       col[4].i = ex;   col[4].j = ey+1; col[4].c = 0; col[4].loc=DMSTAG_DOWN_LEFT; valA[4] = -1.0*ctx->kappa/(hy*hy);
 
       /* Additional terms from upwinding (note +=) */
-      vx = 0.5*(arrStokes[ey][ex][slotVxLeft] + arrStokes[ey-1][ex][slotVxLeft]);
+      vx = 0.5*(arrStokes[ey][ex][slot_vx_left] + arrStokes[ey-1][ex][slot_vx_left]);
       avx = PetscAbsScalar(vx); vxp = 0.5*(vx+avx); vxm = 0.5*(vx-avx);
-      vy = 0.5*(arrStokes[ey][ex][slotVyDown] + arrStokes[ey][ex-1][slotVyDown]);
+      vy = 0.5*(arrStokes[ey][ex][slot_vy_down] + arrStokes[ey][ex-1][slot_vy_down]);
       avy = PetscAbsScalar(vy); vyp = 0.5*(vy+avy); vym = 0.5*(vy-avy);
       valA[0] +=  avx/hx + avy/hy;
       valA[1] += -vxp/hx;
@@ -247,7 +245,7 @@ PetscErrorCode PopulateTemperatureSystem(Ctx ctx)
       valA[0] += 1.0/ctx->dt;
 
       ierr = DMStagMatSetValuesStencil(dmTemp,A,1,&row,5,col,valA,INSERT_VALUES);CHKERRQ(ierr);
-      valRhs = arr[ey][ex][slot]/ctx->dt; /* No heat source */
+      valRhs = arr[ey][ex][slot_temperature_downleft]/ctx->dt; /* No heat source */
 
       ierr = DMStagVecSetValuesStencil(dmTemp,rhs,1,&row,&valRhs,INSERT_VALUES);CHKERRQ(ierr);
     }
