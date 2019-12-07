@@ -6,8 +6,10 @@ PetscErrorCode InitializeTemperature(Ctx ctx)
   Vec            *pTemp;
   Vec            temp,tempLocal;
   DM             dmTemp;
-  PetscInt       ex,ey,startx,starty,nx,ny,nExtrax,nExtray,slot,N[2];
+  PetscInt       ex,ey,startx,starty,nx,ny,nExtrax,nExtray,N[2];
+  PetscInt       slot_temperature_downleft,slot_coordinate_prev;
   PetscScalar    ***arr;
+  const PetscScalar **arr_coordinates_x,**arr_coordinates_y;
 
   PetscFunctionBeginUser;
   if (!ctx->temperature_array) {
@@ -21,20 +23,30 @@ PetscErrorCode InitializeTemperature(Ctx ctx)
   ierr = DMGetLocalVector(dmTemp,&tempLocal);CHKERRQ(ierr);
   ierr = DMStagGetCorners(dmTemp,&startx,&starty,NULL,&nx,&ny,NULL,&nExtrax,&nExtray,NULL);CHKERRQ(ierr);
   ierr = DMStagGetGlobalSizes(dmTemp,&N[0],&N[1],NULL);CHKERRQ(ierr);
-  ierr = DMStagGetLocationSlot(dmTemp,DMSTAG_DOWN_LEFT,0,&slot);CHKERRQ(ierr);
+  ierr = DMStagGetLocationSlot(dmTemp,DMSTAG_DOWN_LEFT,0,&slot_temperature_downleft);CHKERRQ(ierr);
   ierr = DMStagVecGetArray(dmTemp,tempLocal,&arr);CHKERRQ(ierr);
+  ierr = DMStagGetProductCoordinateArraysRead(dmTemp,&arr_coordinates_x,&arr_coordinates_y,NULL);CHKERRQ(ierr);
+  ierr = DMStagGetProductCoordinateLocationSlot(dmTemp,DMSTAG_LEFT,&slot_coordinate_prev);CHKERRQ(ierr);
   /* A simple inital temperature field, for the Blankenbach benchmark */
   for (ey = starty; ey<starty+ny+nExtray; ++ey) {
     for (ex = startx; ex<startx+nx+nExtrax; ++ex) {
+      const PetscScalar xr = (arr_coordinates_x[ex][slot_coordinate_prev] - ctx->xmin)/(ctx->xmax - ctx->xmin);
+      const PetscScalar yr = (arr_coordinates_y[ey][slot_coordinate_prev] - ctx->ymin)/(ctx->ymax - ctx->ymin);
+
+#if 1
+      arr[ey][ex][slot_temperature_downleft] = 550 + 10.0* (PetscSinScalar(PETSC_PI*yr) * PetscCosScalar(PETSC_PI * xr));
+#else
       if (ex == 0 || ex < (PetscInt) (0.1 * N[0])){
-          arr[ey][ex][slot] = 1000;
+          arr[ey][ex][slot] = 600;
       } else if (ex == N[0]-1 || ex > (PetscInt) (0.9 * N[0])){
-          arr[ey][ex][slot] = 0;
+          arr[ey][ex][slot_temperature_downleft] = 400;
       } else {
-          arr[ey][ex][slot] = 500;
+          arr[ey][ex][slot_temperature_downleft] = 500;
       }
+#endif
     }
   }
+  ierr = DMStagRestoreProductCoordinateArraysRead(dmTemp,&arr_coordinates_x,&arr_coordinates_y,NULL);CHKERRQ(ierr);
   ierr = DMStagVecRestoreArray(dmTemp,tempLocal,&arr);CHKERRQ(ierr);
   ierr = DMLocalToGlobal(dmTemp,tempLocal,INSERT_VALUES,temp);CHKERRQ(ierr);
   ierr = DMRestoreLocalVector(dmTemp,&tempLocal);CHKERRQ(ierr);
@@ -139,7 +151,7 @@ PetscErrorCode PopulateTemperatureSystem(Ctx ctx)
     for (ey = PetscMax(1,starty); ey<starty+ny; ++ey) { /* Skip corners */
       DMStagStencil row,col[4];
       PetscScalar   valA[4],valRhs;
-      PetscScalar   vx,vy,avx,avy,vxp,vyp,vym;
+      PetscScalar   vy,avy,vyp,vym;
 
       const PetscInt ex = N[0]; /* the "extra" column of elements */
 
@@ -153,21 +165,23 @@ PetscErrorCode PopulateTemperatureSystem(Ctx ctx)
       col[3].i = ex;   col[3].j = ey+1; col[3].c = 0; col[3].loc=DMSTAG_DOWN_LEFT; valA[3] = -1.0*ctx->kappa/(hy*hy);
 
       /* Additional terms from upwinding (note +=) */
-      vx = 0.5*(arrStokes[ey][ex][slot_vx_left] + arrStokes[ey-1][ex][slot_vx_left]);
-      avx = PetscAbsScalar(vx); vxp = 0.5*(vx+avx);
-      vy = arrStokes[ey][ex-1][slot_vy_down]; /* only one entry (assume free slip) */
-      avy = PetscAbsScalar(vy); vyp = 0.5*(vy+avy); vym = 0.5*(vy-avy);
-      valA[0] +=  avx/hx + avy/hy;
-      valA[1] += -vxp/hx;
-      /* Missing Right */ // TODO WRONG forgot something??
+      /* Here, we assume free slip boundary conditions, so vx is zero and
+         vy is obtained from a single adjacent edge */
+      vy = arrStokes[ey][ex-1][slot_vy_down];
+      avy = PetscAbsScalar(vy);
+      vyp = 0.5*(vy+avy);
+      vym = 0.5*(vy-avy);
+      valA[0] +=  avy/hy;
+      /* Missing left */
+      /* Missing right */
       valA[2] += -vyp/hy;
       valA[3] +=  vym/hy;
 
       /* Time Discretization Term */
-      valA[0] += 1.0/ctx->dt;
+      valA[0] += ctx->rho1 * ctx->cp /ctx->dt;
 
       ierr = DMStagMatSetValuesStencil(dmTemp,A,1,&row,4,col,valA,INSERT_VALUES);CHKERRQ(ierr);
-      valRhs = arr[ey][ex][slot_temperature_downleft]/ctx->dt; /* No heat source */
+      valRhs = arr[ey][ex][slot_temperature_downleft] * ctx->rho1 * ctx->cp /ctx->dt; /* No heat source */
 
       ierr = DMStagVecSetValuesStencil(dmTemp,rhs,1,&row,&valRhs,INSERT_VALUES);CHKERRQ(ierr);
     }
@@ -179,7 +193,7 @@ PetscErrorCode PopulateTemperatureSystem(Ctx ctx)
       /* Note: this is duplicated mostly from the interior points section */
       DMStagStencil row,col[4];
       PetscScalar   valA[4],valRhs;
-      PetscScalar   vx,vy,avx,avy,vxm,vyp,vym;
+      PetscScalar   vy,avy,vyp,vym;
 
       const PetscInt ex = 0;
 
@@ -193,13 +207,15 @@ PetscErrorCode PopulateTemperatureSystem(Ctx ctx)
       col[3].i = ex;   col[3].j = ey+1; col[3].c = 0; col[3].loc=DMSTAG_DOWN_LEFT; valA[3] = -1.0*ctx->kappa/(hy*hy);
 
       /* Additional terms from upwinding (note +=) */
-      vx = 0.5*(arrStokes[ey][ex][slot_vx_left] + arrStokes[ey-1][ex][slot_vx_left]);
-      avx = PetscAbsScalar(vx); vxm = 0.5*(vx-avx);
-      vy = arrStokes[ey][ex][slot_vy_down]; /* only use one value  (assume free slip) */
-      avy = PetscAbsScalar(vy); vyp = 0.5*(vy+avy); vym = 0.5*(vy-avy);
-      valA[0] +=  avx/hx + avy/hy;
-      /* Missing left */ // TODO WRONG forgot something??
-      valA[1] +=  vxm/hx;
+      /* Here, we assume free slip boundary conditions, so vx is zero and
+         vy is obtained from a single adjacent edge */
+      vy = arrStokes[ey][ex][slot_vy_down];
+      avy = PetscAbsScalar(vy);
+      vyp = 0.5*(vy+avy);
+      vym = 0.5*(vy-avy);
+      valA[0] +=  avy/hy;
+      /* Missing left */
+      /* Missing right */
       valA[2] += -vyp/hy;
       valA[3] +=  vym/hy;
 
@@ -232,9 +248,13 @@ PetscErrorCode PopulateTemperatureSystem(Ctx ctx)
 
       /* Additional terms from upwinding (note +=) */
       vx = 0.5*(arrStokes[ey][ex][slot_vx_left] + arrStokes[ey-1][ex][slot_vx_left]);
-      avx = PetscAbsScalar(vx); vxp = 0.5*(vx+avx); vxm = 0.5*(vx-avx);
+      avx = PetscAbsScalar(vx);
+      vxp = 0.5*(vx+avx);
+      vxm = 0.5*(vx-avx);
       vy = 0.5*(arrStokes[ey][ex][slot_vy_down] + arrStokes[ey][ex-1][slot_vy_down]);
-      avy = PetscAbsScalar(vy); vyp = 0.5*(vy+avy); vym = 0.5*(vy-avy);
+      avy = PetscAbsScalar(vy);
+      vyp = 0.5*(vy+avy);
+      vym = 0.5*(vy-avy);
       valA[0] +=  avx/hx + avy/hy;
       valA[1] += -vxp/hx;
       valA[2] +=  vxm/hx;

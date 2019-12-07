@@ -26,6 +26,7 @@ PetscErrorCode CtxCreate(MPI_Comm comm,const char* mode,Ctx *pctx)
   ctx->kappa = 1e-6;
   ierr = PetscOptionsGetReal(NULL,NULL,"-kappa",&ctx->kappa,NULL);CHKERRQ(ierr);
   ctx->alpha = 2.5e-5;
+  ctx->cp = 1.25e3;
   ctx->KTemp = 1.0; // TODO compute from material paramets (Check Gerya2009 for a recommendation?)
 
   ctx->compute_nusselt_number = PETSC_FALSE;
