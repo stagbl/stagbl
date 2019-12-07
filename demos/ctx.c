@@ -17,17 +17,13 @@ PetscErrorCode CtxCreate(MPI_Comm comm,const char* mode,Ctx *pctx)
 
   /* Default Settings */
   ctx->totalTimesteps     = 3;
-  ierr = PetscOptionsGetInt(NULL,NULL,"-nsteps",&ctx->totalTimesteps,NULL);CHKERRQ(ierr);
   ctx->dt                 = 1e13;
-  ierr = PetscOptionsGetReal(NULL,NULL,"-dt",&ctx->dt,NULL);CHKERRQ(ierr);
   ctx->temperature_top    = 0;
   ctx->temperature_bottom = 1000;
-
-  ctx->kappa = 1e-6;
-  ierr = PetscOptionsGetReal(NULL,NULL,"-kappa",&ctx->kappa,NULL);CHKERRQ(ierr);
-  ctx->alpha = 2.5e-5;
-  ctx->cp = 1.25e3;
-  ctx->KTemp = 1.0; // TODO compute from material paramets (Check Gerya2009 for a recommendation?)
+  ctx->kappa              = 1e-6;
+  ctx->alpha              = 2.5e-5;
+  ctx->cp                 = 1.25e3;
+  ctx->KTemp              = 1.0; // TODO compute from material paramets (Check Gerya2009 for a recommendation?)
 
   ctx->compute_nusselt_number = PETSC_FALSE;
 
@@ -57,30 +53,40 @@ PetscErrorCode CtxCreate(MPI_Comm comm,const char* mode,Ctx *pctx)
     ctx->rho2 = 3300;
     ctx->eta1 = 1e20;
     ctx->eta2 = 1e22;
-    ctx->eta_characteristic = 1e20;
-    ctx->gy   = 10.0; /* gravity points in positive y direction */
-    PetscFunctionReturn(0);
-  }
-
-  ierr = PetscStrcmp(mode,"blankenbach",&flg);CHKERRQ(ierr);
-  if (flg) {
-    ctx->uniform_grid = PETSC_TRUE;
-    ctx->boussinesq_forcing = PETSC_TRUE;
-    ctx->compute_nusselt_number = PETSC_TRUE;
-    ctx->xmin = 0.0;
-    ctx->xmax = 1e6;
-    ctx->ymin = 0.0;
-    ctx->ymax = 1e6;
-    ctx->rho1 = 4000;
-    ctx->rho2 = 4400; /* not used normally */
-    ctx->eta1 = 2.5e19; /* case 1a */
-    ctx->eta2 = 2.5e19; /* Not normally used */
     ctx->eta_characteristic = ctx->eta1;
-    ctx->gy   = -10.0; /* gravity points in negative y direction */
-    PetscFunctionReturn(0);
+    ctx->gy   = 10.0; /* gravity points in positive y direction */
+  } else {
+    ierr = PetscStrcmp(mode,"blankenbach",&flg);CHKERRQ(ierr);
+    if (flg) {
+      ctx->uniform_grid = PETSC_TRUE;
+      ctx->boussinesq_forcing = PETSC_TRUE;
+      ctx->compute_nusselt_number = PETSC_TRUE;
+      ctx->xmin = 0.0;
+      ctx->xmax = 1e6;
+      ctx->ymin = 0.0;
+      ctx->ymax = 1e6;
+      ctx->rho1 = 4000;
+      ctx->rho2 = 4400; /* not used normally */
+      ctx->eta1 = 2.5e19; /* case 1a */
+      ctx->eta2 = 2.5e19; /* Not normally used */
+      ctx->eta_characteristic = ctx->eta1;
+      ctx->gy   = -10.0; /* gravity points in negative y direction */
+    }
   }
 
-  SETERRQ1(comm,PETSC_ERR_SUP,"Unrecognized mode %s",mode);CHKERRQ(ierr);
+  if (!flg) {
+    SETERRQ1(comm,PETSC_ERR_SUP,"Unrecognized mode %s",mode);CHKERRQ(ierr);
+  }
+
+  /* Override settings from the command line */
+  ierr = PetscOptionsGetReal(NULL,NULL,"-dt",&ctx->dt,NULL);CHKERRQ(ierr);
+  ierr = PetscOptionsGetInt(NULL,NULL,"-nsteps",&ctx->totalTimesteps,NULL);CHKERRQ(ierr);
+  ierr = PetscOptionsGetReal(NULL,NULL,"-kappa",&ctx->kappa,NULL);CHKERRQ(ierr);
+  ierr = PetscOptionsGetReal(NULL,NULL,"-alpha",&ctx->alpha,NULL);CHKERRQ(ierr);
+  ierr = PetscOptionsGetReal(NULL,NULL,"-eta1",&ctx->eta1,NULL);CHKERRQ(ierr);
+  ierr = PetscOptionsGetReal(NULL,NULL,"-eta2",&ctx->eta2,NULL);CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
 }
 
 PetscErrorCode CtxDestroy(Ctx *pctx)
