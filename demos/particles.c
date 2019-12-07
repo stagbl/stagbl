@@ -96,13 +96,16 @@ PetscErrorCode CreateParticleSystem(Ctx ctx)
 PetscErrorCode InterpolateTemperatureToParticles(Ctx ctx)
 {
   PetscErrorCode ierr;
-  DM             dmTemp,dm_mpoint;
+  DM             dmTemp,dm_mpoint; // TODO rename dmTemp
   Vec            temp,tempLocal;
   PetscInt       p,e,npoints;
   PetscInt       *mpfield_cell;
   PetscReal      *array_temperature;
   PetscScalar    ***arr;
-  PetscInt       slotDownLeft,slotDownRight,slotUpLeft,slotUpRight;
+  const PetscScalar **arr_coordinates_x,**arr_coordinates_y;
+  PetscInt       slotDownLeft,slotDownRight,slotUpLeft,slotUpRight; // TODO names
+  PetscInt       slot_coordinates_prev,slot_coordinates_next;
+  PetscReal      *particle_coordinates;
 
   PetscFunctionBeginUser;
   dm_mpoint = ctx->dm_particles;
@@ -116,24 +119,40 @@ PetscErrorCode InterpolateTemperatureToParticles(Ctx ctx)
   ierr = DMStagGetLocationSlot(dmTemp,DMSTAG_UP_RIGHT,0,&slotUpRight);CHKERRQ(ierr);
   ierr = DMStagGetLocationSlot(dmTemp,DMSTAG_UP_LEFT,0,&slotUpLeft);CHKERRQ(ierr);
   ierr = DMStagVecGetArrayRead(dmTemp,tempLocal,&arr);CHKERRQ(ierr);
+  ierr = DMStagGetProductCoordinateArraysRead(dmTemp,&arr_coordinates_x,&arr_coordinates_y,NULL);CHKERRQ(ierr);
+  ierr = DMStagGetProductCoordinateLocationSlot(dmTemp,DMSTAG_LEFT,&slot_coordinates_prev);CHKERRQ(ierr);
+  ierr = DMStagGetProductCoordinateLocationSlot(dmTemp,DMSTAG_RIGHT,&slot_coordinates_next);CHKERRQ(ierr);
   ierr = DMSwarmGetField(dm_mpoint,DMSwarmPICField_cellid,NULL,NULL,(void**)&mpfield_cell);CHKERRQ(ierr);
+  ierr = DMSwarmGetField(ctx->dm_particles,DMSwarmPICField_coor,NULL,NULL,(void**)&particle_coordinates);CHKERRQ(ierr);
   ierr = DMSwarmGetField(ctx->dm_particles,"Temperature",NULL,NULL,(void**)&array_temperature);CHKERRQ(ierr);
   ierr = DMSwarmGetLocalSize(dm_mpoint,&npoints);CHKERRQ(ierr);
   for (p=0; p<npoints; p++) {
-    PetscInt    ind[2];
+    PetscInt    ind[2],ex,ey;
+    PetscReal   px,py,x_left,x_right,y_down,y_up,x_local,y_local;
 
     e       = mpfield_cell[p];
     ierr = DMStagGetLocalElementGlobalIndices(dmTemp,e,ind);CHKERRQ(ierr);
+    ex = ind[0];
+    ey = ind[1];
 
-    /* simply average corners (could do linear interp) */
-    array_temperature[p] = 0.25*(
-            arr[ind[1]][ind[0]][slotDownLeft]
-          + arr[ind[1]][ind[0]][slotDownRight]
-          + arr[ind[1]][ind[0]][slotUpLeft]
-          + arr[ind[1]][ind[0]][slotUpRight]
-        );
+    /* Linearly interpolate corner values */
+    px = particle_coordinates[2*p];
+    py = particle_coordinates[2*p+1];
+    y_down = arr_coordinates_y[ey][slot_coordinates_prev];
+    y_up = arr_coordinates_y[ey][slot_coordinates_next];
+    x_left = arr_coordinates_x[ex][slot_coordinates_prev];
+    x_right = arr_coordinates_x[ex][slot_coordinates_next];
+    x_local = (px - x_left)/(x_right - x_left);
+    y_local = (py - y_down)/(y_up - y_down);
+    array_temperature[p] =
+            (1.0 - x_local) * (1.0 - y_local) * arr[ey][ex][slotDownLeft]
+          + x_local         * (1.0 - y_local) * arr[ey][ex][slotDownRight]
+          + (1.0 - x_local) * y_local         * arr[ey][ex][slotUpLeft]
+          + x_local         * y_local         * arr[ey][ex][slotUpRight];
   }
   ierr = DMStagVecRestoreArrayRead(dmTemp,tempLocal,&arr);CHKERRQ(ierr);
+  ierr = DMStagRestoreProductCoordinateArraysRead(dmTemp,&arr_coordinates_x,&arr_coordinates_y,NULL);CHKERRQ(ierr);
+  ierr = DMSwarmRestoreField(ctx->dm_particles,DMSwarmPICField_coor,NULL,NULL,(void**)&particle_coordinates);CHKERRQ(ierr);
   ierr = DMSwarmRestoreField(ctx->dm_particles,"Temperature",NULL,NULL,(void**)&array_temperature);CHKERRQ(ierr);
   ierr = DMSwarmRestoreField(dm_mpoint,DMSwarmPICField_cellid,NULL,NULL,(void**)&mpfield_cell);CHKERRQ(ierr);
 
