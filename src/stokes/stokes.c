@@ -118,7 +118,7 @@ static PetscErrorCode CreateSystem_2D_FreeSlip(StagBLStokesParameters parameters
   DM              dm_temperature;
   Vec             temperature,temperature_local;
   PetscScalar     ***arr_temperature;
-  PetscInt        slotTempDownLeft,slotTempDownRight,slotTempUpLeft,slotTempUpRight;
+  PetscInt        slot_temperature_downleft,slot_temperature_downright;
 
   PetscFunctionBeginUser;
   ierr = StagBLSystemPETScGetMatPointer(system,&pA);CHKERRQ(ierr);
@@ -155,14 +155,12 @@ static PetscErrorCode CreateSystem_2D_FreeSlip(StagBLStokesParameters parameters
     ierr = DMGetLocalVector(dm_temperature,&temperature_local);CHKERRQ(ierr);
     ierr = DMGlobalToLocal(dm_temperature,temperature,INSERT_VALUES,temperature_local);CHKERRQ(ierr);
     ierr = DMStagVecGetArrayRead(dm_temperature,temperature_local,&arr_temperature);CHKERRQ(ierr);
-    ierr = DMStagGetLocationSlot(dm_temperature,DMSTAG_DOWN_LEFT,0,&slotTempDownLeft);CHKERRQ(ierr);
-    ierr = DMStagGetLocationSlot(dm_temperature,DMSTAG_DOWN_RIGHT,0,&slotTempDownRight);CHKERRQ(ierr);
-    ierr = DMStagGetLocationSlot(dm_temperature,DMSTAG_UP_LEFT,0,&slotTempUpLeft);CHKERRQ(ierr);
-    ierr = DMStagGetLocationSlot(dm_temperature,DMSTAG_UP_RIGHT,0,&slotTempUpRight);CHKERRQ(ierr);
+    ierr = DMStagGetLocationSlot(dm_temperature,DMSTAG_DOWN_LEFT,  0,&slot_temperature_downleft);CHKERRQ(ierr);
+    ierr = DMStagGetLocationSlot(dm_temperature,DMSTAG_DOWN_RIGHT, 0,&slot_temperature_downright);CHKERRQ(ierr);
   }
 
-  /* Loop over all local elements. Note that it may be more efficient to loop over each boundary separately */
-  for (ey = starty; ey<starty+ny; ++ey) { /* With DMStag, always iterate x fastest, y second fastest, z slowest */
+  /* Loop over all local elements. */
+  for (ey = starty; ey<starty+ny; ++ey) {
     for (ex = startx; ex<startx+nx; ++ex) {
 
       if (ey == N[1]-1) {
@@ -212,7 +210,8 @@ static PetscErrorCode CreateSystem_2D_FreeSlip(StagBLStokesParameters parameters
 
           /* Note Boussinesq forcing has the opposite sign */
           if (parameters->boussinesq_forcing) {
-            valRhs = parameters->alpha * rho_avg * parameters->gy * dv * arr_temperature[ey][ex][slotTempDownLeft];
+            const PetscScalar temperature_average = 0.5 * (arr_temperature[ey][ex][slot_temperature_downleft] + arr_temperature[ey][ex][slot_temperature_downright]);
+            valRhs = parameters->alpha * rho_avg * parameters->gy * dv * temperature_average;
           } else {
             valRhs = -parameters->gy * dv * rho_avg;
           }
