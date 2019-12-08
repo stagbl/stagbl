@@ -45,7 +45,6 @@ PetscErrorCode StagBLGridCreateStokes2DBox(MPI_Comm comm, PetscInt nx,PetscInt n
   PetscFunctionReturn(0);
 }
 
-// TODO temp as we refactor
 PetscErrorCode StagBLGridCreateStokes3DBox(MPI_Comm comm, PetscInt nx,PetscInt ny,PetscInt nz,PetscScalar xmin, PetscScalar xmax, PetscScalar ymin, PetscScalar ymax, PetscScalar zmin, PetscScalar zmax, StagBLGrid *pgrid)
 {
   PetscErrorCode ierr;
@@ -72,7 +71,8 @@ PetscErrorCode StagBLGridCreateStokes3DBox(MPI_Comm comm, PetscInt nx,PetscInt n
   PetscFunctionReturn(0);
 }
 
-static PetscErrorCode CreateSystem_Temp(StagBLStokesParameters parameters,StagBLSystem system);
+static PetscErrorCode CreateSystem_2D_FreeSlip(StagBLStokesParameters,StagBLSystem);
+static PetscErrorCode CreateSystem_3D_FreeSlip(StagBLStokesParameters,StagBLSystem);
 
 /**
   * A general function which creates Stokes StagBLSystem objects. It accepts
@@ -81,15 +81,24 @@ static PetscErrorCode CreateSystem_Temp(StagBLStokesParameters parameters,StagBL
 PetscErrorCode StagBLCreateStokesSystem(StagBLStokesParameters parameters, StagBLSystem *system)
 {
   PetscErrorCode ierr;
+  DM             dm_stokes;
+  PetscInt       dim;
 
   PetscFunctionBegin;
-  // TODO this is temporary, as we refactor
+  ierr = StagBLGridPETScGetDM(parameters->stokes_grid,&dm_stokes);CHKERRQ(ierr);
+  ierr = DMGetDimension(dm_stokes,&dim);CHKERRQ(ierr);
   ierr = StagBLGridCreateStagBLSystem(parameters->stokes_grid,system);CHKERRQ(ierr);
-  ierr = CreateSystem_Temp(parameters,*system);CHKERRQ(ierr);
+  switch (dim) {
+    case 2:
+    ierr = CreateSystem_2D_FreeSlip(parameters,*system);CHKERRQ(ierr);
+  break;
+    case 3:
+    ierr = CreateSystem_3D_FreeSlip(parameters,*system);CHKERRQ(ierr);
+    break;
+    default: StagBLError1(PetscObjectComm((PetscObject)dm_stokes),"Unsupported dimension %D",dim);
+  }
   PetscFunctionReturn(0);
 }
-
-// TODO this is temporary as we refactor
 
 /* Shorter, more convenient names for DMStagLocation entries */
 // TODO get rid of this
@@ -103,12 +112,10 @@ PetscErrorCode StagBLCreateStokesSystem(StagBLStokesParameters parameters, StagB
 #define UP         DMSTAG_UP
 #define UP_RIGHT   DMSTAG_UP_RIGHT
 
-// TODO this is a horrible name, even for a placeholder, as it evokes Temperature..
-static PetscErrorCode CreateSystem_Temp(StagBLStokesParameters parameters,StagBLSystem system)
+static PetscErrorCode CreateSystem_2D_FreeSlip(StagBLStokesParameters parameters,StagBLSystem system)
 {
   PetscErrorCode  ierr;
   DM              dm_stokes,dm_coefficient;
-  PetscInt        dim;
   PetscInt        N[2];
   PetscInt        ex,ey,startx,starty,nx,ny;
   Mat             *pA;
@@ -131,9 +138,6 @@ static PetscErrorCode CreateSystem_Temp(StagBLStokesParameters parameters,StagBL
   if (!parameters->coefficient_array) StagBLError(PETSC_COMM_SELF,"coefficient_array field not set in StagBLStokesParameters argument");
   ierr = StagBLArrayGetStagBLGrid(parameters->coefficient_array,&coefficient_grid);CHKERRQ(ierr);
   ierr = StagBLGridPETScGetDM(parameters->stokes_grid,&dm_stokes);CHKERRQ(ierr);
-  ierr = DMGetDimension(dm_stokes,&dim);CHKERRQ(ierr);
-  if (dim != 2) StagBLError1(PetscObjectComm((PetscObject)dm_stokes),"Unsupported Dimension %D",dim)
-
   ierr = StagBLGridPETScGetDM(coefficient_grid,&dm_coefficient);CHKERRQ(ierr);
   ierr = StagBLArrayPETScGetLocalVec(parameters->coefficient_array,&coeff_local);CHKERRQ(ierr);
 
@@ -171,6 +175,7 @@ static PetscErrorCode CreateSystem_Temp(StagBLStokesParameters parameters,StagBL
 
   /* Loop over all local elements. Note that it may be more efficient in real
      applications to loop over each boundary separately */
+  // TODO do this, for more flexibility with BCs.
   for (ey = starty; ey<starty+ny; ++ey) { /* With DMStag, always iterate x fastest, y second fastest, z slowest */
     for (ex = startx; ex<startx+nx; ++ex) {
 
@@ -416,5 +421,12 @@ static PetscErrorCode CreateSystem_Temp(StagBLStokesParameters parameters,StagBL
   ierr = VecAssemblyBegin(rhs);CHKERRQ(ierr);
   ierr = MatAssemblyEnd(A,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
   ierr = VecAssemblyEnd(rhs);CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
+static PetscErrorCode CreateSystem_3D_FreeSlip(StagBLStokesParameters parameters,StagBLSystem system)
+{
+  PetscFunctionBegin;
+  StagBLError(PETSC_COMM_WORLD,"Not implemented");
   PetscFunctionReturn(0);
 }
