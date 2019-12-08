@@ -411,7 +411,82 @@ static PetscErrorCode CreateSystem_2D_FreeSlip(StagBLStokesParameters parameters
 
 static PetscErrorCode CreateSystem_3D_FreeSlip(StagBLStokesParameters parameters,StagBLSystem system)
 {
-  PetscFunctionBegin;
-  StagBLError(PETSC_COMM_WORLD,"Not implemented");
+  PetscErrorCode  ierr;
+  DM              dm_stokes,dm_coefficient;
+  PetscInt        N[3];
+  PetscInt        ex,ey,ez,startx,starty,startz,nx,ny,nz;
+  Mat             *pA;
+  Vec             *pRhs;
+  Mat             A;
+  PetscReal       hx,hy,hz,dv,hxAvgInv,Kcont,Kbound;
+  PetscInt        pinx,piny,pinz;
+  const PetscBool pin_pressure = PETSC_TRUE;
+  StagBLGrid      coefficient_grid;
+  DM              dm_temperature;
+  Vec             coeff_local,rhs,temperature,temperature_local;
+  PetscScalar     ****arr_temperature;
+  PetscInt        slot_temperature_backdownleft,slot_temperature_frontdownleft,slot_temperature_backdownright,slot_temperature_frontdownright;
+
+  PetscFunctionBeginUser;
+  ierr = StagBLSystemPETScGetMatPointer(system,&pA);CHKERRQ(ierr);
+  ierr = StagBLSystemPETScGetVecPointer(system,&pRhs);CHKERRQ(ierr);
+  if (!parameters->coefficient_array) StagBLError(PETSC_COMM_SELF,"coefficient_array field not set in StagBLStokesParameters argument");
+  ierr = StagBLArrayGetStagBLGrid(parameters->coefficient_array,&coefficient_grid);CHKERRQ(ierr);
+  ierr = StagBLGridPETScGetDM(parameters->stokes_grid,&dm_stokes);CHKERRQ(ierr);
+  ierr = StagBLGridPETScGetDM(coefficient_grid,&dm_coefficient);CHKERRQ(ierr);
+  ierr = StagBLArrayPETScGetLocalVec(parameters->coefficient_array,&coeff_local);CHKERRQ(ierr);
+
+  /* Compute some parameters */
+  ierr = DMStagGetGlobalSizes(dm_stokes,&N[0],&N[1],&N[2]);CHKERRQ(ierr);
+  if (parameters->uniform_grid) {
+    hx = (parameters->xmax - parameters->xmin)/N[0];
+    hy = (parameters->ymax - parameters->ymin)/N[1];
+    hz = (parameters->zmax - parameters->zmin)/N[2];
+    dv = hx*hy*hz;;
+  } else StagBLError(PetscObjectComm((PetscObject)dm_stokes),"Non-uniform grids not supported yet");
+  hxAvgInv = 3.0/(hx + hy + hz);
+  Kcont  = parameters->eta_characteristic*hxAvgInv;
+  Kbound = parameters->eta_characteristic*hxAvgInv*hxAvgInv;
+  if (N[0] < 2) SETERRQ(PetscObjectComm((PetscObject)dm_stokes),PETSC_ERR_SUP,"Not implemented for a single element in the x direction");
+  pinx = 1; piny = 0; pinz = 0;
+
+  ierr = DMCreateMatrix(dm_stokes,pA);CHKERRQ(ierr);
+  A = *pA;
+  ierr = DMCreateGlobalVector(dm_stokes,pRhs);CHKERRQ(ierr);
+  rhs = *pRhs;
+  ierr = DMStagGetCorners(dm_stokes,&startx,&starty,&startz,&nx,&ny,&nz,NULL,NULL,NULL);CHKERRQ(ierr);
+
+  /* If using Boussinesq forcing from a temperature field, get access */
+  if (parameters->boussinesq_forcing) {
+    ierr = StagBLGridPETScGetDM(parameters->temperature_grid,&dm_temperature);CHKERRQ(ierr);
+    ierr = StagBLArrayPETScGetGlobalVec(parameters->temperature_array,&temperature);CHKERRQ(ierr);
+    ierr = DMGetLocalVector(dm_temperature,&temperature_local);CHKERRQ(ierr);
+    ierr = DMGlobalToLocal(dm_temperature,temperature,INSERT_VALUES,temperature_local);CHKERRQ(ierr);
+    ierr = DMStagVecGetArrayRead(dm_temperature,temperature_local,&arr_temperature);CHKERRQ(ierr);
+    ierr = DMStagGetLocationSlot(dm_temperature,DMSTAG_BACK_DOWN_LEFT,  0,&slot_temperature_backdownleft);CHKERRQ(ierr);
+    ierr = DMStagGetLocationSlot(dm_temperature,DMSTAG_BACK_DOWN_RIGHT, 0,&slot_temperature_backdownright);CHKERRQ(ierr);
+    ierr = DMStagGetLocationSlot(dm_temperature,DMSTAG_FRONT,           0,&slot_temperature_frontdownleft);CHKERRQ(ierr);
+    ierr = DMStagGetLocationSlot(dm_temperature,DMSTAG_FRONT,           0,&slot_temperature_frontdownright);CHKERRQ(ierr);
+  }
+
+  /* Loop over all local elements. */
+  for (ez = startz; ez < startz + nz; ++ez) {
+    for (ey = starty; ey < starty + ny; ++ey) {
+      for (ex = startx; ex < startx + nx; ++ex) {
+        STAGBL_UNUSED(pin_pressure);
+        StagBLError(PETSC_COMM_WORLD,"Not implemented");
+      }
+    }
+  }
+
+  if (parameters->boussinesq_forcing) {
+    ierr = DMStagVecRestoreArrayRead(dm_temperature,temperature_local,&arr_temperature);CHKERRQ(ierr);
+    ierr = DMRestoreLocalVector(dm_temperature,&temperature_local);CHKERRQ(ierr);
+  }
+
+  ierr = MatAssemblyBegin(A,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
+  ierr = VecAssemblyBegin(rhs);CHKERRQ(ierr);
+  ierr = MatAssemblyEnd(A,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
+  ierr = VecAssemblyEnd(rhs);CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
