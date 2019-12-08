@@ -75,6 +75,9 @@ int main(int argc, char** argv)
     ierr = StagBLGridCreateCompatibleStagBLGrid(ctx->stokes_grid,0,dofPerEdge,0,dofPerElement,&ctx->coefficient_grid);CHKERRQ(ierr);
   }
 
+  /* Populate Coefficient data */
+  ierr = PopulateCoefficientData(ctx,mode);CHKERRQ(ierr);
+
   /* Create parameters for a Stokes system by directly populating some fields
      of a struct and passing to a StagBL function  */
   ierr = StagBLStokesParametersCreate(&parameters);CHKERRQ(ierr);
@@ -94,28 +97,24 @@ int main(int argc, char** argv)
   parameters->eta_characteristic = ctx->eta_characteristic;
   parameters->boussinesq_forcing = ctx->boussinesq_forcing;
 
-  /* Populate Coefficient data */
-  ierr = PopulateCoefficientData(ctx,mode);CHKERRQ(ierr);
-
-  // TODO from here down should error, test that it actually does!
-#if 0
   /* Create the Stokes system */
-  ierr = StagBLCreateStokesSystem(parameters,&ctx->stokes_system);CHKERRQ(ierr);
-  ierr = StagBLSystemCreateStagBLSolver(ctx->stokes_system,&ctx->stokes_solver);CHKERRQ(ierr);
   ierr = StagBLGridCreateStagBLArray(ctx->stokes_grid,&ctx->stokes_array);CHKERRQ(ierr);
+  ierr = StagBLCreateStokesSystem(parameters,&ctx->stokes_system);CHKERRQ(ierr);
+#if 0
+  ierr = StagBLSystemCreateStagBLSolver(ctx->stokes_system,&ctx->stokes_solver);CHKERRQ(ierr);
 
   /* Solve the system  */
   ierr = StagBLSolverSolve(ctx->stokes_solver,ctx->stokes_array);CHKERRQ(ierr);
   ierr = StagBLSystemDestroy(&ctx->stokes_system);CHKERRQ(ierr);
   ierr = StagBLSolverDestroy(&ctx->stokes_solver);CHKERRQ(ierr);
+#endif
 
   /* Output Stokes data to file */
-  ierr = DumpStokes(ctx,timestep);CHKERRQ(ierr);
+  ierr = DumpStokes(ctx,/* timestep */ 0);CHKERRQ(ierr);
 
   /* Free data */
   ierr = StagBLStokesParametersDestroy(&parameters);CHKERRQ(ierr);
   ierr = CtxDestroy(&ctx);CHKERRQ(ierr);
-#endif
 
   /* Finalize StagBL (which includes finalizing PETSc) */
   ierr = StagBLFinalize();

@@ -103,10 +103,12 @@ PetscErrorCode StagBLCreateStokesSystem(StagBLStokesParameters parameters, StagB
 #define UP         DMSTAG_UP
 #define UP_RIGHT   DMSTAG_UP_RIGHT
 
+// TODO this is a horrible name, even for a placeholder, as it evokes Temperature..
 static PetscErrorCode CreateSystem_Temp(StagBLStokesParameters parameters,StagBLSystem system)
 {
   PetscErrorCode  ierr;
   DM              dm_stokes,dm_coefficient;
+  PetscInt        dim;
   PetscInt        N[2];
   PetscInt        ex,ey,startx,starty,nx,ny;
   Mat             *pA;
@@ -126,8 +128,12 @@ static PetscErrorCode CreateSystem_Temp(StagBLStokesParameters parameters,StagBL
   PetscFunctionBeginUser;
   ierr = StagBLSystemPETScGetMatPointer(system,&pA);CHKERRQ(ierr);
   ierr = StagBLSystemPETScGetVecPointer(system,&pRhs);CHKERRQ(ierr);
+  if (!parameters->coefficient_array) StagBLError(PETSC_COMM_SELF,"coefficient_array field not set in StagBLStokesParameters argument");
   ierr = StagBLArrayGetStagBLGrid(parameters->coefficient_array,&coefficient_grid);CHKERRQ(ierr);
   ierr = StagBLGridPETScGetDM(parameters->stokes_grid,&dm_stokes);CHKERRQ(ierr);
+  ierr = DMGetDimension(dm_stokes,&dim);CHKERRQ(ierr);
+  if (dim != 2) StagBLError1(PetscObjectComm((PetscObject)dm_stokes),"Unsupported Dimension %D",dim)
+
   ierr = StagBLGridPETScGetDM(coefficient_grid,&dm_coefficient);CHKERRQ(ierr);
   ierr = StagBLArrayPETScGetLocalVec(parameters->coefficient_array,&coeff_local);CHKERRQ(ierr);
 

@@ -49,6 +49,8 @@ PetscErrorCode CtxCreate(MPI_Comm comm,const char* mode,Ctx *pctx)
     ctx->xmax = 1e6;
     ctx->ymin = 0.0;
     ctx->ymax = 1.5e6;
+    ctx->zmin = 0.0;
+    ctx->zmax = 1e6;
     ctx->rho1 = 3200;
     ctx->rho2 = 3300;
     ctx->eta1 = 1e20;
@@ -65,6 +67,8 @@ PetscErrorCode CtxCreate(MPI_Comm comm,const char* mode,Ctx *pctx)
       ctx->xmax = 1e6;
       ctx->ymin = 0.0;
       ctx->ymax = 1e6;
+      ctx->zmin = 0.0;
+      ctx->zmax = 1e6;
       ctx->rho1 = 4000;
       ctx->rho2 = 4400; /* not used normally */
       ctx->eta1 = 2.5e19; /* case 1a */
