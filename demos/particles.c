@@ -56,7 +56,7 @@ PetscErrorCode CreateParticleSystem(Ctx ctx)
     //ierr = DMSwarmGetField(ctx->dm_particles,"rho",               NULL,NULL,(void**)&array_r);CHKERRQ(ierr);
     ierr = DMSwarmGetLocalSize(ctx->dm_particles,&npoints);CHKERRQ(ierr);
     for (p = 0; p < npoints; p++) {
-      PetscReal x_p[2];
+      //PetscReal x_p[2];
 
       if (jiggle > 0.0) {
         PetscReal rr[2];
@@ -67,8 +67,8 @@ PetscErrorCode CreateParticleSystem(Ctx ctx)
       }
 
       /* Get the coordinates of point p */
-      x_p[0] = array_x[2*p + 0];
-      x_p[1] = array_x[2*p + 1];
+      //x_p[0] = array_x[2*p + 0];
+      //x_p[1] = array_x[2*p + 1];
 
       /* Call functions to compute eta and rho at that location */
       // TODO actually carry things on the particles
@@ -96,47 +96,67 @@ PetscErrorCode CreateParticleSystem(Ctx ctx)
 PetscErrorCode InterpolateTemperatureToParticles(Ctx ctx)
 {
   PetscErrorCode ierr;
-  DM             dmTemp,dm_mpoint;
+  DM             dm_temperature,dm_mpoint;
   Vec            temp,tempLocal;
   PetscInt       p,e,npoints;
   PetscInt       *mpfield_cell;
   PetscReal      *array_temperature;
   PetscScalar    ***arr;
-  PetscInt       slotDownLeft,slotDownRight,slotUpLeft,slotUpRight;
+  const PetscScalar **arr_coordinates_x,**arr_coordinates_y;
+  PetscInt       slot_temperature_downleft,slot_temperature_downright,slot_temperature_upleft,slot_temperature_upright;
+  PetscInt       slot_coordinates_prev,slot_coordinates_next;
+  PetscReal      *particle_coordinates;
 
   PetscFunctionBeginUser;
   dm_mpoint = ctx->dm_particles;
-  ierr = StagBLGridPETScGetDM(ctx->temperature_grid,&dmTemp);CHKERRQ(ierr);
+  ierr = StagBLGridPETScGetDM(ctx->temperature_grid,&dm_temperature);CHKERRQ(ierr);
   ierr = StagBLArrayPETScGetGlobalVec(ctx->temperature_array,&temp);CHKERRQ(ierr);
-  ierr = DMGetLocalVector(dmTemp,&tempLocal);CHKERRQ(ierr);
-  ierr = DMGlobalToLocal(dmTemp,temp,INSERT_VALUES,tempLocal);CHKERRQ(ierr);
+  ierr = DMGetLocalVector(dm_temperature,&tempLocal);CHKERRQ(ierr);
+  ierr = DMGlobalToLocal(dm_temperature,temp,INSERT_VALUES,tempLocal);CHKERRQ(ierr);
 
-  ierr = DMStagGetLocationSlot(dmTemp,DMSTAG_DOWN_LEFT,0,&slotDownLeft);CHKERRQ(ierr);
-  ierr = DMStagGetLocationSlot(dmTemp,DMSTAG_DOWN_RIGHT,0,&slotDownRight);CHKERRQ(ierr);
-  ierr = DMStagGetLocationSlot(dmTemp,DMSTAG_UP_RIGHT,0,&slotUpRight);CHKERRQ(ierr);
-  ierr = DMStagGetLocationSlot(dmTemp,DMSTAG_UP_LEFT,0,&slotUpLeft);CHKERRQ(ierr);
-  ierr = DMStagVecGetArrayRead(dmTemp,tempLocal,&arr);CHKERRQ(ierr);
+  ierr = DMStagGetLocationSlot(dm_temperature,DMSTAG_DOWN_LEFT,0,&slot_temperature_downleft);CHKERRQ(ierr);
+  ierr = DMStagGetLocationSlot(dm_temperature,DMSTAG_DOWN_RIGHT,0,&slot_temperature_downright);CHKERRQ(ierr);
+  ierr = DMStagGetLocationSlot(dm_temperature,DMSTAG_UP_RIGHT,0,&slot_temperature_upright);CHKERRQ(ierr);
+  ierr = DMStagGetLocationSlot(dm_temperature,DMSTAG_UP_LEFT,0,&slot_temperature_upleft);CHKERRQ(ierr);
+  ierr = DMStagVecGetArrayRead(dm_temperature,tempLocal,&arr);CHKERRQ(ierr);
+  ierr = DMStagGetProductCoordinateArraysRead(dm_temperature,&arr_coordinates_x,&arr_coordinates_y,NULL);CHKERRQ(ierr);
+  ierr = DMStagGetProductCoordinateLocationSlot(dm_temperature,DMSTAG_LEFT,&slot_coordinates_prev);CHKERRQ(ierr);
+  ierr = DMStagGetProductCoordinateLocationSlot(dm_temperature,DMSTAG_RIGHT,&slot_coordinates_next);CHKERRQ(ierr);
   ierr = DMSwarmGetField(dm_mpoint,DMSwarmPICField_cellid,NULL,NULL,(void**)&mpfield_cell);CHKERRQ(ierr);
+  ierr = DMSwarmGetField(ctx->dm_particles,DMSwarmPICField_coor,NULL,NULL,(void**)&particle_coordinates);CHKERRQ(ierr);
   ierr = DMSwarmGetField(ctx->dm_particles,"Temperature",NULL,NULL,(void**)&array_temperature);CHKERRQ(ierr);
   ierr = DMSwarmGetLocalSize(dm_mpoint,&npoints);CHKERRQ(ierr);
   for (p=0; p<npoints; p++) {
-    PetscInt    ind[2];
+    PetscInt    ind[2],ex,ey;
+    PetscReal   px,py,x_left,x_right,y_down,y_up,x_local,y_local;
 
     e       = mpfield_cell[p];
-    ierr = DMStagGetLocalElementGlobalIndices(dmTemp,e,ind);CHKERRQ(ierr);
+    ierr = DMStagGetLocalElementGlobalIndices(dm_temperature,e,ind);CHKERRQ(ierr);
+    ex = ind[0];
+    ey = ind[1];
 
-    /* simply average corners (could do linear interp) */
-    array_temperature[p] = 0.25*(
-            arr[ind[1]][ind[0]][slotDownLeft]
-          + arr[ind[1]][ind[0]][slotDownRight]
-          + arr[ind[1]][ind[0]][slotUpLeft]
-          + arr[ind[1]][ind[0]][slotUpRight]
-        );
+    /* Linearly interpolate corner values */
+    px = particle_coordinates[2*p];
+    py = particle_coordinates[2*p+1];
+    y_down = arr_coordinates_y[ey][slot_coordinates_prev];
+    y_up = arr_coordinates_y[ey][slot_coordinates_next];
+    x_left = arr_coordinates_x[ex][slot_coordinates_prev];
+    x_right = arr_coordinates_x[ex][slot_coordinates_next];
+    x_local = (px - x_left)/(x_right - x_left);
+    y_local = (py - y_down)/(y_up - y_down);
+    array_temperature[p] =
+            (1.0 - x_local) * (1.0 - y_local) * arr[ey][ex][slot_temperature_downleft]
+          + x_local         * (1.0 - y_local) * arr[ey][ex][slot_temperature_downright]
+          + (1.0 - x_local) * y_local         * arr[ey][ex][slot_temperature_upleft]
+          + x_local         * y_local         * arr[ey][ex][slot_temperature_upright];
   }
+  ierr = DMStagVecRestoreArrayRead(dm_temperature,tempLocal,&arr);CHKERRQ(ierr);
+  ierr = DMStagRestoreProductCoordinateArraysRead(dm_temperature,&arr_coordinates_x,&arr_coordinates_y,NULL);CHKERRQ(ierr);
+  ierr = DMSwarmRestoreField(ctx->dm_particles,DMSwarmPICField_coor,NULL,NULL,(void**)&particle_coordinates);CHKERRQ(ierr);
   ierr = DMSwarmRestoreField(ctx->dm_particles,"Temperature",NULL,NULL,(void**)&array_temperature);CHKERRQ(ierr);
   ierr = DMSwarmRestoreField(dm_mpoint,DMSwarmPICField_cellid,NULL,NULL,(void**)&mpfield_cell);CHKERRQ(ierr);
 
-  ierr = DMRestoreLocalVector(dmTemp,&tempLocal);CHKERRQ(ierr);
+  ierr = DMRestoreLocalVector(dm_temperature,&tempLocal);CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
@@ -351,6 +371,7 @@ PetscErrorCode MaterialPoint_AdvectRK1(Ctx ctx,Vec vp,PetscReal dt)
     }
   }
 
+  ierr = DMStagRestoreProductCoordinateArraysRead(dm_vp,&cArrX,&cArrY,NULL);CHKERRQ(ierr);
   ierr = DMSwarmRestoreField(dm_mpoint,DMSwarmPICField_cellid,NULL,NULL,(void**)&mpfield_cell);CHKERRQ(ierr);
   ierr = DMSwarmRestoreField(dm_mpoint,DMSwarmPICField_coor,NULL,NULL,(void**)&mpfield_coor);CHKERRQ(ierr);
   ierr = DMStagVecRestoreArrayRead(dm_vp,vp_l,&LA_vp);CHKERRQ(ierr);

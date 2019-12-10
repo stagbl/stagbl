@@ -87,6 +87,7 @@ int main(int argc, char** argv)
   /* Create another, compatible grid for the temperature field */
   ierr = StagBLGridCreateCompatibleStagBLGrid(ctx->stokes_grid,1,0,0,0,&ctx->temperature_grid);CHKERRQ(ierr);
 
+  // TODO remove!
   /* Coefficient data in an application-determined way */
   ierr = PopulateCoefficientData(ctx,mode);CHKERRQ(ierr);
 
@@ -105,23 +106,34 @@ int main(int argc, char** argv)
 
 
   /* Create parameters for a Stokes system by directly populating some fields
-     of a struct and passing to a StagBL function  */
+     of a struct, from our application's data, and passing to a StagBL function  */
   ierr = StagBLStokesParametersCreate(&parameters);CHKERRQ(ierr);
   parameters->coefficient_array  = ctx->coefficient_array;
   parameters->stokes_grid        = ctx->stokes_grid;
   parameters->temperature_grid   = ctx->temperature_grid;
   parameters->temperature_array  = ctx->temperature_array;
   parameters->uniform_grid       = ctx->uniform_grid;
-  parameters->xmin               = 0;
-  parameters->xmax               = 1e6;
-  parameters->ymin               = 0.0;
-  parameters->ymax               = 1.5e6;
-  parameters->gy                 = 10.0;
+  parameters->xmin               = ctx->xmin;
+  parameters->xmax               = ctx->xmax;
+  parameters->ymin               = ctx->ymin;
+  parameters->ymax               = ctx->ymax;
+  parameters->gy                 = ctx->gy;
   parameters->alpha              = ctx->alpha;
-  parameters->eta_characteristic = 1e20; /* A minimum viscosity */
+  parameters->eta_characteristic = ctx->eta_characteristic;
   parameters->boussinesq_forcing = ctx->boussinesq_forcing;
 
-  // TODO print Rayleigh number?
+  /* Compute and print the Rayleigh number (may only be relevant for Blankenbach case) */
+  {
+    PetscScalar Ra,hy,dT;
+
+    hy = ctx->ymax - ctx->ymin;
+    dT = ctx->temperature_bottom - ctx->temperature_top;
+    Ra = ctx->alpha * PetscAbsScalar(ctx->gy) * dT * (hy * hy * hy) / (ctx->kappa * ctx->eta_characteristic);
+    ierr = PetscPrintf(ctx->comm,"Rayleigh number: %g\n",Ra);CHKERRQ(ierr);
+  }
+
+  // TODO ugly - should be somewhere else I guess
+    ierr = StagBLGridCreateStagBLArray(ctx->stokes_grid,&ctx->stokes_array);CHKERRQ(ierr);
 
   /* Main solver loop */
   timestep = 0;
@@ -150,7 +162,6 @@ int main(int argc, char** argv)
     /* Solve the system  */
     ierr = StagBLCreateStokesSystem(parameters,&ctx->stokes_system);CHKERRQ(ierr);
     ierr = StagBLSystemCreateStagBLSolver(ctx->stokes_system,&ctx->stokes_solver);CHKERRQ(ierr);
-    ierr = StagBLGridCreateStagBLArray(ctx->stokes_grid,&ctx->stokes_array);CHKERRQ(ierr);
     ierr = StagBLSolverSolve(ctx->stokes_solver,ctx->stokes_array);CHKERRQ(ierr);
     ierr = StagBLSystemDestroy(&ctx->stokes_system);CHKERRQ(ierr);
     ierr = StagBLSolverDestroy(&ctx->stokes_solver);CHKERRQ(ierr); // TODO this sucks - we want to keep the solver and upate the system..
@@ -163,7 +174,7 @@ int main(int argc, char** argv)
     }
 
     /* Output stokes data, temperature data, and particle data to files */
-    ierr = DumpStokes(ctx,timestep);CHKERRQ(ierr);
+    ierr = StagBLDumpStokes(parameters,ctx->stokes_array,timestep);CHKERRQ(ierr);
     ierr = DumpTemperature(ctx,timestep);CHKERRQ(ierr);
     ierr = DumpParticles(ctx,timestep);CHKERRQ(ierr);
 

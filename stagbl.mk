@@ -61,12 +61,10 @@ $(srcs.d) : ;
 # to clean and rebuild them with their own makefiles, clumsily moving the resulting
 # binary.
 demos : library $(BINDIR)/.DIR
-	$(MAKE) -C $(STAGBL_DIR)/demos/2d clean
-	$(MAKE) -C $(STAGBL_DIR)/demos/2d
-	mv $(STAGBL_DIR)/demos/2d/stagbldemo2d $(BINDIR)
-	$(MAKE) -C $(STAGBL_DIR)/demos/3d clean
-	$(MAKE) -C $(STAGBL_DIR)/demos/3d
-	mv $(STAGBL_DIR)/demos/3d/stagbldemo3d $(BINDIR)
+	$(MAKE) -C $(STAGBL_DIR)/demos clean
+	$(MAKE) -C $(STAGBL_DIR)/demos all
+	mv $(STAGBL_DIR)/demos/stagbldemo2d $(BINDIR)
+	mv $(STAGBL_DIR)/demos/stagbldemo3d $(BINDIR)
 
 .PHONY: demos
 
@@ -78,6 +76,7 @@ tests : \
 	$(BINDIR)/test_dmstag_vs_dmda_matstencil \
 	$(BINDIR)/test_dmstag_vec_stencil_vs_array \
 	$(BINDIR)/test_dmstag_preallocate \
+	$(BINDIR)/test_stokes_operator \
 
 $(BINDIR)/test_dmstag_vs_dmda : $(OBJDIR)/src/tests/performance/test_dmstag_vs_dmda.o library | $$(@D)/.DIR
 	$(STAGBL_LINK) $< $(STAGBL_LIB)
@@ -88,6 +87,8 @@ $(BINDIR)/test_dmstag_vs_dmda_matstencil : $(OBJDIR)/src/tests/performance/test_
 $(BINDIR)/test_dmstag_vec_stencil_vs_array : $(OBJDIR)/src/tests/performance/test_dmstag_vec_stencil_vs_array.o library | $$(@D)/.DIR
 	$(STAGBL_LINK) $< $(STAGBL_LIB)
 $(BINDIR)/test_dmstag_preallocate : $(OBJDIR)/src/tests/performance/test_dmstag_preallocate.o library | $$(@D)/.DIR
+	$(STAGBL_LINK) $< $(STAGBL_LIB)
+$(BINDIR)/test_stokes_operator : $(OBJDIR)/src/tests/unit/test_stokes_operator.o library | $$(@D)/.DIR
 	$(STAGBL_LINK) $< $(STAGBL_LIB)
 
 .PHONY : tests

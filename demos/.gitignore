@@ -1,4 +1,5 @@
 stagbldemo2d
+stagbldemo3d
 
 *.o
 *.d
@@ -6,5 +7,6 @@ stagbldemo2d
 
 *.vtr
 *.xmf
+*.pbin
 *.petscbin
 *.petscbin.info
