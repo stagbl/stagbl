@@ -61,7 +61,6 @@ int main(int argc, char** argv)
 
   ierr = PetscPrintf(PETSC_COMM_WORLD,"Mode: %s\n",mode);CHKERRQ(ierr);
 
-  // TODO clean up later
   test_magmatism = PETSC_FALSE;
   ierr = PetscOptionsGetBool(NULL,NULL,"-test_magmatism",&test_magmatism,NULL);CHKERRQ(ierr);
 
@@ -87,7 +86,6 @@ int main(int argc, char** argv)
   /* Create another, compatible grid for the temperature field */
   ierr = StagBLGridCreateCompatibleStagBLGrid(ctx->stokes_grid,1,0,0,0,&ctx->temperature_grid);CHKERRQ(ierr);
 
-  // TODO remove!
   /* Coefficient data in an application-determined way */
   ierr = PopulateCoefficientData(ctx,mode);CHKERRQ(ierr);
 
@@ -103,7 +101,6 @@ int main(int argc, char** argv)
      between DMSwarm and DMStag, which was written as part of the StagBL project.
   */
   ierr = CreateParticleSystem(ctx);CHKERRQ(ierr);
-
 
   /* Create parameters for a Stokes system by directly populating some fields
      of a struct, from our application's data, and passing to a StagBL function  */
@@ -132,9 +129,6 @@ int main(int argc, char** argv)
     ierr = PetscPrintf(ctx->comm,"Rayleigh number: %g\n",Ra);CHKERRQ(ierr);
   }
 
-  // TODO ugly - should be somewhere else I guess
-    ierr = StagBLGridCreateStagBLArray(ctx->stokes_grid,&ctx->stokes_array);CHKERRQ(ierr);
-
   /* Main solver loop */
   timestep = 0;
   t = 0.0;
@@ -158,13 +152,16 @@ int main(int argc, char** argv)
     /* (Re-)Populate Coefficient data */
     ierr = PopulateCoefficientData(ctx,mode);CHKERRQ(ierr);
 
-    /* Create the Stokes system */
+    /* Create and solve the Stokes system */
     /* Solve the system  */
+    if (!ctx->stokes_array) {
+      ierr = StagBLGridCreateStagBLArray(ctx->stokes_grid,&ctx->stokes_array);CHKERRQ(ierr);
+    }
     ierr = StagBLCreateStokesSystem(parameters,&ctx->stokes_system);CHKERRQ(ierr);
     ierr = StagBLSystemCreateStagBLSolver(ctx->stokes_system,&ctx->stokes_solver);CHKERRQ(ierr);
     ierr = StagBLSolverSolve(ctx->stokes_solver,ctx->stokes_array);CHKERRQ(ierr);
     ierr = StagBLSystemDestroy(&ctx->stokes_system);CHKERRQ(ierr);
-    ierr = StagBLSolverDestroy(&ctx->stokes_solver);CHKERRQ(ierr); // TODO this sucks - we want to keep the solver and upate the system..
+    ierr = StagBLSolverDestroy(&ctx->stokes_solver);CHKERRQ(ierr);
 
     /* Analyze temperature field */
     if (ctx->compute_nusselt_number) {
