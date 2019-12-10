@@ -22,7 +22,7 @@ static PetscScalar getEta_constant(void *ptr,PetscScalar x, PetscScalar y, Petsc
 }
 
 /* Sinker */
-static PetscScalar getRho_sinker(void *ptr,PetscScalar x, PetscScalar y, PetscScalar z) {
+static PetscScalar getRho_sinker2(void *ptr,PetscScalar x, PetscScalar y, PetscScalar z) {
   Ctx ctx = (Ctx) ptr;
 
   const PetscScalar d = ctx->xmax-ctx->xmin;
@@ -32,7 +32,7 @@ static PetscScalar getRho_sinker(void *ptr,PetscScalar x, PetscScalar y, PetscSc
   return (xx*xx + yy*yy) > 0.3*0.3 ? ctx->rho1 : ctx->rho2;
 }
 
-static PetscScalar getEta_sinker(void *ptr,PetscScalar x, PetscScalar y, PetscScalar z) {
+static PetscScalar getEta_sinker2(void *ptr,PetscScalar x, PetscScalar y, PetscScalar z) {
   Ctx ctx = (Ctx) ptr;
 
   const PetscScalar d = ctx->xmax-ctx->xmin;
@@ -40,6 +40,25 @@ static PetscScalar getEta_sinker(void *ptr,PetscScalar x, PetscScalar y, PetscSc
   const PetscScalar yy = y/d - 0.5;
   STAGBL_UNUSED(z);
   return (xx*xx + yy*yy) > 0.3*0.3 ? ctx->eta1 : ctx->eta2;
+}
+static PetscScalar getRho_sinker3(void *ptr,PetscScalar x, PetscScalar y, PetscScalar z) {
+  Ctx ctx = (Ctx) ptr;
+
+  const PetscScalar d = ctx->xmax-ctx->xmin;
+  const PetscScalar xx = x/d - 0.5;
+  const PetscScalar yy = y/d - 0.5;
+  const PetscScalar zz = z/d - 0.5;
+  return (xx*xx + yy*yy + zz*zz) > 0.3*0.3 ? ctx->rho1 : ctx->rho2;
+}
+
+static PetscScalar getEta_sinker3(void *ptr,PetscScalar x, PetscScalar y, PetscScalar z) {
+  Ctx ctx = (Ctx) ptr;
+
+  const PetscScalar d = ctx->xmax-ctx->xmin;
+  const PetscScalar xx = x/d - 0.5;
+  const PetscScalar yy = y/d - 0.5;
+  const PetscScalar zz = z/d - 0.5;
+  return (xx*xx + yy*yy + zz*zz) > 0.3*0.3 ? ctx->eta1 : ctx->eta2;
 }
 
 /* Vertical layers */
@@ -80,6 +99,12 @@ PetscErrorCode PopulateCoefficientData(Ctx ctx,const char* mode)
   PetscBool      flg;
 
   PetscFunctionBeginUser;
+
+  /* Pull out DM object */
+  ierr = StagBLGridPETScGetDM(ctx->coefficient_grid,&dmCoeff);CHKERRQ(ierr);
+  ierr = DMGetDimension(dmCoeff,&dim);CHKERRQ(ierr);
+
+  /* Set coefficient evaluation functions from mode */
   flg = PETSC_FALSE;
   ierr = PetscStrcmp(mode,"gerya72",&flg);CHKERRQ(ierr);
   if (flg) {
@@ -89,8 +114,17 @@ PetscErrorCode PopulateCoefficientData(Ctx ctx,const char* mode)
   if (!flg) {
     ierr = PetscStrcmp(mode,"sinker",&flg);CHKERRQ(ierr);
     if (flg) {
-      ctx->getEta = getEta_sinker;
-      ctx->getRho = getRho_sinker;
+      switch (dim) {
+        case 2:
+          ctx->getEta = getEta_sinker2;
+          ctx->getRho = getRho_sinker2;
+          break;
+        case 3:
+          ctx->getEta = getEta_sinker3;
+          ctx->getRho = getRho_sinker3;
+          break;
+        default: SETERRQ1(ctx->comm,PETSC_ERR_SUP,"Unsupported dimension %D",dim);
+      }
     }
   }
   if (!flg) {
@@ -103,10 +137,6 @@ PetscErrorCode PopulateCoefficientData(Ctx ctx,const char* mode)
   if (!flg) {
     SETERRQ1(ctx->comm,PETSC_ERR_ARG_OUTOFRANGE,"Unrecognized mode %s",mode);
   }
-
-  /* Pull out DM object */
-  ierr = StagBLGridPETScGetDM(ctx->coefficient_grid,&dmCoeff);CHKERRQ(ierr);
-  ierr = DMGetDimension(dmCoeff,&dim);CHKERRQ(ierr);
 
   /* If array doesnt exist, create it and pull out a local Vec. Otherwise, get the local Vec */
   if (!ctx->coefficient_array) {
