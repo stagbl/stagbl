@@ -110,7 +110,7 @@ int main(int argc, char** argv)
 #endif
 
   /* Output Stokes data to file */
-  ierr = DumpStokes(ctx,/* timestep */ 0);CHKERRQ(ierr);
+  ierr = StagBLDumpStokes(parameters,ctx->stokes_array,/* timestep */ 0);CHKERRQ(ierr);
 
   /* Free data */
   ierr = StagBLStokesParametersDestroy(&parameters);CHKERRQ(ierr);

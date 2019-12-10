@@ -93,4 +93,6 @@ PetscErrorCode StagBLGridCreateStokes2DBox(MPI_Comm,PetscInt,PetscInt,PetscScala
 PetscErrorCode StagBLGridCreateStokes3DBox(MPI_Comm,PetscInt,PetscInt,PetscInt,PetscScalar,PetscScalar,PetscScalar,PetscScalar,PetscScalar,PetscScalar,StagBLGrid*);
 PetscErrorCode StagBLCreateStokesSystem(StagBLStokesParameters,StagBLSystem*);
 
+PetscErrorCode StagBLDumpStokes(StagBLStokesParameters,StagBLArray,PetscInt);
+
 #endif

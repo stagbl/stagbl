@@ -174,7 +174,7 @@ int main(int argc, char** argv)
     }
 
     /* Output stokes data, temperature data, and particle data to files */
-    ierr = DumpStokes(ctx,timestep);CHKERRQ(ierr);
+    ierr = StagBLDumpStokes(parameters,ctx->stokes_array,timestep);CHKERRQ(ierr);
     ierr = DumpTemperature(ctx,timestep);CHKERRQ(ierr);
     ierr = DumpParticles(ctx,timestep);CHKERRQ(ierr);
 
