@@ -30,7 +30,6 @@ int main(int argc, char** argv)
   StagBLStokesParameters parameters;
   PetscInt               timestep;
   PetscReal              t;
-  PetscBool              test_magmatism;
 
   /* Initialize MPI and print a message
 
@@ -60,9 +59,6 @@ int main(int argc, char** argv)
   ierr = GetStringArg("-mode","gerya72",sizeof(ctx->mode),mode);CHKERRQ(ierr);
 
   ierr = PetscPrintf(PETSC_COMM_WORLD,"Mode: %s\n",mode);CHKERRQ(ierr);
-
-  test_magmatism = PETSC_FALSE;
-  ierr = PetscOptionsGetBool(NULL,NULL,"-test_magmatism",&test_magmatism,NULL);CHKERRQ(ierr);
 
   /* Populate application context (Create with a given mode, then set up) */
   ierr = CtxCreate(comm,mode,&ctx);CHKERRQ(ierr);
@@ -181,12 +177,6 @@ int main(int argc, char** argv)
 
       ierr = StagBLArrayPETScGetGlobalVec(ctx->stokes_array,&x);CHKERRQ(ierr);
       ierr = MaterialPoint_AdvectRK1(ctx,x,ctx->dt);CHKERRQ(ierr);
-      ierr = DMSwarmMigrate(ctx->dm_particles,PETSC_TRUE);CHKERRQ(ierr);
-    }
-
-    /* Test particle "teleportation" for use with magmatic processes */
-    if (test_magmatism) {
-      ierr = TestMagmatism(ctx);CHKERRQ(ierr);
       ierr = DMSwarmMigrate(ctx->dm_particles,PETSC_TRUE);CHKERRQ(ierr);
     }
 

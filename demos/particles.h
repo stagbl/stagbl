@@ -6,6 +6,5 @@
 PetscErrorCode CreateParticleSystem(Ctx);
 PetscErrorCode InterpolateTemperatureToParticles(Ctx);
 PetscErrorCode MaterialPoint_AdvectRK1(Ctx,Vec,PetscReal);
-PetscErrorCode TestMagmatism(Ctx);
 
 #endif
