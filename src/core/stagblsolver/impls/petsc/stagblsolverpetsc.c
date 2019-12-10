@@ -45,14 +45,13 @@ PetscErrorCode StagBLSolverSolve_PETSc(StagBLSolver solver,StagBLArray sol)
     PetscErrorCode (*residual_function)(SNES,Vec,Vec,void*);
     PetscErrorCode (*jacobian_function)(SNES,Vec,Mat,Mat,void*);
 
-    // TODO need to check that the system is the right type
     ierr = StagBLSystemPETScGetResidualFunction(solver->system,&residual_function);CHKERRQ(ierr);
     ierr = StagBLSystemPETScGetJacobianFunction(solver->system,&jacobian_function);CHKERRQ(ierr);
 
     ierr = StagBLSystemPETScGetMat(solver->system,&mat);CHKERRQ(ierr);
     ierr = SNESCreate(PetscObjectComm((PetscObject)dm),&data->snes);CHKERRQ(ierr);
-    ierr = SNESSetFunction(data->snes,NULL,residual_function,(void*)solver->system);CHKERRQ(ierr); // TODO can we have NULL?
-    ierr = SNESSetJacobian(data->snes,NULL,NULL,jacobian_function,(void*)solver->system);CHKERRQ(ierr); // TODO can we have NLL here?
+    ierr = SNESSetFunction(data->snes,NULL,residual_function,(void*)solver->system);CHKERRQ(ierr);
+    ierr = SNESSetJacobian(data->snes,NULL,NULL,jacobian_function,(void*)solver->system);CHKERRQ(ierr);
     {
       PetscMPIInt size;
       KSP         ksp;
@@ -76,7 +75,7 @@ PetscErrorCode StagBLSolverSolve_PETSc(StagBLSolver solver,StagBLArray sol)
 #endif
       }
     }
-    ierr = SNESSetFromOptions(data->snes);CHKERRQ(ierr); // TODO this might become problematic - need to figure out prefixes
+    ierr = SNESSetFromOptions(data->snes);CHKERRQ(ierr);
   }
 
   ierr = SNESSolve(data->snes,NULL,vec_sol);CHKERRQ(ierr);
