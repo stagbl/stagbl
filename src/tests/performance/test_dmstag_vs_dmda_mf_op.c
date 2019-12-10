@@ -22,7 +22,6 @@ typedef enum {
 
 PetscErrorCode ApplyStag(DM,Vec,Vec);
 PetscErrorCode ApplyDA1(DM,Vec,Vec);
-//PetscErrorCode ApplyDA2(DM,Vec,Vec);
 
 int main(int argc,char **argv)
 {
@@ -89,11 +88,7 @@ int main(int argc,char **argv)
     case DATEST1 :
       ierr = ApplyDA1(dm,in,out);CHKERRQ(ierr);
       break;
-#if 0
-    case DATEST2 :
-      ierr = ApplyDA2(dm,in,out);CHKERRQ(ierr);
-      break;
-#endif
+    /* Not implemented: apply with DMComposite + multiple DMDAs */
     default: SETERRQ1(PETSC_COMM_WORLD,PETSC_ERR_ARG_OUTOFRANGE,"Unsupported test %D",test);CHKERRQ(ierr);
   }
   ierr = PetscLogStagePop();CHKERRQ(ierr);
@@ -187,5 +182,3 @@ PetscErrorCode ApplyDA1(DM dm,Vec in,Vec out)
   ierr = DMDAVecRestoreArrayDOF(dm,out,&arrOut);CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
-
-// TODO ApplyDA2 using DMComposite interface

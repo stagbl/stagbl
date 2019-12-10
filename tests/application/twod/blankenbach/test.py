@@ -9,8 +9,8 @@ def test() :
             )
 
     def comparefunc(t) :
+        # Check nothing
         pass
-        # TODO
 
     t.appendKeywords('%')
     t.appendKeywords('[')
