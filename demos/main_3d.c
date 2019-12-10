@@ -45,14 +45,13 @@ int main(int argc, char** argv)
   /* Initialize StagBL (which will initialize PETSc, and MPI if not initialized) */
   ierr = StagBLInitialize(argc,argv,help,comm);CHKERRQ(ierr);
 
-  /* Accept an argument for the "mode". StagBLDemo2D is not intended
+  /* Accept an argument for the "mode". StagBLDemo3D is not intended
      to be a full application, but rather a demonstration, test case,
      and mini-app. As such, it is assumed that a small number of
      simple setups (often known benchmarks) will be used without
      major modification, and most parameters are set by choosing a
      mode. Other options can of course modify some of these */
   ierr = GetStringArg("-mode","sinker",sizeof(ctx->mode),mode);CHKERRQ(ierr);
-  // TODO sinker currently doesn't use z coord, so it's a cylinder!
 
   ierr = PetscPrintf(PETSC_COMM_WORLD,"Mode: %s\n",mode);CHKERRQ(ierr);
 
