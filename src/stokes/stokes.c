@@ -166,8 +166,9 @@ static PetscErrorCode CreateSystem_2D_FreeSlip(StagBLStokesParameters parameters
       if (ey == N[1]-1) {
         /* Top boundary velocity Dirichlet */
         DMStagStencil row;
-        PetscScalar   val_rhs;
+        PetscScalar val_rhs;
         const PetscScalar val_A = Kbound;
+
         row.i = ex; row.j = ey; row.loc = DMSTAG_UP; row.c = 0;
         ierr = DMStagMatSetValuesStencil(dm_stokes,A,1,&row,1,&row,&val_A,INSERT_VALUES);CHKERRQ(ierr);
         val_rhs = 0.0;
@@ -179,6 +180,7 @@ static PetscErrorCode CreateSystem_2D_FreeSlip(StagBLStokesParameters parameters
         DMStagStencil row;
         PetscScalar   val_rhs;
         const PetscScalar val_A = Kbound;
+
         row.i = ex; row.j = ey; row.loc = DMSTAG_DOWN; row.c = 0;
         ierr = DMStagMatSetValuesStencil(dm_stokes,A,1,&row,1,&row,&val_A,INSERT_VALUES);CHKERRQ(ierr);
         val_rhs = 0.0;
@@ -188,21 +190,15 @@ static PetscErrorCode CreateSystem_2D_FreeSlip(StagBLStokesParameters parameters
         PetscInt      nEntries;
         DMStagStencil row,col[11];
         PetscScalar   val_A[11];
-        DMStagStencil rhoPoint[2];
+        DMStagStencil rho_point[2];
         PetscScalar   rho[2],val_rhs;
         DMStagStencil eta_point[4];
         PetscScalar   eta[4],eta_left,eta_right,eta_up,eta_down;
 
-        /* get rho values  and compute rhs value*/
-        rhoPoint[0].i = ex; rhoPoint[0].j = ey; rhoPoint[0].loc = DMSTAG_DOWN_LEFT;  rhoPoint[0].c = 1;
-        rhoPoint[1].i = ex; rhoPoint[1].j = ey; rhoPoint[1].loc = DMSTAG_DOWN_RIGHT; rhoPoint[1].c = 1;
-        ierr = DMStagVecGetValuesStencil(dm_coefficient,coeff_local,2,rhoPoint,rho);CHKERRQ(ierr);
-        val_rhs = -parameters->gy * dv * 0.5 * (rho[0] + rho[1]);
-
-        /* get rho values  */
-        rhoPoint[0].i = ex; rhoPoint[0].j = ey; rhoPoint[0].loc = DMSTAG_DOWN_LEFT;  rhoPoint[0].c = 1;
-        rhoPoint[1].i = ex; rhoPoint[1].j = ey; rhoPoint[1].loc = DMSTAG_DOWN_RIGHT; rhoPoint[1].c = 1;
-        ierr = DMStagVecGetValuesStencil(dm_coefficient,coeff_local,2,rhoPoint,rho);CHKERRQ(ierr);
+        /* get rho values  (note .c = 1) */
+        rho_point[0].i = ex; rho_point[0].j = ey; rho_point[0].loc = DMSTAG_DOWN_LEFT;  rho_point[0].c = 1;
+        rho_point[1].i = ex; rho_point[1].j = ey; rho_point[1].loc = DMSTAG_DOWN_RIGHT; rho_point[1].c = 1;
+        ierr = DMStagVecGetValuesStencil(dm_coefficient,coeff_local,2,rho_point,rho);CHKERRQ(ierr);
 
         /* Compute forcing */
         {
@@ -279,14 +275,12 @@ static PetscErrorCode CreateSystem_2D_FreeSlip(StagBLStokesParameters parameters
 
       if (ex == N[0]-1) {
         /* Right Boundary velocity Dirichlet */
-        /* Redundant in the corner */
-        DMStagStencil row;
-        PetscScalar   val_rhs;
-
+        DMStagStencil     row;
+        const PetscScalar val_rhs = 0.0;
         const PetscScalar val_A = Kbound;
+
         row.i = ex; row.j = ey; row.loc = DMSTAG_RIGHT; row.c = 0;
         ierr = DMStagMatSetValuesStencil(dm_stokes,A,1,&row,1,&row,&val_A,INSERT_VALUES);CHKERRQ(ierr);
-        val_rhs = 0.0;
         ierr = DMStagVecSetValuesStencil(dm_stokes,rhs,1,&row,&val_rhs,INSERT_VALUES);CHKERRQ(ierr);
       }
       if (ex == 0) {
