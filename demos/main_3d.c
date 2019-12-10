@@ -66,7 +66,7 @@ int main(int argc, char** argv)
      single-grid choice is appropriate for monolithic mulitigrid or direct solution,
      whereas two grids would be appropriated for segregated or Approximate block
      factorization-based solvers. */
-  ierr = StagBLGridCreateStokes3DBox(comm,30,20,20,ctx->xmin,ctx->xmax,ctx->ymin,ctx->ymax,ctx->zmin,ctx->zmax,&ctx->stokes_grid);CHKERRQ(ierr);
+  ierr = StagBLGridCreateStokes3DBox(comm,8,11,7,ctx->xmin,ctx->xmax,ctx->ymin,ctx->ymax,ctx->zmin,ctx->zmax,&ctx->stokes_grid);CHKERRQ(ierr);
 
   /* Create another, compatible grid to represent coefficients */
   {
@@ -77,6 +77,13 @@ int main(int argc, char** argv)
 
   /* Populate Coefficient data */
   ierr = PopulateCoefficientData(ctx,mode);CHKERRQ(ierr);
+
+  /* No temperature solve */
+  ctx->temperature_grid = NULL;
+  ctx->temperature_array = NULL;
+
+  /* No particles */
+  ctx->dm_particles = NULL;
 
   /* Create parameters for a Stokes system by directly populating some fields
      of a struct and passing to a StagBL function  */
@@ -100,14 +107,12 @@ int main(int argc, char** argv)
   /* Create the Stokes system */
   ierr = StagBLGridCreateStagBLArray(ctx->stokes_grid,&ctx->stokes_array);CHKERRQ(ierr);
   ierr = StagBLCreateStokesSystem(parameters,&ctx->stokes_system);CHKERRQ(ierr);
-#if 0
   ierr = StagBLSystemCreateStagBLSolver(ctx->stokes_system,&ctx->stokes_solver);CHKERRQ(ierr);
 
   /* Solve the system  */
   ierr = StagBLSolverSolve(ctx->stokes_solver,ctx->stokes_array);CHKERRQ(ierr);
   ierr = StagBLSystemDestroy(&ctx->stokes_system);CHKERRQ(ierr);
   ierr = StagBLSolverDestroy(&ctx->stokes_solver);CHKERRQ(ierr);
-#endif
 
   /* Output Stokes data to file */
   ierr = StagBLDumpStokes(parameters,ctx->stokes_array,/* timestep */ 0);CHKERRQ(ierr);
