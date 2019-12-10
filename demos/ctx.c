@@ -23,16 +23,16 @@ PetscErrorCode CtxCreate(MPI_Comm comm,const char* mode,Ctx *pctx)
   ctx->kappa              = 1e-6;
   ctx->alpha              = 2.5e-5;
   ctx->cp                 = 1.25e3;
-  ctx->KTemp              = 1.0; // TODO compute from material paramets (Check Gerya2009 for a recommendation?)
+  ctx->KTemp              = 1.0; /* Note: not chosen in a princpled way, yet */
 
   ctx->compute_nusselt_number = PETSC_FALSE;
 
   /* Initialize Data */
-  ctx->stokes_array = NULL;
-  ctx->coefficient_array = NULL;
-  ctx->temperature_array = NULL;
-  ctx->stokes_system = NULL;
-  ctx->stokes_solver = NULL;
+  ctx->stokes_array       = NULL;
+  ctx->coefficient_array  = NULL;
+  ctx->temperature_array  = NULL;
+  ctx->stokes_system      = NULL;
+  ctx->stokes_solver      = NULL;
   ctx->temperature_system = NULL;
   ctx->temperature_solver = NULL;
 

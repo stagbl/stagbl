@@ -17,8 +17,6 @@ typedef struct {
   /* Domain and boundary conditions */
   PetscBool    uniform_grid;
   PetscScalar  xmax,ymax,xmin,ymin,zmin,zmax;
-  // TODO these are only used for the temperature system assembly and will be moved:
-  PetscScalar  hx_characteristic,hy_characteristic,hz_characteristic;
 
   /* Settings */
   PetscBool    boussinesq_forcing;
@@ -32,8 +30,8 @@ typedef struct {
   PetscInt     totalTimesteps; /* can be 0, only compute initial temperature field and solve Stokes once */
   PetscReal    dt;
 
-  /* Derived/Computed Parameters */
-  // TODO this will be removed once temperature system assembly is moved to the library src proper
+  /* Quantities used for temperature system assembly (only) */
+  PetscScalar  hx_characteristic,hy_characteristic,hz_characteristic;
   PetscScalar  KTemp;
 
   /* Data */
