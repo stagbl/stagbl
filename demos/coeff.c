@@ -61,12 +61,54 @@ static PetscScalar getEta_sinker3(void *ptr,PetscScalar x, PetscScalar y, PetscS
   return (xx*xx + yy*yy + zz*zz) > 0.3*0.3 ? ctx->eta1 : ctx->eta2;
 }
 
+static PetscScalar getRho_sinker_box2(void *ptr,PetscScalar x, PetscScalar y, PetscScalar z) {
+  Ctx ctx = (Ctx) ptr;
+
+  STAGBL_UNUSED(z);
+  const PetscScalar d = ctx->xmax-ctx->xmin;
+  const PetscScalar xx = x/d - 0.5;
+  const PetscScalar yy = y/d - 0.5;
+  return (xx*xx > 0.3*0.3 || yy*yy > 0.3*0.3) ? ctx->rho1 : ctx->rho2;
+}
+
+static PetscScalar getEta_sinker_box2(void *ptr,PetscScalar x, PetscScalar y, PetscScalar z) {
+  Ctx ctx = (Ctx) ptr;
+
+  STAGBL_UNUSED(z);
+  const PetscScalar d = ctx->xmax-ctx->xmin;
+  const PetscScalar xx = x/d - 0.5;
+  const PetscScalar yy = y/d - 0.5;
+  return (xx*xx > 0.3*0.3 || yy*yy > 0.3*0.3) ? ctx->eta1 : ctx->eta2;
+}
+
+static PetscScalar getRho_sinker_box3(void *ptr,PetscScalar x, PetscScalar y, PetscScalar z) {
+  Ctx ctx = (Ctx) ptr;
+
+  const PetscScalar d = ctx->xmax-ctx->xmin;
+  const PetscScalar xx = x/d - 0.5;
+  const PetscScalar yy = y/d - 0.5;
+  const PetscScalar zz = z/d - 0.5;
+  return (xx*xx > 0.3*0.3 || yy*yy > 0.3*0.3 || zz*zz > 0.3*0.3) ? ctx->rho1 : ctx->rho2;
+}
+
+static PetscScalar getEta_sinker_box3(void *ptr,PetscScalar x, PetscScalar y, PetscScalar z) {
+  Ctx ctx = (Ctx) ptr;
+
+  const PetscScalar d = ctx->xmax-ctx->xmin;
+  const PetscScalar xx = x/d - 0.5;
+  const PetscScalar yy = y/d - 0.5;
+  const PetscScalar zz = z/d - 0.5;
+  return (xx*xx > 0.3*0.3 || yy*yy > 0.3*0.3 || zz*zz > 0.3*0.3) ? ctx->eta1 : ctx->eta2;
+}
+
 /* Vertical layers */
 static PetscScalar getRho_gerya72(void *ptr,PetscScalar x,PetscScalar y,PetscScalar z)
 {
   Ctx ctx = (Ctx) ptr;
+
+  STAGBL_UNUSED(y);
   STAGBL_UNUSED(z);
-  if (x + 0.0*y < (ctx->xmax-ctx->xmin)/2.0) {
+  if (x < (ctx->xmax-ctx->xmin)/2.0) {
     return ctx->rho1;
   } else {
     return ctx->rho2;
@@ -75,9 +117,11 @@ static PetscScalar getRho_gerya72(void *ptr,PetscScalar x,PetscScalar y,PetscSca
 
 static PetscScalar getEta_gerya72(void *ptr,PetscScalar x,PetscScalar y, PetscScalar z)
 {
-  STAGBL_UNUSED(z);
   Ctx ctx = (Ctx) ptr;
-  if (x  + 0.0*y < (ctx->xmax-ctx->xmin)/2.0) {
+
+  STAGBL_UNUSED(y);
+  STAGBL_UNUSED(z);
+  if (x < (ctx->xmax-ctx->xmin)/2.0) {
     return ctx->eta1;
   } else {
     return ctx->eta2;
@@ -122,6 +166,22 @@ PetscErrorCode PopulateCoefficientData(Ctx ctx,const char* mode)
         case 3:
           ctx->getEta = getEta_sinker3;
           ctx->getRho = getRho_sinker3;
+          break;
+        default: SETERRQ1(ctx->comm,PETSC_ERR_SUP,"Unsupported dimension %D",dim);
+      }
+    }
+  }
+  if (!flg) {
+    ierr = PetscStrcmp(mode,"sinker_box",&flg);CHKERRQ(ierr);
+    if (flg) {
+      switch (dim) {
+        case 2:
+          ctx->getEta = getEta_sinker_box2;
+          ctx->getRho = getRho_sinker_box2;
+          break;
+        case 3:
+          ctx->getEta = getEta_sinker_box3;
+          ctx->getRho = getRho_sinker_box3;
           break;
         default: SETERRQ1(ctx->comm,PETSC_ERR_SUP,"Unsupported dimension %D",dim);
       }

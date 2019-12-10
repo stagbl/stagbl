@@ -42,6 +42,9 @@ PetscErrorCode CtxCreate(MPI_Comm comm,const char* mode,Ctx *pctx)
   if (!flg) {
     ierr = PetscStrcmp(mode,"sinker",&flg);CHKERRQ(ierr);
   }
+  if (!flg) {
+    ierr = PetscStrcmp(mode,"sinker_box",&flg);CHKERRQ(ierr);
+  }
   if (flg) {
     ctx->uniform_grid = PETSC_TRUE;
     ctx->boussinesq_forcing = PETSC_FALSE;
