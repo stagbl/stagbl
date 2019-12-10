@@ -100,6 +100,7 @@ PetscErrorCode StagBLCreateStokesSystem(StagBLStokesParameters parameters, StagB
   PetscFunctionReturn(0);
 }
 
+/* Note: this function could be written more concisely, as in the 3D version */
 static PetscErrorCode CreateSystem_2D_FreeSlip(StagBLStokesParameters parameters,StagBLSystem system)
 {
   PetscErrorCode  ierr;
