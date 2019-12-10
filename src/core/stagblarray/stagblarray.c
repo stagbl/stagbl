@@ -1,6 +1,9 @@
 #include "stagbl/private/stagblarrayimpl.h"
 #include <stdlib.h>
 
+/**
+  * Note: usually one would use StagBLGridCreateArray(), which calls this function.
+  */
 PetscErrorCode StagBLArrayCreate(StagBLGrid grid, StagBLArray *stagblarray)
 {
   PetscErrorCode ierr;

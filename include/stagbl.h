@@ -38,7 +38,7 @@ PetscErrorCode StagBLGridPETScGetDM(StagBLGrid,DM*);
 PetscErrorCode StagBLGridPETScGetDMPointer(StagBLGrid,DM**);
 
 /* StagBLArray Functions */
-PetscErrorCode StagBLArrayCreate(StagBLGrid,StagBLArray*); // TODO this needn't be public (or even exist?) because we can only create StagBLArrays from StagBLGrids
+PetscErrorCode StagBLArrayCreate(StagBLGrid,StagBLArray*);
 PetscErrorCode StagBLArrayDestroy(StagBLArray*);
 PetscErrorCode StagBLArrayGetStagBLGrid(StagBLArray,StagBLGrid*);
 
