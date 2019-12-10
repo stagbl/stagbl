@@ -217,10 +217,10 @@ static PetscErrorCode CreateSystem_2D_FreeSlip(StagBLStokesParameters parameters
         /* Get eta values */
         eta_point[0].i = ex; eta_point[0].j = ey;   eta_point[0].loc = DMSTAG_DOWN_LEFT;  eta_point[0].c = 0; /* Left  */
         eta_point[1].i = ex; eta_point[1].j = ey;   eta_point[1].loc = DMSTAG_DOWN_RIGHT; eta_point[1].c = 0; /* Right */
-        eta_point[2].i = ex; eta_point[2].j = ey;   eta_point[2].loc = DMSTAG_ELEMENT;    eta_point[2].c = 0; /* Up    */
-        eta_point[3].i = ex; eta_point[3].j = ey-1; eta_point[3].loc = DMSTAG_ELEMENT;    eta_point[3].c = 0; /* Down  */
+        eta_point[2].i = ex; eta_point[2].j = ey-1; eta_point[2].loc = DMSTAG_ELEMENT;    eta_point[2].c = 0; /* Down  */
+        eta_point[3].i = ex; eta_point[3].j = ey;   eta_point[3].loc = DMSTAG_ELEMENT;    eta_point[3].c = 0; /* Up    */
         ierr = DMStagVecGetValuesStencil(dm_coefficient,coeff_local,4,eta_point,eta);CHKERRQ(ierr);
-        eta_left = eta[0]; eta_right = eta[1]; eta_up = eta[2]; eta_down = eta[3];
+        eta_left = eta[0]; eta_right = eta[1]; eta_down = eta[2]; eta_up = eta[3];
 
         if (ex == 0) {
           /* Left boundary y velocity stencil */
@@ -304,10 +304,10 @@ static PetscErrorCode CreateSystem_2D_FreeSlip(StagBLStokesParameters parameters
         /* Get eta values */
         eta_point[0].i = ex-1; eta_point[0].j = ey; eta_point[0].loc = DMSTAG_ELEMENT;   eta_point[0].c = 0; /* Left  */
         eta_point[1].i = ex;   eta_point[1].j = ey; eta_point[1].loc = DMSTAG_ELEMENT;   eta_point[1].c = 0; /* Right */
-        eta_point[2].i = ex;   eta_point[2].j = ey; eta_point[2].loc = DMSTAG_UP_LEFT;   eta_point[2].c = 0; /* Up    */
-        eta_point[3].i = ex;   eta_point[3].j = ey; eta_point[3].loc = DMSTAG_DOWN_LEFT; eta_point[3].c = 0; /* Down  */
+        eta_point[2].i = ex;   eta_point[2].j = ey; eta_point[2].loc = DMSTAG_DOWN_LEFT; eta_point[2].c = 0; /* Down  */
+        eta_point[3].i = ex;   eta_point[3].j = ey; eta_point[3].loc = DMSTAG_UP_LEFT;   eta_point[3].c = 0; /* Up    */
         ierr = DMStagVecGetValuesStencil(dm_coefficient,coeff_local,4,eta_point,eta);CHKERRQ(ierr);
-        eta_left = eta[0]; eta_right = eta[1]; eta_up = eta[2]; eta_down = eta[3];
+        eta_left = eta[0]; eta_right = eta[1]; eta_down = eta[2]; eta_up = eta[3];
 
         if (ey == 0) {
           /* Bottom boundary x velocity stencil (with zero vel deriv) */
@@ -522,12 +522,12 @@ static PetscErrorCode CreateSystem_3D_FreeSlip(StagBLStokesParameters parameters
             /* Get eta values */
             eta_point[0].i = ex-1; eta_point[0].j = ey; eta_point[0].k = ez; eta_point[0].loc = DMSTAG_ELEMENT;    eta_point[0].c = 0; /* Left  */
             eta_point[1].i = ex;   eta_point[1].j = ey; eta_point[1].k = ez; eta_point[1].loc = DMSTAG_ELEMENT;    eta_point[1].c = 0; /* Right */
-            eta_point[2].i = ex;   eta_point[2].j = ey; eta_point[2].k = ez; eta_point[2].loc = DMSTAG_UP_LEFT;    eta_point[2].c = 0; /* Up    */
-            eta_point[3].i = ex;   eta_point[3].j = ey; eta_point[3].k = ez; eta_point[3].loc = DMSTAG_DOWN_LEFT;  eta_point[3].c = 0; /* Down  */
+            eta_point[2].i = ex;   eta_point[2].j = ey; eta_point[2].k = ez; eta_point[2].loc = DMSTAG_DOWN_LEFT;  eta_point[2].c = 0; /* Down  */
+            eta_point[3].i = ex;   eta_point[3].j = ey; eta_point[3].k = ez; eta_point[3].loc = DMSTAG_UP_LEFT;    eta_point[3].c = 0; /* Up    */
             eta_point[4].i = ex;   eta_point[4].j = ey; eta_point[4].k = ez; eta_point[4].loc = DMSTAG_BACK_LEFT;  eta_point[4].c = 0; /* Back  */
             eta_point[5].i = ex;   eta_point[5].j = ey; eta_point[5].k = ez; eta_point[5].loc = DMSTAG_FRONT_LEFT; eta_point[5].c = 0; /* Front  */
             ierr = DMStagVecGetValuesStencil(dm_coefficient,coeff_local,6,eta_point,eta);CHKERRQ(ierr);
-            eta_left = eta[0]; eta_right = eta[1]; eta_up = eta[2]; eta_down = eta[3]; eta_back = eta[4]; eta_front = eta[5];
+            eta_left = eta[0]; eta_right = eta[1]; eta_down = eta[2]; eta_up = eta[3]; eta_back = eta[4]; eta_front = eta[5];
 
             count = 0;
 
@@ -653,12 +653,12 @@ static PetscErrorCode CreateSystem_3D_FreeSlip(StagBLStokesParameters parameters
             /* Get eta values */
             eta_point[0].i = ex; eta_point[0].j = ey;   eta_point[0].k = ez; eta_point[0].loc = DMSTAG_DOWN_LEFT;  eta_point[0].c = 0; /* Left  */
             eta_point[1].i = ex; eta_point[1].j = ey;   eta_point[1].k = ez; eta_point[1].loc = DMSTAG_DOWN_RIGHT; eta_point[1].c = 0; /* Right */
-            eta_point[2].i = ex; eta_point[2].j = ey;   eta_point[2].k = ez; eta_point[2].loc = DMSTAG_ELEMENT;    eta_point[2].c = 0; /* Up    */
-            eta_point[3].i = ex; eta_point[3].j = ey-1; eta_point[3].k = ez; eta_point[3].loc = DMSTAG_ELEMENT;    eta_point[3].c = 0; /* Down  */ // TODO sucks that up and down are flipped (in all places like this in this file)
+            eta_point[2].i = ex; eta_point[2].j = ey-1; eta_point[2].k = ez; eta_point[2].loc = DMSTAG_ELEMENT;    eta_point[2].c = 0; /* Down  */
+            eta_point[3].i = ex; eta_point[3].j = ey;   eta_point[3].k = ez; eta_point[3].loc = DMSTAG_ELEMENT;    eta_point[3].c = 0; /* Up    */
             eta_point[4].i = ex; eta_point[4].j = ey;   eta_point[4].k = ez; eta_point[4].loc = DMSTAG_BACK_DOWN;  eta_point[4].c = 0; /* Back  */
             eta_point[5].i = ex; eta_point[5].j = ey;   eta_point[5].k = ez; eta_point[5].loc = DMSTAG_FRONT_DOWN; eta_point[5].c = 0; /* Front  */
             ierr = DMStagVecGetValuesStencil(dm_coefficient,coeff_local,6,eta_point,eta);CHKERRQ(ierr);
-            eta_left = eta[0]; eta_right = eta[1]; eta_up = eta[2]; eta_down = eta[3]; eta_back = eta[4]; eta_front = eta[5];
+            eta_left = eta[0]; eta_right = eta[1]; eta_down = eta[2]; eta_up = eta[3]; eta_back = eta[4]; eta_front = eta[5];
 
             count = 0;
 
@@ -757,12 +757,12 @@ static PetscErrorCode CreateSystem_3D_FreeSlip(StagBLStokesParameters parameters
             /* Get eta values */
             eta_point[0].i = ex; eta_point[0].j = ey; eta_point[0].k = ez;   eta_point[0].loc = DMSTAG_BACK_LEFT;  eta_point[0].c = 0; /* Left  */
             eta_point[1].i = ex; eta_point[1].j = ey; eta_point[1].k = ez;   eta_point[1].loc = DMSTAG_BACK_RIGHT; eta_point[1].c = 0; /* Right */
-            eta_point[2].i = ex; eta_point[2].j = ey; eta_point[2].k = ez;   eta_point[2].loc = DMSTAG_BACK_UP;    eta_point[2].c = 0; /* Up    */
-            eta_point[3].i = ex; eta_point[3].j = ey; eta_point[3].k = ez;   eta_point[3].loc = DMSTAG_BACK_DOWN;  eta_point[3].c = 0; /* Down  */
+            eta_point[2].i = ex; eta_point[2].j = ey; eta_point[2].k = ez;   eta_point[2].loc = DMSTAG_BACK_DOWN;  eta_point[2].c = 0; /* Down  */
+            eta_point[3].i = ex; eta_point[3].j = ey; eta_point[3].k = ez;   eta_point[3].loc = DMSTAG_BACK_UP;    eta_point[3].c = 0; /* Up    */
             eta_point[4].i = ex; eta_point[4].j = ey; eta_point[4].k = ez-1; eta_point[4].loc = DMSTAG_ELEMENT;    eta_point[4].c = 0; /* Back  */
             eta_point[5].i = ex; eta_point[5].j = ey; eta_point[5].k = ez;   eta_point[5].loc = DMSTAG_ELEMENT;    eta_point[5].c = 0; /* Front  */
             ierr = DMStagVecGetValuesStencil(dm_coefficient,coeff_local,6,eta_point,eta);CHKERRQ(ierr);
-            eta_left = eta[0]; eta_right = eta[1]; eta_up = eta[2]; eta_down = eta[3]; eta_back = eta[4]; eta_front = eta[5];
+            eta_left = eta[0]; eta_right = eta[1]; eta_down = eta[2]; eta_up = eta[3]; eta_back = eta[4]; eta_front = eta[5];
 
             count = 0;
 
