@@ -136,7 +136,7 @@ PetscErrorCode PopulateCoefficientData(Ctx ctx,const char* mode)
   PetscInt       ex,ey,ez,startx,starty,startz,nx,ny,nz;
   PetscInt       slot_prev,slot_center;
   PetscInt       slot_rho_downleft,slot_rho_backleft,slot_rho_backdown,slot_eta_element,slot_eta_downleft,slot_eta_backleft,slot_eta_backdown;
-  DM             dmCoeff;
+  DM             dm_coefficients;
   Vec            *p_coeff_local;
   Vec            coeff_local;
   PetscReal      **arr_coordinates_x,**arr_coordinates_y,**arr_coordinates_z;
@@ -145,8 +145,8 @@ PetscErrorCode PopulateCoefficientData(Ctx ctx,const char* mode)
   PetscFunctionBeginUser;
 
   /* Pull out DM object */
-  ierr = StagBLGridPETScGetDM(ctx->coefficient_grid,&dmCoeff);CHKERRQ(ierr);
-  ierr = DMGetDimension(dmCoeff,&dim);CHKERRQ(ierr);
+  ierr = StagBLGridPETScGetDM(ctx->coefficient_grid,&dm_coefficients);CHKERRQ(ierr);
+  ierr = DMGetDimension(dm_coefficients,&dim);CHKERRQ(ierr);
 
   /* Set coefficient evaluation functions from mode */
   flg = PETSC_FALSE;
@@ -203,55 +203,62 @@ PetscErrorCode PopulateCoefficientData(Ctx ctx,const char* mode)
     ierr = StagBLGridCreateStagBLArray(ctx->coefficient_grid,&ctx->coefficient_array);CHKERRQ(ierr);
     ierr = StagBLArrayPETScGetLocalVecPointer(ctx->coefficient_array,&p_coeff_local);CHKERRQ(ierr);
 
-    ierr = DMCreateLocalVector(dmCoeff,p_coeff_local);CHKERRQ(ierr);
+    ierr = DMCreateLocalVector(dm_coefficients,p_coeff_local);CHKERRQ(ierr);
     coeff_local = *p_coeff_local;
   } else {
     ierr = StagBLArrayPETScGetLocalVec(ctx->coefficient_array,&coeff_local);CHKERRQ(ierr);
   }
 
-  ierr = DMStagGetGhostCorners(dmCoeff,&startx,&starty,&startz,&nx,&ny,&nz);CHKERRQ(ierr); /* Iterate over all local elements */
-  ierr = DMStagGetGlobalSizes(dmCoeff,&N[0],&N[1],&N[2]);CHKERRQ(ierr);
-  ierr = DMStagGetProductCoordinateArraysRead(dmCoeff,&arr_coordinates_x,&arr_coordinates_y,&arr_coordinates_z);CHKERRQ(ierr);
-  ierr = DMStagGetProductCoordinateLocationSlot(dmCoeff,DMSTAG_ELEMENT,&slot_center);CHKERRQ(ierr);
-  ierr = DMStagGetProductCoordinateLocationSlot(dmCoeff,DMSTAG_LEFT,&slot_prev);CHKERRQ(ierr);
-  ierr = DMStagGetLocationSlot(dmCoeff,DMSTAG_ELEMENT,  0,&slot_eta_element);CHKERRQ(ierr);
-  ierr = DMStagGetLocationSlot(dmCoeff,DMSTAG_DOWN_LEFT,0,&slot_eta_downleft);CHKERRQ(ierr);
-  ierr = DMStagGetLocationSlot(dmCoeff,DMSTAG_DOWN_LEFT,1,&slot_rho_downleft);CHKERRQ(ierr);
+  ierr = DMStagGetGhostCorners(dm_coefficients,&startx,&starty,&startz,&nx,&ny,&nz);CHKERRQ(ierr); /* Iterate over all local elements */
+  ierr = DMStagGetGlobalSizes(dm_coefficients,&N[0],&N[1],&N[2]);CHKERRQ(ierr);
+  ierr = DMStagGetProductCoordinateArraysRead(dm_coefficients,&arr_coordinates_x,&arr_coordinates_y,&arr_coordinates_z);CHKERRQ(ierr);
+  ierr = DMStagGetProductCoordinateLocationSlot(dm_coefficients,DMSTAG_ELEMENT,&slot_center);CHKERRQ(ierr);
+  ierr = DMStagGetProductCoordinateLocationSlot(dm_coefficients,DMSTAG_LEFT,&slot_prev);CHKERRQ(ierr);
+  ierr = DMStagGetLocationSlot(dm_coefficients,DMSTAG_ELEMENT,  0,&slot_eta_element);CHKERRQ(ierr);
+  ierr = DMStagGetLocationSlot(dm_coefficients,DMSTAG_DOWN_LEFT,0,&slot_eta_downleft);CHKERRQ(ierr);
+  ierr = DMStagGetLocationSlot(dm_coefficients,DMSTAG_DOWN_LEFT,1,&slot_rho_downleft);CHKERRQ(ierr);
   if (dim == 2) {
-    PetscScalar ***coeffArr;
+    PetscScalar ***arr_coefficients;
 
-    ierr = DMStagVecGetArray(dmCoeff,coeff_local,&coeffArr);CHKERRQ(ierr);
+    ierr = DMStagVecGetArray(dm_coefficients,coeff_local,&arr_coefficients);CHKERRQ(ierr);
     for (ey = starty; ey<starty+ny; ++ey) {
       for (ex = startx; ex<startx+nx; ++ex) {
-        coeffArr[ey][ex][slot_eta_element]  = ctx->getEta(ctx,arr_coordinates_x[ex][slot_center],arr_coordinates_y[ey][slot_center],0.0);
-        coeffArr[ey][ex][slot_eta_downleft] = ctx->getEta(ctx,arr_coordinates_x[ex][slot_prev],  arr_coordinates_y[ey][slot_prev],  0.0);
-        coeffArr[ey][ex][slot_rho_downleft] = ctx->getRho(ctx,arr_coordinates_x[ex][slot_prev],  arr_coordinates_y[ey][slot_prev],  0.0);
+        arr_coefficients[ey][ex][slot_eta_element]  = ctx->getEta(ctx,arr_coordinates_x[ex][slot_center],arr_coordinates_y[ey][slot_center],0.0);
+        arr_coefficients[ey][ex][slot_eta_downleft] = ctx->getEta(ctx,arr_coordinates_x[ex][slot_prev],  arr_coordinates_y[ey][slot_prev],  0.0);
+        arr_coefficients[ey][ex][slot_rho_downleft] = ctx->getRho(ctx,arr_coordinates_x[ex][slot_prev],  arr_coordinates_y[ey][slot_prev],  0.0);
       }
     }
-    ierr = DMStagVecRestoreArray(dmCoeff,coeff_local,&coeffArr);CHKERRQ(ierr);
+    ierr = DMStagVecRestoreArray(dm_coefficients,coeff_local,&arr_coefficients);CHKERRQ(ierr);
   } else if (dim == 3) {
-    PetscScalar ****coeffArr;
+    PetscScalar ****arr_coefficients;
 
-    ierr = DMStagGetLocationSlot(dmCoeff,DMSTAG_BACK_LEFT,0,&slot_eta_backleft);CHKERRQ(ierr);
-    ierr = DMStagGetLocationSlot(dmCoeff,DMSTAG_BACK_LEFT,1,&slot_rho_backleft);CHKERRQ(ierr);
-    ierr = DMStagGetLocationSlot(dmCoeff,DMSTAG_BACK_DOWN,0,&slot_eta_backdown);CHKERRQ(ierr);
-    ierr = DMStagGetLocationSlot(dmCoeff,DMSTAG_BACK_DOWN,1,&slot_rho_backdown);CHKERRQ(ierr);
-    ierr = DMStagVecGetArray(dmCoeff,coeff_local,&coeffArr);CHKERRQ(ierr);
+    ierr = DMStagGetLocationSlot(dm_coefficients,DMSTAG_BACK_LEFT,0,&slot_eta_backleft);CHKERRQ(ierr);
+    ierr = DMStagGetLocationSlot(dm_coefficients,DMSTAG_BACK_LEFT,1,&slot_rho_backleft);CHKERRQ(ierr);
+    ierr = DMStagGetLocationSlot(dm_coefficients,DMSTAG_BACK_DOWN,0,&slot_eta_backdown);CHKERRQ(ierr);
+    ierr = DMStagGetLocationSlot(dm_coefficients,DMSTAG_BACK_DOWN,1,&slot_rho_backdown);CHKERRQ(ierr);
+    ierr = DMStagVecGetArray(dm_coefficients,coeff_local,&arr_coefficients);CHKERRQ(ierr);
     for (ez = startz; ez<startz+nz; ++ez) {
       for (ey = starty; ey<starty+ny; ++ey) {
         for (ex = startx; ex<startx+nx; ++ex) {
-          coeffArr[ez][ey][ex][slot_eta_element]  = ctx->getEta(ctx,arr_coordinates_x[ex][slot_center],arr_coordinates_y[ey][slot_center],arr_coordinates_z[ez][slot_center]);
-          coeffArr[ez][ey][ex][slot_eta_downleft] = ctx->getEta(ctx,arr_coordinates_x[ex][slot_prev],  arr_coordinates_y[ey][slot_prev],  arr_coordinates_z[ez][slot_center]);
-          coeffArr[ez][ey][ex][slot_rho_downleft] = ctx->getRho(ctx,arr_coordinates_x[ex][slot_prev],  arr_coordinates_y[ey][slot_prev],  arr_coordinates_z[ez][slot_center]);
-          coeffArr[ez][ey][ex][slot_eta_backleft] = ctx->getEta(ctx,arr_coordinates_x[ex][slot_prev],  arr_coordinates_y[ey][slot_center],arr_coordinates_z[ez][slot_prev]);
-          coeffArr[ez][ey][ex][slot_rho_backleft] = ctx->getRho(ctx,arr_coordinates_x[ex][slot_prev],  arr_coordinates_y[ey][slot_center],arr_coordinates_z[ez][slot_prev]);
-          coeffArr[ez][ey][ex][slot_eta_backdown] = ctx->getEta(ctx,arr_coordinates_x[ex][slot_center],arr_coordinates_y[ey][slot_prev],  arr_coordinates_z[ez][slot_prev]);
-          coeffArr[ez][ey][ex][slot_rho_backdown] = ctx->getRho(ctx,arr_coordinates_x[ex][slot_center],arr_coordinates_y[ey][slot_prev],  arr_coordinates_z[ez][slot_prev]);
+          const PetscScalar x_prev = arr_coordinates_x[ex][slot_prev];
+          const PetscScalar y_prev = arr_coordinates_y[ey][slot_prev];
+          const PetscScalar z_prev = arr_coordinates_z[ez][slot_prev];
+          const PetscScalar x_center = arr_coordinates_x[ex][slot_center];
+          const PetscScalar y_center = arr_coordinates_y[ey][slot_center];
+          const PetscScalar z_center = arr_coordinates_z[ez][slot_center];
+
+          arr_coefficients[ez][ey][ex][slot_eta_element]  = ctx->getEta(ctx,x_center,y_center,z_center);
+          arr_coefficients[ez][ey][ex][slot_eta_downleft] = ctx->getEta(ctx,x_prev,  y_prev,  z_center);
+          arr_coefficients[ez][ey][ex][slot_rho_downleft] = ctx->getRho(ctx,x_prev,  y_prev,  z_center);
+          arr_coefficients[ez][ey][ex][slot_eta_backleft] = ctx->getEta(ctx,x_prev,  y_center,z_prev  );
+          arr_coefficients[ez][ey][ex][slot_rho_backleft] = ctx->getRho(ctx,x_prev,  y_center,z_prev  );
+          arr_coefficients[ez][ey][ex][slot_eta_backdown] = ctx->getEta(ctx,x_center,y_prev,  z_prev  );
+          arr_coefficients[ez][ey][ex][slot_rho_backdown] = ctx->getRho(ctx,x_center,y_prev,  z_prev  );
         }
       }
     }
-    ierr = DMStagVecRestoreArray(dmCoeff,coeff_local,&coeffArr);CHKERRQ(ierr);
-  } else SETERRQ1(PetscObjectComm((PetscObject)dmCoeff),PETSC_ERR_SUP,"Unsupported dimension %d",dim);
-  ierr = DMStagRestoreProductCoordinateArraysRead(dmCoeff,&arr_coordinates_x,&arr_coordinates_y,&arr_coordinates_z);CHKERRQ(ierr);
+    ierr = DMStagVecRestoreArray(dm_coefficients,coeff_local,&arr_coefficients);CHKERRQ(ierr);
+  } else SETERRQ1(PetscObjectComm((PetscObject)dm_coefficients),PETSC_ERR_SUP,"Unsupported dimension %d",dim);
+  ierr = DMStagRestoreProductCoordinateArraysRead(dm_coefficients,&arr_coordinates_x,&arr_coordinates_y,&arr_coordinates_z);CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
