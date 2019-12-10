@@ -205,12 +205,12 @@ static PetscErrorCode CreateSystem_2D_FreeSlip(StagBLStokesParameters parameters
         {
           const PetscReal rho_avg = 0.5 * (rho[0] + rho[1]);
 
-          /* Note Boussinesq forcing has the opposite sign */
           if (parameters->boussinesq_forcing) {
             const PetscScalar temperature_average = 0.5 * (arr_temperature[ey][ex][slot_temperature_downleft] + arr_temperature[ey][ex][slot_temperature_downright]);
+
             val_rhs = parameters->alpha * rho_avg * parameters->gy * dv * temperature_average;
           } else {
-            val_rhs = -parameters->gy * dv * rho_avg;
+            val_rhs = parameters->gy * dv * rho_avg;
           }
         }
 
@@ -636,7 +636,6 @@ static PetscErrorCode CreateSystem_3D_FreeSlip(StagBLStokesParameters parameters
             {
               const PetscReal rho_avg = 0.25 * (rho[0] + rho[1] + rho[2] + rho[3]);
 
-              /* Note Boussinesq forcing has the opposite sign */
               if (parameters->boussinesq_forcing) {
                 const PetscScalar temperature_average = 0.25 * (
                       arr_temperature[ez][ey][ex][slot_temperature_backdownleft]
@@ -644,9 +643,10 @@ static PetscErrorCode CreateSystem_3D_FreeSlip(StagBLStokesParameters parameters
                     + arr_temperature[ez][ey][ex][slot_temperature_frontdownleft]
                     + arr_temperature[ez][ey][ex][slot_temperature_frontdownright]
                     );
+
                 val_rhs = parameters->alpha * rho_avg * parameters->gy * dv * temperature_average;
               } else {
-                val_rhs = -parameters->gy * dv * rho_avg; // TODO this sign convention is crazy, just pick something consistent (fix in 2D stokes function as well)
+                val_rhs = parameters->gy * dv * rho_avg;
               }
             }
 
