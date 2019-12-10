@@ -625,7 +625,7 @@ static PetscErrorCode CreateSystem_3D_FreeSlip(StagBLStokesParameters parameters
             PetscScalar   eta[6],rho[4],eta_left,eta_right,eta_up,eta_down,eta_back,eta_front; /* relative to the bottom face */
 
             /* get rho values  (note .c = 1) */
-            // TODO we have rho at perhaps strange points (edges not corners).. don't see how it really matters when getting off a grid and averaging, though. This is kinda wacky.. why not just have rho at the faces??)
+            /* Note that we have rho at perhaps strange points (edges not corners) */
             rho_point[0].i = ex; rho_point[0].j = ey; rho_point[0].k = ez; rho_point[0].loc = DMSTAG_DOWN_LEFT;  rho_point[0].c = 1;
             rho_point[1].i = ex; rho_point[1].j = ey; rho_point[1].k = ez; rho_point[1].loc = DMSTAG_DOWN_RIGHT; rho_point[1].c = 1;
             rho_point[2].i = ex; rho_point[2].j = ey; rho_point[2].k = ez; rho_point[2].loc = DMSTAG_BACK_DOWN;  rho_point[2].c = 1;
@@ -873,23 +873,5 @@ static PetscErrorCode CreateSystem_3D_FreeSlip(StagBLStokesParameters parameters
   ierr = VecAssemblyBegin(rhs);CHKERRQ(ierr);
   ierr = MatAssemblyEnd(A,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
   ierr = VecAssemblyEnd(rhs);CHKERRQ(ierr);
-
-  // TODO DEBUG
-  {
-    PetscBool dump = PETSC_FALSE;
-
-    ierr = PetscOptionsGetBool(NULL,NULL,"-stokes_mat_binary_dump",&dump,NULL);CHKERRQ(ierr);
-    if (dump) {
-      ierr = MatView(A,PETSC_VIEWER_BINARY_WORLD);CHKERRQ(ierr);
-    }
-  }
-  {
-    PetscBool dump = PETSC_FALSE;
-
-    ierr = PetscOptionsGetBool(NULL,NULL,"-stokes_rhs_binary_dump",&dump,NULL);CHKERRQ(ierr);
-    if (dump) {
-      ierr = VecView(rhs,PETSC_VIEWER_BINARY_WORLD);CHKERRQ(ierr);
-    }
-  }
   PetscFunctionReturn(0);
 }
