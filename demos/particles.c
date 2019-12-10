@@ -17,9 +17,10 @@ PetscErrorCode CreateParticleSystem(Ctx ctx)
   ierr = DMStagGetLocalSizes(dmStokes,&n[0],&n[1],NULL);CHKERRQ(ierr);
   nel = n[0]*n[1];
   ierr = DMSwarmSetCellDM(ctx->dm_particles,dmStokes);CHKERRQ(ierr);
-  // TODO actually carry coefficients on the particles
-  //ierr = DMSwarmRegisterPetscDatatypeField(ctx->dm_particles,"rho",1,PETSC_REAL);CHKERRQ(ierr);
-  //ierr = DMSwarmRegisterPetscDatatypeField(ctx->dm_particles,"eta",1,PETSC_REAL);CHKERRQ(ierr);
+  /* Note: quantities could be carried on the particles, e.g.
+  ierr = DMSwarmRegisterPetscDatatypeField(ctx->dm_particles,"rho",1,PETSC_REAL);CHKERRQ(ierr);
+  ierr = DMSwarmRegisterPetscDatatypeField(ctx->dm_particles,"eta",1,PETSC_REAL);CHKERRQ(ierr);
+  */
   ierr = DMSwarmRegisterPetscDatatypeField(ctx->dm_particles,"Temperature",1,PETSC_REAL);CHKERRQ(ierr);
   ierr = DMSwarmFinalizeFieldRegister(ctx->dm_particles);CHKERRQ(ierr);
   ierr = DMSwarmSetLocalSizes(ctx->dm_particles,nel*particlesPerElementPerDim,100);CHKERRQ(ierr);
@@ -51,12 +52,20 @@ PetscErrorCode CreateParticleSystem(Ctx ctx)
 
     /* Compute coefficient values on particles */
     ierr = DMSwarmGetField(ctx->dm_particles,DMSwarmPICField_coor,NULL,NULL,(void**)&array_x);CHKERRQ(ierr);
-    // TODO actually store data on particles
-    //ierr = DMSwarmGetField(ctx->dm_particles,"eta",               NULL,NULL,(void**)&array_e);CHKERRQ(ierr);
-    //ierr = DMSwarmGetField(ctx->dm_particles,"rho",               NULL,NULL,(void**)&array_r);CHKERRQ(ierr);
+    /* Note: quanitites could be stored on the particles, e.g.
+    ierr = DMSwarmGetField(ctx->dm_particles,"eta",               NULL,NULL,(void**)&array_e);CHKERRQ(ierr);
+    ierr = DMSwarmGetField(ctx->dm_particles,"rho",               NULL,NULL,(void**)&array_r);CHKERRQ(ierr);
+    */
     ierr = DMSwarmGetLocalSize(ctx->dm_particles,&npoints);CHKERRQ(ierr);
     for (p = 0; p < npoints; p++) {
-      //PetscReal x_p[2];
+      /* Note: quantities could be computed on the particles, e.g.:
+      PetscReal x_p[2];
+
+      x_p[0] = array_x[2*p + 0];
+      x_p[1] = array_x[2*p + 1];
+      array_e[p] = getEta(ctx,x_p[0],x_p[1]);
+      array_r[p] = getRho(ctx,x_p[0],x_p[1]);
+      */
 
       if (jiggle > 0.0) {
         PetscReal rr[2];
@@ -66,19 +75,11 @@ PetscErrorCode CreateParticleSystem(Ctx ctx)
         array_x[2*p + 1] += rr[1];
       }
 
-      /* Get the coordinates of point p */
-      //x_p[0] = array_x[2*p + 0];
-      //x_p[1] = array_x[2*p + 1];
-
-      /* Call functions to compute eta and rho at that location */
-      // TODO actually carry things on the particles
-      //array_e[p] = getEta(ctx,x_p[0]); // no y dependence
-      //array_r[p] = getRho(ctx,x_p[0]); // no y dependence
-
     }
-    // TODO actually store data on particles
-    //ierr = DMSwarmRestoreField(ctx->dm_particles,"rho",NULL,NULL,(void**)&array_r);CHKERRQ(ierr);
-    //ierr = DMSwarmRestoreField(ctx->dm_particles,"eta",NULL,NULL,(void**)&array_e);CHKERRQ(ierr);
+    /* Note: quanitites could be stored on the particles, e.g.
+    ierr = DMSwarmRestoreField(ctx->dm_particles,"rho",NULL,NULL,(void**)&array_r);CHKERRQ(ierr);
+    ierr = DMSwarmRestoreField(ctx->dm_particles,"eta",NULL,NULL,(void**)&array_e);CHKERRQ(ierr);
+    */
     ierr = DMSwarmRestoreField(ctx->dm_particles,DMSwarmPICField_coor,NULL,NULL,(void**)&array_x);CHKERRQ(ierr);
 
     if (jiggle > 0.0) {
