@@ -17,7 +17,21 @@ Fortran is also possible with the use of some wrappers which are not currently
 included with StagBL itself. Please contact the authors if this is of
 interest.)
 
+A 3D sinking block of higher viscosity and density, solved on a 20 by 20 by 20 element cube with StagBLDemo3D:
+
 .. image:: resources/3d_sinker_box_20.png
+
+A 2D convection cell, using StagBLDemo2D to solve the infinite-Prandtl number Boussinesq equations. Uses a 512 by 519 element grid, on 9 MPI ranks in a 3 by 3 grid, for a 1000 timesteps.
+
+.. code-block:: bash
+
+    $PETSC_DIR/$PETSC_ARCH/bin/petscmpiexec -n 9 ./stagbldemo2d -mode blankenbach -nsteps 1000 -eta1 1e21 -stag_grid_x 511 -stag_grid_y 519 -stag_ranks_x 3 -stag_ranks_y 3
+
+.. image:: resources/2d_demo_frame.png
+
+Close up of the image above, showing advected particles:
+
+.. image:: resources/2d_particles_closeup.png
 
 DMStag Demos
 ------------
@@ -40,7 +54,3 @@ For example, `DMStag tutorial ex6 <https://bitbucket.org/psanan/petsc/src/6f35e3
 The resulting `.vtr` file for frame 485 can be visualized in Paraview. This is the y velocity:
 
 .. image:: resources/dmstag_ex6_yvel_485.png
-
-
-
-  
