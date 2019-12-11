@@ -17,6 +17,8 @@ Fortran is also possible with the use of some wrappers which are not currently
 included with StagBL itself. Please contact the authors if this is of
 interest.)
 
+.. image:: resources/3d_sinker_box_20.png
+
 DMStag Demos
 ------------
 
