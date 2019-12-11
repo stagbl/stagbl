@@ -69,7 +69,7 @@ demos : library $(BINDIR)/.DIR
 .PHONY: demos
 
 # Additional Test Executables
-# TODO this sucks: hard-coded paths and have to add tests manually here
+# This is currently done manually, and would be more maintainable with an automated process
 tests : \
 	$(BINDIR)/test_dmstag_vs_dmda \
 	$(BINDIR)/test_dmstag_vs_dmda_mf_op \
