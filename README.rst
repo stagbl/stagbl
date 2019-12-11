@@ -23,6 +23,9 @@ This accomplished with careful design and interfaces to powerful
 external libraries. In particular, its parallel staggered-grid data structure
 leverages the DMStag component within `PETSc <https://www.mcs.anl.gov/petsc>`__.
 
+Development of StagBL is supported by the `Platform for Advanced
+Scientific Computing <https://www.pasc-ch.org>`__.
+
 Dependencies
 ------------
 
@@ -45,7 +48,7 @@ for full information. An example configuration command is:
 ::
 
     cd petsc-stagbl
-    ./configure --download-mpich --with-debugging=0 --download-suitesparse --download-superlu_dist --download-metis --download-parmetis --download-hdf5
+    ./configure --download-mpich --with-debugging=0 --download-suitesparse --download-superlu_dist --download-metis --download-parmetis
     # Build and check as instructed
     cd ..
 
@@ -61,8 +64,8 @@ From the ``stagbl`` directory that is created,
 
 ::
 
-    export PETSC_DIR=yyy   # use value from your PETSc build
-    export PETSC_ARCH=xxx  # use value from your PETSc build
+    export PETSC_DIR=yyy   # use value noted above
+    export PETSC_ARCH=xxx  # use value noted above
     ./configure.py         # follow instructions to make
     cd demos
     make 2d
@@ -81,9 +84,3 @@ In parallel, try
 
 .. image:: docs/resources/stagbldemo2d_quickstart2.png
    :alt: stagbl2ddemo quickstart 2
-
-Support
--------
-
-Development of StagBL is supported by the `Platform for Advanced
-Scientific Computing <https://www.pasc-ch.org>`__.
