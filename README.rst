@@ -75,7 +75,7 @@ From the ``stagbl`` directory that is created,
     cd demos
     make 2d
     ./stagbldemo2d
-    paraview out_element.vtr &
+    paraview out_element_0000.vtr &
 
 .. image:: docs/resources/stagbldemo2d_quickstart.png
    :alt: stagbl2ddemo quickstart
