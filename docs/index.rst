@@ -9,6 +9,7 @@ For source code and quickstart instructions, see
 Contents
 ========
 .. toctree ::
+  about
   design
   demos
 
