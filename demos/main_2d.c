@@ -121,7 +121,7 @@ int main(int argc, char** argv)
 
     hy = ctx->ymax - ctx->ymin;
     dT = ctx->temperature_bottom - ctx->temperature_top;
-    Ra = ctx->alpha * PetscAbsScalar(ctx->gy) * dT * (hy * hy * hy) / (ctx->kappa * ctx->eta_characteristic);
+    Ra = ctx->alpha * PetscAbsScalar(ctx->gy) * dT * (hy * hy * hy) * ctx->rho1 / (ctx->kappa * ctx->eta_characteristic);
     ierr = PetscPrintf(ctx->comm,"Rayleigh number: %g\n",Ra);CHKERRQ(ierr);
   }
 
@@ -163,7 +163,7 @@ int main(int argc, char** argv)
     if (ctx->compute_nusselt_number) {
       PetscScalar nu;
       ierr = ComputeNusseltNumber(ctx,&nu);CHKERRQ(ierr);
-      ierr = PetscPrintf(PETSC_COMM_WORLD,"Nusselt Number: %g\n",(double)nu);CHKERRQ(ierr);
+      ierr = PetscPrintf(PETSC_COMM_WORLD,"Nusselt number: %g\n",(double)nu);CHKERRQ(ierr);
     }
 
     /* Output stokes data, temperature data, and particle data to files */

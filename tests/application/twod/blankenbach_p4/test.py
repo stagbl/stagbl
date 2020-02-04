@@ -3,7 +3,7 @@ from stagbl_test_utils import create_stagbl_test
 def test() :
     t = create_stagbl_test(__file__,
             'stagbldemo2d',
-            1,
+            4,
             [
                 '-mode','blankenbach',
                 '-nsteps','7',

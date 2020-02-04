@@ -17,7 +17,7 @@ PetscErrorCode CtxCreate(MPI_Comm comm,const char* mode,Ctx *pctx)
 
   /* Default Settings */
   ctx->totalTimesteps     = 3;
-  ctx->dt                 = 1e13;
+  ctx->dt                 = 1e16;
   ctx->temperature_top    = 0;
   ctx->temperature_bottom = 1000;
   ctx->kappa              = 1e-6;
@@ -74,8 +74,8 @@ PetscErrorCode CtxCreate(MPI_Comm comm,const char* mode,Ctx *pctx)
       ctx->zmax = 1e6;
       ctx->rho1 = 4000;
       ctx->rho2 = 4400; /* not used normally */
-      ctx->eta1 = 2.5e19; /* case 1a */
-      ctx->eta2 = 2.5e19; /* Not normally used */
+      ctx->eta1 = ctx->rho1 * 2.5e19; /* case 1a */
+      ctx->eta2 = ctx->eta2; /* Not normally used */
       ctx->eta_characteristic = ctx->eta1;
       ctx->gy   = -10.0; /* gravity points in negative y direction */
     }

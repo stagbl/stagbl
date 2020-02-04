@@ -33,17 +33,7 @@ PetscErrorCode InitializeTemperature(Ctx ctx)
       const PetscScalar xr = (arr_coordinates_x[ex][slot_coordinate_prev] - ctx->xmin)/(ctx->xmax - ctx->xmin);
       const PetscScalar yr = (arr_coordinates_y[ey][slot_coordinate_prev] - ctx->ymin)/(ctx->ymax - ctx->ymin);
 
-#if 1
-      arr[ey][ex][slot_temperature_downleft] = 550 + 10.0* (PetscSinScalar(PETSC_PI*yr) * PetscCosScalar(PETSC_PI * xr));
-#else
-      if (ex == 0 || ex < (PetscInt) (0.1 * N[0])){
-          arr[ey][ex][slot] = 600;
-      } else if (ex == N[0]-1 || ex > (PetscInt) (0.9 * N[0])){
-          arr[ey][ex][slot_temperature_downleft] = 400;
-      } else {
-          arr[ey][ex][slot_temperature_downleft] = 500;
-      }
-#endif
+      arr[ey][ex][slot_temperature_downleft] = 0.5 * (ctx->temperature_top + ctx->temperature_bottom)* (1.0 + 0.01 * (PetscSinScalar(PETSC_PI*yr) * PetscCosScalar(PETSC_PI * xr)));
     }
   }
   ierr = DMStagRestoreProductCoordinateArraysRead(dmTemp,&arr_coordinates_x,&arr_coordinates_y,NULL);CHKERRQ(ierr);
@@ -178,10 +168,10 @@ PetscErrorCode PopulateTemperatureSystem(Ctx ctx)
       valA[3] +=  vym/hy;
 
       /* Time Discretization Term */
-      valA[0] += ctx->rho1 * ctx->cp /ctx->dt;
+      valA[0] += 1.0 / ctx->dt;
 
       ierr = DMStagMatSetValuesStencil(dmTemp,A,1,&row,4,col,valA,INSERT_VALUES);CHKERRQ(ierr);
-      valRhs = arr[ey][ex][slot_temperature_downleft] * ctx->rho1 * ctx->cp /ctx->dt; /* No heat source */
+      valRhs = arr[ey][ex][slot_temperature_downleft] / ctx->dt; /* No heat source */
 
       ierr = DMStagVecSetValuesStencil(dmTemp,rhs,1,&row,&valRhs,INSERT_VALUES);CHKERRQ(ierr);
     }
@@ -220,10 +210,10 @@ PetscErrorCode PopulateTemperatureSystem(Ctx ctx)
       valA[3] +=  vym/hy;
 
       /* Time Discretization Term */
-      valA[0] += 1.0/ctx->dt;
+      valA[0] += 1.0 / ctx->dt;
 
       ierr = DMStagMatSetValuesStencil(dmTemp,A,1,&row,4,col,valA,INSERT_VALUES);CHKERRQ(ierr);
-      valRhs = arr[ey][ex][slot_temperature_downleft]/ctx->dt; /* No heat source */
+      valRhs = arr[ey][ex][slot_temperature_downleft] / ctx->dt; /* No heat source */
 
       ierr = DMStagVecSetValuesStencil(dmTemp,rhs,1,&row,&valRhs,INSERT_VALUES);CHKERRQ(ierr);
     }
@@ -262,10 +252,10 @@ PetscErrorCode PopulateTemperatureSystem(Ctx ctx)
       valA[4] +=  vym/hy;
 
       /* Time Discretization Term */
-      valA[0] += 1.0/ctx->dt;
+      valA[0] += 1.0 / ctx->dt;
 
       ierr = DMStagMatSetValuesStencil(dmTemp,A,1,&row,5,col,valA,INSERT_VALUES);CHKERRQ(ierr);
-      valRhs = arr[ey][ex][slot_temperature_downleft]/ctx->dt; /* No heat source */
+      valRhs = arr[ey][ex][slot_temperature_downleft] / ctx->dt; /* No heat source */
 
       ierr = DMStagVecSetValuesStencil(dmTemp,rhs,1,&row,&valRhs,INSERT_VALUES);CHKERRQ(ierr);
     }

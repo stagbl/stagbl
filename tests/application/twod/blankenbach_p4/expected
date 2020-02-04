@@ -2,7 +2,7 @@
 Mode: blankenbach
 Rayleigh number: 10000.
 Timestep 0, starts at t=0 (~0 Myr)
-Nusselt number: -1.10245e-16
+Nusselt number: -1.09246e-16
 Timestep 1, starts at t=1e+17 (~3170.58 Myr)
 Nusselt number: 1.66198
 Timestep 2, starts at t=2e+17 (~6341.15 Myr)
