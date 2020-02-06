@@ -12,7 +12,4 @@ Contents
   about
   design
   demos
-
-..
-  This should show something, if you added some formatted comments (https://hawkmoth.readthedocs.io/en/latest/syntax.html)
-  .. c:autodoc:: ../src/core/stagblgrid/stagblgrid.c
+  benchmarks
