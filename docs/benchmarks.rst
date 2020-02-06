@@ -30,7 +30,7 @@ Run the benchmark
 
 .. code-block:: bash
 
-    $PETSC_DIR/$PETSC_ARCH/bin/mpiexec -np 4 $STAGBL_DIR/$PETSC_DIR/bin/stagbldemo2d -mode blankenbach -stag_grid_x 100 -stag_grid_y 100 -nsteps 30
+    $PETSC_DIR/$PETSC_ARCH/bin/mpiexec -np 4 $STAGBL_DIR/$PETSC_ARCH/bin/stagbldemo2d -mode blankenbach -stag_grid_x 100 -stag_grid_y 100 -nsteps 30
 
 Examine the output to confirm that the Rayleigh number is 10000 and the Nusselt number approaches 4.88, as expected.
 
