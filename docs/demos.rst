@@ -1,5 +1,5 @@
 StagBL Demos
-------------
+============
 
 StagBLDemo2d and StagBLDemo3d are two mini-apps designed for several purposes:
 
