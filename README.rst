@@ -46,14 +46,14 @@ Clone a `custom branch <https://bitbucket.org/psanan/petsc/branch/psanan/stagbl-
 
     git clone -b master https://bitbucket.org/psanan/petsc -b psanan/stagbl-working-base petsc-stagbl
 
-Configure PETSc with SuiteSparse (includes UMFPACK) and SuperLU_dist, build, and check. See
+Configure PETSc with some direct solver packages (SuiteSparse, SuperLU_dist, MUMPS), build, and check. See
 `the PETSc website <https://www.mcs.anl.gov/petsc/documentation/installation.html>`__
 for full information. An example configuration command is:
 
 .. code-block:: bash
 
     cd petsc-stagbl
-    ./configure --download-mpich --with-debugging=0 --download-suitesparse --download-superlu_dist --download-metis --download-parmetis
+    ./configure --download-mpich --with-debugging=0 --download-suitesparse --download-superlu_dist --download-mumps --download-metis --download-parmetis --download-scalapack
     # Build and check as instructed
     cd ..
 
@@ -65,10 +65,11 @@ Clone this repository, including submodules (using git 2.13 or later)
 
     git clone --recurse-submodules https://github.com/stagbl/stagbl
 
-From the ``stagbl`` directory that is created,
+Configure and build StagBL
 
 .. code-block:: bash
 
+    cd stagbl
     export PETSC_DIR=yyy   # use value noted above
     export PETSC_ARCH=xxx  # use value noted above
     ./configure.py         # follow instructions to make
