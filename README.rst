@@ -44,7 +44,7 @@ Clone a `custom branch <https://bitbucket.org/psanan/petsc/branch/psanan/stagbl-
 
 .. code-block:: bash
 
-    git clone -b master https://bitbucket.org/psanan/petsc -b psanan/stagbl-working-base petsc-stagbl
+    git clone https://bitbucket.org/psanan/petsc -b psanan/stagbl-working-base petsc-stagbl
 
 Configure PETSc with some direct solver packages (SuiteSparse, SuperLU_dist, MUMPS), build, and check. See
 `the PETSc website <https://www.mcs.anl.gov/petsc/documentation/installation.html>`__
