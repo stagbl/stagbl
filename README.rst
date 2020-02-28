@@ -10,7 +10,7 @@
     :alt: Documentation Status
 
 About
------
+=====
 
 StagBL is a C library designed to allow optimized, massively-parallel
 Stokes solvers for geodynamics application codes based on finite-volume
@@ -28,17 +28,20 @@ Development of StagBL is supported by the `Platform for Advanced
 Scientific Computing <https://www.pasc-ch.org>`__.
 
 Dependencies
-------------
+============
 
 - `PETSc <https://www.mcs.anl.gov/petsc>`__
 -  Python (for configuration)
 
 Documentation
--------------
+=============
 See `StagBL on Read the Docs <https://stagbl.rtfd.io>`__ for additional information.
 
 Quickstart
-----------
+==========
+
+Step 1/2: PETSc
+---------------
 
 Clone a `custom branch <https://bitbucket.org/psanan/petsc/branch/psanan/stagbl-working-base>`__ of PETSc
 
@@ -48,7 +51,9 @@ Clone a `custom branch <https://bitbucket.org/psanan/petsc/branch/psanan/stagbl-
 
 Configure PETSc with some direct solver packages (SuiteSparse, SuperLU_dist, MUMPS), build, and check. See
 `the PETSc website <https://www.mcs.anl.gov/petsc/documentation/installation.html>`__
-for full information. An example configuration command is:
+for full information.
+
+An example configuration command for a local GNU/Linux system is
 
 .. code-block:: bash
 
@@ -57,7 +62,33 @@ for full information. An example configuration command is:
     # Build and check as instructed
     cd ..
 
-Note the values of ``PETSC_ARCH`` and ``PETSC_DIR`` defined during configuration.
+On an OS X system, first `install XCode <https://guide.macports.org/chunked/installing.html#installing.xcode>`__, and check that your compilers work
+
+.. code-block:: bash
+
+    printf '#include<stdio.h>\nint main(){printf("OK!\\n");}' > t.c && /usr/bin/gcc t.c && ./a.out && rm t.c a.out
+    printf '#include<iostream>\nint main(){std::cout<<"OK!"<<std::endl;}' > t.cpp && /usr/bin/g++ t.cpp && ./a.out && rm t.cpp a.out
+
+Next, install a Fortran compiler like `gfortran`. If you use MacPorts, Homebrew, Nix, etc. you can use those (recommended),
+or you can install it using `these instructions <http://hpc.sourceforge.net>`__. Test your compiler works
+
+.. code-block:: bash
+
+    printf 'program t\nprint"(a)","OK!"\nend program' > t.f90 && gfortran t.f90 && ./a.out && rm t.f90 a.out
+
+Then, configure as
+
+.. code-block:: bash
+
+    cd petsc-stagbl
+     ./configure --with-fc=gfortran --with-cc=/usr/bin/gcc --with-cxx=/usr/bin/g++ --download-mpich --download-hdf5 --download-metis --download-parmetis --download-scalapack --download-mumps --download-suitesparse --download-superlu_dist --with-debugging=no --FOPTFLAGS='-g -O3' --COPTFLAGS='-g -O3' --CXXOPTFLAGS='-g -O3' --download-cmake
+    # Build and check as instructed
+    cd ..
+
+In either case, note the values of ``PETSC_ARCH`` and ``PETSC_DIR`` defined during configuration.
+
+Step 2/2: StagBL
+----------------
 
 Clone this repository, including submodules (using git 2.13 or later)
 
