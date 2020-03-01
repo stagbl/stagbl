@@ -60,6 +60,8 @@ An example configuration command for a local GNU/Linux system is
     cd petsc-stagbl
     ./configure --download-mpich --with-debugging=0 --download-suitesparse --download-superlu_dist --download-mumps --download-metis --download-parmetis --download-scalapack
     # Build and check as instructed
+    export PETSC_DIR=$PWD # this directory
+    export PETSC_ARCH=xxx # replace 'xxx' with the value shown during configuration.
     cd ..
 
 On an OS X system, first `install XCode <https://guide.macports.org/chunked/installing.html#installing.xcode>`__, and check that your compilers work
@@ -83,9 +85,12 @@ Then, configure as
     cd petsc-stagbl
      ./configure --with-fc=gfortran --with-cc=/usr/bin/gcc --with-cxx=/usr/bin/g++ --download-mpich --download-hdf5 --download-metis --download-parmetis --download-scalapack --download-mumps --download-suitesparse --download-superlu_dist --with-debugging=no --FOPTFLAGS='-g -O3' --COPTFLAGS='-g -O3' --CXXOPTFLAGS='-g -O3' --download-cmake
     # Build and check as instructed
+    export PETSC_DIR=$PWD # this directory
+    export PETSC_ARCH=xxx # replace 'xxx' with the value shown during configuration.
     cd ..
 
 In either case, note the values of ``PETSC_ARCH`` and ``PETSC_DIR`` defined during configuration.
+You may want to define this in a login file, or otherwise record them for next time you log in.
 
 Step 2/2: StagBL
 ----------------
@@ -96,13 +101,14 @@ Clone this repository, including submodules (using git 2.13 or later)
 
     git clone --recurse-submodules https://github.com/stagbl/stagbl
 
-Configure and build StagBL
+Configure and build StagBL, making sure `PETSC_ARCH` and `PETSC_DIR` are defined,
+as above. (If you forget these values, `PETSC_DIR` is where you configured PETSc from,
+and `PETSC_ARCH` is the name of the directory, e.g. `arch-linux-c-opt` or `arch-darwin-c-opt`,
+that was created there during the configuration process).
 
 .. code-block:: bash
 
     cd stagbl
-    export PETSC_DIR=yyy   # use value noted above
-    export PETSC_ARCH=xxx  # use value noted above
     ./configure.py         # follow instructions to make
     cd demos
     make 2d
