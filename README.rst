@@ -58,7 +58,7 @@ An example configuration command for a local GNU/Linux system is
 .. code-block:: bash
 
     cd petsc-stagbl
-    ./configure --download-mpich --with-debugging=0 --download-suitesparse --download-superlu_dist --download-mumps --download-metis --download-parmetis --download-scalapack
+    ./configure --download-mpich --with-debugging=0 --download-suitesparse --download-superlu_dist --download-mumps --download-metis --download-parmetis --download-scalapack --FOPTFLAGS='-g -O3' --COPTFLAGS='-g -O3' --CXXOPTFLAGS='-g -O3'
     # Build and check as instructed
     export PETSC_DIR=$PWD # this directory
     export PETSC_ARCH=xxx # replace 'xxx' with the value shown during configuration.
