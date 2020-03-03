@@ -33,7 +33,7 @@ static PetscErrorCode MatPreallocatePhaseBegin(Mat A,Mat *preallocator);
 static PetscErrorCode MatPreallocatePhaseEnd(Mat A);
 
 #define RHO(x,y) PetscSinScalar(PETSC_PI * y) * PetscCosScalar(PETSC_PI * x)
-#define ETA(x,y) x > 0.5 ? 1.0e6 : 1.0
+#define ETA(x,y) x + 0.0*y > 0.5 ? 1.0e6 : 1.0
 #define GY 1.0
 
 int main(int argc,char **argv)
