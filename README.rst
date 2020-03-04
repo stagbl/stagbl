@@ -58,6 +58,7 @@ An example configuration command for a local GNU/Linux system is
 .. code-block:: bash
 
     cd petsc-stagbl
+    unset PETSC_DIR PETSC_ARCH
     ./configure --download-mpich --with-debugging=0 --download-suitesparse --download-superlu_dist --download-mumps --download-metis --download-parmetis --download-scalapack --FOPTFLAGS='-g -O3' --COPTFLAGS='-g -O3' --CXXOPTFLAGS='-g -O3'
     # Build and check as instructed
     export PETSC_DIR=$PWD # this directory
@@ -83,6 +84,7 @@ Then, configure as
 .. code-block:: bash
 
     cd petsc-stagbl
+    unset PETSC_DIR PETSC_ARCH
      ./configure --with-fc=gfortran --with-cc=/usr/bin/gcc --with-cxx=/usr/bin/g++ --download-mpich --download-hdf5 --download-metis --download-parmetis --download-scalapack --download-mumps --download-suitesparse --download-superlu_dist --with-debugging=no --FOPTFLAGS='-g -O3' --COPTFLAGS='-g -O3' --CXXOPTFLAGS='-g -O3' --download-cmake
     # Build and check as instructed
     export PETSC_DIR=$PWD # this directory
