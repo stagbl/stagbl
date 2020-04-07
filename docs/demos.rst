@@ -38,14 +38,14 @@ DMStag Demos
 
 In addition to these demos, there are several tutorial examples included with
 PETSc, that demonstrate direct usage of DMStag, the object providing the main
-implementation of the ``StagBLGrid`` object. See ``src/dm/impls/stag/examples/tutorials``
+implementation of the ``StagBLGrid`` object. See ``src/dm/impls/stag/tutorials``
 in the PETSc source tree.
 
 This object can be used for tasks beyond the scope of StagBL, as it provides
 a generic interface for working with 1- to 3-dimensional, logically regular
 cell complexes, in particular those corresponding to orthogonal grids.
 
-For example, `DMStag tutorial ex6 <https://bitbucket.org/psanan/petsc/src/6f35e31b9f2989e6fe59ddc38ff726d76adaefc9/src/dm/impls/stag/examples/tutorials/ex6.c?at=psanan%2Fstagbl-working-base>`__ shows how to use DMStag to simulate seismic waves.
+For example, `DMStag tutorial ex6 <https://bitbucket.org/psanan/petsc/src/6f35e31b9f2989e6fe59ddc38ff726d76adaefc9/src/dm/impls/stag/tutorials/ex6.c?at=psanan%2Fstagbl-working-base>`__ shows how to use DMStag to simulate seismic waves.
 
 .. code-block:: bash
 
