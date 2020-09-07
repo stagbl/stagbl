@@ -3,7 +3,7 @@ compiler: gcc
 
 os: linux
 sudo: false
-dist: trusty
+dist: bionic
 
 git:
   depth: false
