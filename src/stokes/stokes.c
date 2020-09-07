@@ -100,7 +100,7 @@ PetscErrorCode StagBLCreateStokesSystem(StagBLStokesParameters parameters, StagB
   PetscFunctionReturn(0);
 }
 
-/* Note: this function could be written more concisely, as in the 3D version */
+/* Note: this function could be written more concisely, as in the 3D version (see DMStag tutorial ex4 where this is done)*/
 static PetscErrorCode CreateSystem_2D_FreeSlip(StagBLStokesParameters parameters,StagBLSystem system)
 {
   PetscErrorCode  ierr;
@@ -433,7 +433,7 @@ static PetscErrorCode CreateSystem_3D_FreeSlip(StagBLStokesParameters parameters
 
   /* Compute some parameters */
   ierr = DMStagGetGlobalSizes(dm_stokes,&N[0],&N[1],&N[2]);CHKERRQ(ierr);
-  if (N[0] < 2 || N[1] < 2 || N[2] < 2) StagBLError(PetscObjectComm((PetscObject)dm_stokes),"Stokes system construction  implemented for a single element in any direction");
+  if (N[0] < 2 || N[1] < 2 || N[2] < 2) StagBLError(PetscObjectComm((PetscObject)dm_stokes),"Stokes system construction not implemented for a single element in any direction");
   if (parameters->uniform_grid) {
     hx = (parameters->xmax - parameters->xmin)/N[0];
     hy = (parameters->ymax - parameters->ymin)/N[1];
@@ -713,7 +713,7 @@ static PetscErrorCode CreateSystem_3D_FreeSlip(StagBLStokesParameters parameters
             val_A[count]  =        dv * eta_front / (hy*hz); ++count;/* front up */
 
             col[count].i = ex; col[count].j = ey-1; col[count].k = ez; col[count].loc = DMSTAG_ELEMENT; col[count].c  = 0;
-            val_A[count] = Kcont * dv / hy; ++count;
+            val_A[count] =        Kcont * dv / hy; ++count;
             col[count].i = ex; col[count].j = ey;   col[count].k = ez; col[count].loc = DMSTAG_ELEMENT; col[count].c  = 0;
             val_A[count] = -1.0 * Kcont * dv / hy; ++count;
 
@@ -817,7 +817,7 @@ static PetscErrorCode CreateSystem_3D_FreeSlip(StagBLStokesParameters parameters
             val_A[count]  =        dv * eta_up    / (hy*hz); ++count; /* back up */
 
             col[count].i = ex; col[count].j = ey; col[count].k = ez-1; col[count].loc = DMSTAG_ELEMENT; col[count].c  = 0;
-            val_A[count] = Kcont * dv / hz; ++count;
+            val_A[count] =        Kcont * dv / hz; ++count;
             col[count].i = ex; col[count].j = ey;   col[count].k = ez; col[count].loc = DMSTAG_ELEMENT; col[count].c  = 0;
             val_A[count] = -1.0 * Kcont * dv / hz; ++count;
 
