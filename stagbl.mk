@@ -94,13 +94,15 @@ $(BINDIR)/test_stokes_operator : $(OBJDIR)/src/tests/unit/test_stokes_operator.o
 .PHONY : tests
 
 # Run tests
+STAGBL_SCIATH_COMMAND= cd ${TEST_DIR} && STAGBL_DIR=$(STAGBL_DIR) STAGBL_ARCH=$(STAGBL_ARCH) python -m sciath $(STAGBL_DIR)/tests/tests.yml -w sciath.conf
+
 test : tests demos $(TESTDIR)/.DIR
-	cd $(TESTDIR)	&& STAGBL_DIR=$(STAGBL_DIR) STAGBL_ARCH=$(STAGBL_ARCH) $(STAGBL_DIR)/tests/run_tests.py -w pth.conf
+	${STAGBL_SCIATH_COMMAND}
 
 test_check : tests demos $(TESTDIR)/.DIR
-	cd $(TESTDIR)	&& STAGBL_DIR=$(STAGBL_DIR) STAGBL_ARCH=$(STAGBL_ARCH) $(STAGBL_DIR)/tests/run_tests.py -w pth.conf -v
+	${STAGBL_SCIATH_COMMAND} -v
 
 test_clean : $(TESTDIR)/.DIR
-	cd $(TESTDIR)	&& STAGBL_DIR=$(STAGBL_DIR) STAGBL_ARCH=$(STAGBL_ARCH) $(STAGBL_DIR)/tests/run_tests.py -w pth.conf -p
+	${STAGBL_SCIATH_COMMAND} -p
 
 .PHONY: test test_clean
