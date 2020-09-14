@@ -8,4 +8,5 @@ and `LaMEM <https://bitbucket.org/bkaus/lamem>`__.
 
 The scalability bottleneck in these applications is the solution of large, coupled systems of conservation equations, in particular the Stokes equations with heterogeneous viscosity.
 The development of the library also produced contributions to `PETSc <https://mcs.anl.gov/petsc>`__, notably the DMStag object for working with distributed, regular, staggered grids. This allows StagBL to remain focused on its applications, but for reusable components to be more widely used (hence maintained).
- Scalable solvers for these systems have been a subject of much research, but making these advanced solvers available to practitioners requires composable software tools. The use of a unified layer also allows operations to optimized for new computational architectures.
+
+Scalable solvers for these systems have been a subject of much research, but making these advanced solvers available to practitioners requires composable software tools. The use of a unified layer also allows operations to optimized for new computational architectures.
