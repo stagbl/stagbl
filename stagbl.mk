@@ -77,6 +77,7 @@ tests : \
 	$(BINDIR)/test_dmstag_vec_stencil_vs_array \
 	$(BINDIR)/test_dmstag_preallocate \
 	$(BINDIR)/test_stokes_operator \
+	$(BINDIR)/test_stokes_assembly_and_solve \
 
 $(BINDIR)/test_dmstag_vs_dmda : $(OBJDIR)/src/tests/performance/test_dmstag_vs_dmda.o library | $$(@D)/.DIR
 	$(STAGBL_LINK) $< $(STAGBL_LIB)
@@ -89,6 +90,8 @@ $(BINDIR)/test_dmstag_vec_stencil_vs_array : $(OBJDIR)/src/tests/performance/tes
 $(BINDIR)/test_dmstag_preallocate : $(OBJDIR)/src/tests/performance/test_dmstag_preallocate.o library | $$(@D)/.DIR
 	$(STAGBL_LINK) $< $(STAGBL_LIB)
 $(BINDIR)/test_stokes_operator : $(OBJDIR)/src/tests/unit/test_stokes_operator.o library | $$(@D)/.DIR
+	$(STAGBL_LINK) $< $(STAGBL_LIB)
+$(BINDIR)/test_stokes_assembly_and_solve : $(OBJDIR)/src/tests/integration/test_stokes_assembly_and_solve.o library | $$(@D)/.DIR
 	$(STAGBL_LINK) $< $(STAGBL_LIB)
 
 .PHONY : tests
