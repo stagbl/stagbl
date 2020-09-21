@@ -15,31 +15,39 @@ PetscErrorCode StagBLFinalize();
 /* StagBLGrid Data */
 struct data_StagBLGrid;
 typedef struct data_StagBLGrid *StagBLGrid;
+typedef const char * StagBLGridType;
 
 /* StagBLArray Data */
 struct data_StagBLArray;
 typedef struct data_StagBLArray *StagBLArray;
+typedef const char * StagBLArrayType;
 
 /* StagBLSystem Data */
 struct data_StagBLSystem;
 typedef struct data_StagBLSystem *StagBLSystem;
+typedef const char * StagBLSystemType;
 
 /* StagBLSolver Data */
 struct data_StagBLSolver;
 typedef struct data_StagBLSolver *StagBLSolver;
+typedef const char * StagBLSolverType;
+
+/* StagBLGrid impls */
+#define STAGBLGRIDPETSC "petsc"
 
 /* StagBLGrid Functions */
-PetscErrorCode StagBLGridCreate(StagBLGrid*);
+PetscErrorCode StagBLGridCreate(StagBLGrid*,StagBLGridType);
 PetscErrorCode StagBLGridCreateCompatibleStagBLGrid(StagBLGrid,PetscInt,PetscInt,PetscInt,PetscInt,StagBLGrid*);
 PetscErrorCode StagBLGridCreateStagBLArray(StagBLGrid,StagBLArray*);
 PetscErrorCode StagBLGridCreateStagBLSystem(StagBLGrid,StagBLSystem*);
 PetscErrorCode StagBLGridDestroy(StagBLGrid*);
+PetscErrorCode StagBLGridSetArrayType(StagBLGrid,StagBLArrayType);
 
 PetscErrorCode StagBLGridPETScGetDM(StagBLGrid,DM*);
 PetscErrorCode StagBLGridPETScGetDMPointer(StagBLGrid,DM**);
 
 /* StagBLArray Functions */
-PetscErrorCode StagBLArrayCreate(StagBLGrid,StagBLArray*);
+PetscErrorCode StagBLArrayCreate(StagBLGrid,StagBLArray*,StagBLArrayType);
 PetscErrorCode StagBLArrayDestroy(StagBLArray*);
 PetscErrorCode StagBLArrayGetStagBLGrid(StagBLArray,StagBLGrid*);
 

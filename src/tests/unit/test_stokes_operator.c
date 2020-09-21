@@ -5,6 +5,7 @@ int main(int argc, char** argv)
   PetscErrorCode         ierr;
   StagBLGrid             stokes_grid,coefficient_grid;
   StagBLArray            stokes_array,coefficient_array;
+  StagBLArrayType        array_type;
   StagBLStokesParameters parameters;
   StagBLSystem           stokes_system;
   StagBLSolver           stokes_solver;
@@ -16,7 +17,11 @@ int main(int argc, char** argv)
   ymin = 0.0; ymax = 3.0;
   zmin = 0.0; zmax = 3.0;
   ierr = StagBLGridCreateStokes3DBox(PETSC_COMM_WORLD,3,3,3,xmin,xmax,ymin,ymax,zmin,zmax,&stokes_grid);CHKERRQ(ierr);
+  array_type = STAGBLARRAYPETSC;
+  ierr = StagBLGridSetArrayType(stokes_grid,array_type);CHKERRQ(ierr);
   ierr = StagBLGridCreateCompatibleStagBLGrid(stokes_grid,0,2,0,1,&coefficient_grid);CHKERRQ(ierr);
+
+  array_type = STAGBLARRAYPETSC;
 
   {
     DM  dm_coefficients;

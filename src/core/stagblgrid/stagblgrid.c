@@ -1,7 +1,7 @@
 #include "stagbl/private/stagblgridimpl.h"
 #include <stdlib.h>
 
-PetscErrorCode StagBLGridCreate(StagBLGrid *stagblgrid)
+PetscErrorCode StagBLGridCreate(StagBLGrid *stagblgrid, StagBLGridType grid_type)
 {
   PetscErrorCode ierr;
 
@@ -9,9 +9,10 @@ PetscErrorCode StagBLGridCreate(StagBLGrid *stagblgrid)
   ierr = PetscMalloc1(1,stagblgrid);CHKERRQ(ierr);
   ierr = PetscCalloc1(1,&(*stagblgrid)->ops);CHKERRQ(ierr);
 
-  // Setting Type and calling creation routine hard-coded for now
-  (*stagblgrid)->type = STAGBLGRIDPETSC;
-  (*stagblgrid)->ops->create = StagBLGridCreate_PETSc; // Sets other ops
+  (*stagblgrid)->type = grid_type;
+  if (!grid_type  || StagBLCheckType(grid_type, STAGBLGRIDPETSC)) {
+    (*stagblgrid)->ops->create = StagBLGridCreate_PETSc;
+  } else StagBLError1(PETSC_COMM_WORLD,"Unsupport StagBLGridType %s",grid_type);
   ierr = ((*stagblgrid)->ops->create)(*stagblgrid);CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
@@ -26,6 +27,7 @@ PetscErrorCode StagBLGridCreateCompatibleStagBLGrid(StagBLGrid grid,PetscInt dof
   } else {
     StagBLError(MPI_COMM_SELF,"StagBLCreateCompatibleStagBLGrid not implemented for this type");
   }
+  ierr = StagBLGridSetArrayType(*newgrid,grid->array_type);CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
@@ -63,5 +65,12 @@ PetscErrorCode StagBLGridDestroy(StagBLGrid *stagblgrid)
   ierr = PetscFree((*stagblgrid)->ops);CHKERRQ(ierr);
   ierr = PetscFree(*stagblgrid);CHKERRQ(ierr);
   *stagblgrid = NULL;
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode StagBLGridSetArrayType(StagBLGrid grid, StagBLArrayType array_type)
+{
+  PetscFunctionBegin;
+  grid->array_type = array_type;
   PetscFunctionReturn(0);
 }

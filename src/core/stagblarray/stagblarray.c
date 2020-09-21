@@ -4,7 +4,7 @@
 /**
   * Note: usually one would use StagBLGridCreateArray(), which calls this function.
   */
-PetscErrorCode StagBLArrayCreate(StagBLGrid grid, StagBLArray *stagblarray)
+PetscErrorCode StagBLArrayCreate(StagBLGrid grid, StagBLArray *stagblarray, StagBLArrayType array_type)
 {
   PetscErrorCode ierr;
 
@@ -13,10 +13,12 @@ PetscErrorCode StagBLArrayCreate(StagBLGrid grid, StagBLArray *stagblarray)
   ierr = PetscCalloc1(1,&(*stagblarray)->ops);CHKERRQ(ierr);
 
   (*stagblarray)->grid = grid;
+  (*stagblarray)->type = array_type;
 
-  // Setting Type and calling creation routine hard-coded for now
-  (*stagblarray)->type = STAGBLARRAYPETSC;
-  (*stagblarray)->ops->create = StagBLArrayCreate_PETSc; // Sets other ops
+  /* Set the creation function and call it, which sets other ops */
+  if (StagBLCheckType(array_type,STAGBLARRAYPETSC)) {
+      (*stagblarray)->ops->create = StagBLArrayCreate_PETSc;
+  } else StagBLError1(PETSC_COMM_WORLD,"Array creation not implemented for type %s",array_type);
   ierr = ((*stagblarray)->ops->create)(*stagblarray);CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }

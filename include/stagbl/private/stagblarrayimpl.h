@@ -12,10 +12,10 @@ typedef struct data_StagBLArrayOps *StagBLArrayOps;
 
 struct data_StagBLArray
 {
-  StagBLArrayOps ops;
-  StagBLGrid     grid;
-  const char     *type;
-  void           *data;
+  StagBLArrayOps   ops;
+  StagBLGrid       grid;
+  StagBLArrayType  type;
+  void             *data;
 };
 
 #endif

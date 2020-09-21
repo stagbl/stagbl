@@ -26,7 +26,7 @@ PetscErrorCode StagBLGridCreateStokes2DBox(MPI_Comm comm, PetscInt nx,PetscInt n
   DM dm_stokes;
 
   PetscFunctionBegin;
-  StagBLGridCreate(pgrid);
+  StagBLGridCreate(pgrid,STAGBLGRIDPETSC);
   StagBLGridPETScGetDMPointer(*pgrid,&pdm);
   ierr = DMStagCreate2d(
       comm,
@@ -52,7 +52,7 @@ PetscErrorCode StagBLGridCreateStokes3DBox(MPI_Comm comm, PetscInt nx,PetscInt n
   DM dm_stokes;
 
   PetscFunctionBegin;
-  StagBLGridCreate(pgrid);
+  StagBLGridCreate(pgrid,STAGBLGRIDPETSC);
   StagBLGridPETScGetDMPointer(*pgrid,&pdm);
   ierr = DMStagCreate3d(
       comm,
