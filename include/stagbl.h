@@ -3,6 +3,7 @@
 
 #include <petsc.h>
 
+PetscBool StagBLCheckType(const char*,const char*);
 PetscErrorCode StagBLInitialize(int,char**,const char*,MPI_Comm);
 PetscErrorCode StagBLFinalize();
 
