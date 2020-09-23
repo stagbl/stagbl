@@ -20,18 +20,9 @@ int main(int argc, char** argv)
   array_type = "petsc";
   ierr = StagBLGridSetArrayType(stokes_grid,array_type);CHKERRQ(ierr);
   ierr = StagBLGridCreateCompatibleStagBLGrid(stokes_grid,0,2,0,1,&coefficient_grid);CHKERRQ(ierr);
+  ierr = StagBLGridCreateStagBLArray(coefficient_grid,&coefficient_array);CHKERRQ(ierr);
 
-  // FIXME this depends on non-DM PETSc! (just wrap in a helper)
-  {
-    DM  dm_coefficients;
-    Vec *p_coefficients_local;
-
-    ierr = StagBLGridCreateStagBLArray(coefficient_grid,&coefficient_array);CHKERRQ(ierr);
-    ierr = StagBLArrayPETScGetLocalVecPointer(coefficient_array,&p_coefficients_local);CHKERRQ(ierr);
-    ierr = StagBLGridPETScGetDM(coefficient_grid,&dm_coefficients);CHKERRQ(ierr);
-    ierr = DMCreateLocalVector(dm_coefficients,p_coefficients_local);CHKERRQ(ierr);
-    ierr = VecSet(*p_coefficients_local,1.0);CHKERRQ(ierr);
-  }
+  ierr = StagBLArraySetLocalConstant(coefficient_array,1.0);CHKERRQ(ierr);
 
   ierr = StagBLStokesParametersCreate(&parameters);CHKERRQ(ierr);
   parameters->coefficient_array  = coefficient_array;
