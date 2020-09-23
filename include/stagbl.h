@@ -9,6 +9,7 @@ PetscErrorCode StagBLFinalize();
 
 #define StagBLError(comm,str) SETERRQ(comm,PETSC_ERR_LIB,"StagBL Error: "str);
 #define StagBLError1(comm,str,arg) SETERRQ1(comm,PETSC_ERR_LIB,"StagBL Error: "str,arg);
+#define StagBLError2(comm,str,arg1,arg2) SETERRQ2(comm,PETSC_ERR_LIB,"StagBL Error: "str,arg1,arg2);
 
 #define STAGBL_UNUSED(x) (void) x
 
