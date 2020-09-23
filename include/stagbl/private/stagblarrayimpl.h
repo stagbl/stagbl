@@ -6,10 +6,11 @@
 struct data_StagBLArrayOps {
   PetscErrorCode (*create)(StagBLArray);
   PetscErrorCode (*destroy)(StagBLArray);
+  PetscErrorCode (*globaltolocal)(StagBLArray);
+  PetscErrorCode (*localtoglobal)(StagBLArray);
   PetscErrorCode (*print)(StagBLArray);
   PetscErrorCode (*setlocalconstant)(StagBLArray,PetscScalar);
 };
-
 typedef struct data_StagBLArrayOps *StagBLArrayOps;
 
 struct data_StagBLArray

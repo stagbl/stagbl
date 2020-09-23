@@ -19,6 +19,42 @@ PetscErrorCode StagBLArrayDestroy_PETSc(StagBLArray stagblarray)
   return 0;
 }
 
+static PetscErrorCode StagBLArrayGlobalToLocal_PETSc(StagBLArray array)
+{
+  PetscErrorCode    ierr;
+  StagBLArray_PETSc *data = (StagBLArray_PETSc*) array->data;
+  DM                dm;
+
+  PetscFunctionBegin;
+  ierr = StagBLGridPETScGetDM(array->grid,&dm);CHKERRQ(ierr);
+  if (!data->global) StagBLError(PetscObjectComm((PetscObject)dm),"Cannot perform global-to-local before global data is defined");
+  if (!array->current_global) StagBLError(PetscObjectComm((PetscObject)dm),"Refusing to perform global-to-local with stale global data");
+  if (!data->local) {
+    ierr = StagBLArrayPETScCreateLocalVector_Private(array);CHKERRQ(ierr);
+  }
+  ierr = DMGlobalToLocal(dm,data->global,INSERT_VALUES,data->local);CHKERRQ(ierr);
+  array->current_local = PETSC_TRUE;
+  PetscFunctionReturn(0);
+}
+
+static PetscErrorCode StagBLArrayLocalToGlobal_PETSc(StagBLArray array)
+{
+  PetscErrorCode    ierr;
+  StagBLArray_PETSc *data = (StagBLArray_PETSc*) array->data;
+  DM                dm;
+
+  PetscFunctionBegin;
+  ierr = StagBLGridPETScGetDM(array->grid,&dm);CHKERRQ(ierr);
+  if (!data->local) StagBLError(PetscObjectComm((PetscObject)dm),"Cannot perform local-to-global before local data is defined");
+  if (!array->current_local) StagBLError(PetscObjectComm((PetscObject)dm),"Refusing to perform global-to-local with stale global data");
+  if (!data->global) {
+    ierr = StagBLArrayPETScCreateGlobalVector_Private(array);CHKERRQ(ierr);
+  }
+  ierr = DMLocalToGlobal(dm,data->local,INSERT_VALUES,data->global);CHKERRQ(ierr);
+  array->current_global = PETSC_TRUE;
+  PetscFunctionReturn(0);
+}
+
 static PetscErrorCode StagBLArrayPrint_PETSc(StagBLArray array)
 {
   PetscErrorCode    ierr;
@@ -90,6 +126,8 @@ PetscErrorCode StagBLArrayCreate_PETSc(StagBLArray stagblarray)
   data->local  = NULL;
   data->global = NULL;
   stagblarray->ops->destroy = StagBLArrayDestroy_PETSc;
+  stagblarray->ops->globaltolocal = StagBLArrayGlobalToLocal_PETSc;
+  stagblarray->ops->localtoglobal = StagBLArrayLocalToGlobal_PETSc;
   stagblarray->ops->print = StagBLArrayPrint_PETSc;
   stagblarray->ops->setlocalconstant = StagBLArraySetLocalConstant_PETSc;
   return 0;
