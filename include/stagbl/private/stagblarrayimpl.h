@@ -15,6 +15,7 @@ struct data_StagBLArray
   StagBLArrayOps   ops;
   StagBLGrid       grid;
   StagBLArrayType  type;
+  PetscBool        current_local, current_global;
   void             *data;
 };
 

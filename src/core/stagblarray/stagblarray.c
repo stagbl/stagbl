@@ -1,40 +1,41 @@
 #include "stagbl/private/stagblarrayimpl.h"
 #include <stdlib.h>
 
-/**
-  * Note: usually one would use StagBLGridCreateArray(), which calls this function.
-  */
-PetscErrorCode StagBLArrayCreate(StagBLGrid grid, StagBLArray *stagblarray, StagBLArrayType array_type)
+PetscErrorCode StagBLArrayCreate(StagBLGrid grid, StagBLArray *array, StagBLArrayType array_type)
 {
   PetscErrorCode ierr;
 
   PetscFunctionBegin;
-  ierr = PetscMalloc1(1,stagblarray);CHKERRQ(ierr);
-  ierr = PetscCalloc1(1,&(*stagblarray)->ops);CHKERRQ(ierr);
+  ierr = PetscMalloc1(1,array);CHKERRQ(ierr);
+  ierr = PetscCalloc1(1,&(*array)->ops);CHKERRQ(ierr);
 
-  (*stagblarray)->grid = grid;
-  (*stagblarray)->type = array_type;
+  (*array)->type = array_type;
+  (*array)->grid = grid;
+  (*array)->current_local = PETSC_FALSE;
+  (*array)->current_global = PETSC_FALSE;
 
   /* Set the creation function and call it, which sets other ops */
   if (StagBLCheckType(array_type,STAGBLARRAYPETSC)) {
-      (*stagblarray)->ops->create = StagBLArrayCreate_PETSc;
+      (*array)->ops->create = StagBLArrayCreate_PETSc;
+  } else if (StagBLCheckType(array_type,STAGBLARRAYSIMPLE)) {
+      (*array)->ops->create = StagBLArrayCreate_Simple;
   } else StagBLError1(PETSC_COMM_WORLD,"Array creation not implemented for type %s",array_type);
-  ierr = ((*stagblarray)->ops->create)(*stagblarray);CHKERRQ(ierr);
+  ierr = ((*array)->ops->create)(*array);CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode StagBLArrayDestroy(StagBLArray *stagblarray)
+PetscErrorCode StagBLArrayDestroy(StagBLArray *array)
 {
   PetscErrorCode ierr;
 
   PetscFunctionBegin;
-  if (!*stagblarray) PetscFunctionReturn(0);
-  if ((*stagblarray)->ops->destroy) {
-    ierr = ((*stagblarray)->ops->destroy)(*stagblarray);CHKERRQ(ierr);
+  if (!*array) PetscFunctionReturn(0);
+  if ((*array)->ops->destroy) {
+    ierr = ((*array)->ops->destroy)(*array);CHKERRQ(ierr);
   }
-  ierr = PetscFree((*stagblarray)->ops);CHKERRQ(ierr);
-  ierr = PetscFree(*stagblarray);CHKERRQ(ierr);
-  *stagblarray = NULL;
+  ierr = PetscFree((*array)->ops);CHKERRQ(ierr);
+  ierr = PetscFree(*array);CHKERRQ(ierr);
+  *array = NULL;
   PetscFunctionReturn(0);
 }
 
@@ -44,3 +45,4 @@ PetscErrorCode StagBLArrayGetStagBLGrid(StagBLArray stagblarray,StagBLGrid *grid
   *grid = stagblarray->grid;
   PetscFunctionReturn(0);
 }
+
