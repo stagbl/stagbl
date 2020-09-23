@@ -60,6 +60,9 @@ PetscErrorCode StagBLArrayPETScGetGlobalVec(StagBLArray,Vec*);
 PetscErrorCode StagBLArrayPETScGetLocalVecPointer(StagBLArray,Vec**);
 PetscErrorCode StagBLArrayPETScGetGlobalVecPointer(StagBLArray,Vec**);
 
+#define STAGBLARRAYSIMPLE "simple"
+PetscErrorCode StagBLArrayCreate_Simple(StagBLArray);
+
 /* StagBLSystem Functions */
 PetscErrorCode StagBLSystemCreate(StagBLGrid,StagBLSystem*);
 PetscErrorCode StagBLSystemCreateStagBLSolver(StagBLSystem,StagBLSolver*);
