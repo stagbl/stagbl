@@ -51,6 +51,8 @@ PetscErrorCode StagBLGridPETScGetDMPointer(StagBLGrid,DM**);
 PetscErrorCode StagBLArrayCreate(StagBLGrid,StagBLArray*,StagBLArrayType);
 PetscErrorCode StagBLArrayDestroy(StagBLArray*);
 PetscErrorCode StagBLArrayGetStagBLGrid(StagBLArray,StagBLGrid*);
+PetscErrorCode StagBLArraySetLocalConstant(StagBLArray,PetscScalar);
+PetscErrorCode StagBLArrayPrint(StagBLArray);
 
 /* StagBLArray impls */
 #define STAGBLARRAYPETSC "petsc"

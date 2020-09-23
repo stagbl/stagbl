@@ -46,3 +46,30 @@ PetscErrorCode StagBLArrayGetStagBLGrid(StagBLArray stagblarray,StagBLGrid *grid
   PetscFunctionReturn(0);
 }
 
+PetscErrorCode StagBLArraySetLocalConstant(StagBLArray array, PetscScalar value)
+{
+  PetscErrorCode ierr;
+
+  PetscFunctionBegin;
+  if (array->ops->setlocalconstant) {
+    ierr = (array->ops->setlocalconstant)(array,value);CHKERRQ(ierr);
+  } else StagBLError2(PETSC_COMM_WORLD,"%s not implemented for StagBLArray object of type %s",__func__,array->type);
+  PetscFunctionReturn(0);
+}
+
+/**
+ Print the array contents to stdout, for debugging and diagnostic purposes only.
+ */
+PetscErrorCode StagBLArrayPrint(StagBLArray array)
+{
+  PetscErrorCode ierr;
+
+  PetscFunctionBegin;
+  if (array->ops->print) {
+    ierr = (array->ops->print)(array);CHKERRQ(ierr);
+  } else  {
+    ierr = PetscPrintf(PETSC_COMM_WORLD,"Printing not implemented\n");CHKERRQ(ierr);
+  }
+
+  PetscFunctionReturn(0);
+}
