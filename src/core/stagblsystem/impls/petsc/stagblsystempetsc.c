@@ -56,16 +56,26 @@ PetscErrorCode StagBLSystemDestroy_PETSc(StagBLSystem stagblsystem)
 
 PetscErrorCode StagBLSystemCreate_PETSc(StagBLSystem stagblsystem)
 {
+PetscErrorCode StagBLSystemCreate_PETSc(StagBLSystem system)
+{
+  PetscErrorCode     ierr;
   StagBLSystem_PETSc *data;
+  DM                 dm;
 
   PetscFunctionBegin;
-  stagblsystem->data = (void*) malloc(sizeof(StagBLSystem_PETSc));
-  data = (StagBLSystem_PETSc*) stagblsystem->data;
-  data->mat = NULL;
-  data->rhs = NULL;
+  system->data = (void*) malloc(sizeof(StagBLSystem_PETSc));
+  system->ops->destroy = StagBLSystemDestroy_PETSc;
+  system->ops->operatorsetvaluesstencil = StagBLSystemOperatorSetValuesStencil_PETSc;
+  system->ops->rhssetvaluesstencil = StagBLSystemRHSSetValuesStencil_PETSc;
+
+  data = (StagBLSystem_PETSc*) system->data;
   data->residual_function = StagBLSystemPetscResidual_Default;
   data->jacobian_function = StagBLSystemPetscJacobian_Default;
-  stagblsystem->ops->destroy = StagBLSystemDestroy_PETSc;
+
+  ierr = StagBLGridPETScGetDM(system->grid,&dm);CHKERRQ(ierr);
+  ierr = DMCreateMatrix(dm,&data->mat);CHKERRQ(ierr);
+  ierr = DMCreateGlobalVector(dm,&data->rhs);CHKERRQ(ierr);
+
   PetscFunctionReturn(0);
 }
 

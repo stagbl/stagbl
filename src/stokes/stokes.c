@@ -123,7 +123,9 @@ static PetscErrorCode CreateSystem_2D_FreeSlip(StagBLStokesParameters parameters
 
   PetscFunctionBeginUser;
   ierr = StagBLSystemPETScGetMatPointer(system,&pA);CHKERRQ(ierr);
+  A = *pA;
   ierr = StagBLSystemPETScGetVecPointer(system,&pRhs);CHKERRQ(ierr);
+  rhs = *pRhs;
   if (!parameters->coefficient_array) StagBLError(PETSC_COMM_SELF,"coefficient_array field not set in StagBLStokesParameters argument");
   ierr = StagBLArrayGetStagBLGrid(parameters->coefficient_array,&coefficient_grid);CHKERRQ(ierr);
   ierr = StagBLGridPETScGetDM(parameters->stokes_grid,&dm_stokes);CHKERRQ(ierr);
@@ -143,10 +145,6 @@ static PetscErrorCode CreateSystem_2D_FreeSlip(StagBLStokesParameters parameters
   Kbound = parameters->eta_characteristic*hxAvgInv*hxAvgInv;
   pinx = 1; piny = 0; /* Depends on the assertion above that we have 2 or more elemnets in the x direction */
 
-  ierr = DMCreateMatrix(dm_stokes,pA);CHKERRQ(ierr);
-  A = *pA;
-  ierr = DMCreateGlobalVector(dm_stokes,pRhs);CHKERRQ(ierr);
-  rhs = *pRhs;
   ierr = DMStagGetCorners(dm_stokes,&startx,&starty,NULL,&nx,&ny,NULL,NULL,NULL,NULL);CHKERRQ(ierr);
 
   /* If using Boussinesq forcing from a temperature field, get access */
@@ -425,6 +423,8 @@ static PetscErrorCode CreateSystem_3D_FreeSlip(StagBLStokesParameters parameters
   PetscFunctionBeginUser;
   ierr = StagBLSystemPETScGetMatPointer(system,&pA);CHKERRQ(ierr);
   ierr = StagBLSystemPETScGetVecPointer(system,&pRhs);CHKERRQ(ierr);
+  A = *pA;
+  rhs = *pRhs;
   if (!parameters->coefficient_array) StagBLError(PETSC_COMM_SELF,"coefficient_array field not set in StagBLStokesParameters argument");
   ierr = StagBLArrayGetStagBLGrid(parameters->coefficient_array,&coefficient_grid);CHKERRQ(ierr);
   ierr = StagBLGridPETScGetDM(parameters->stokes_grid,&dm_stokes);CHKERRQ(ierr);
@@ -445,10 +445,6 @@ static PetscErrorCode CreateSystem_3D_FreeSlip(StagBLStokesParameters parameters
   Kbound = parameters->eta_characteristic*hxAvgInv*hxAvgInv;
   pinx = 1; piny = 0; pinz = 0; /* Depends on assertion above that there are at least two element in the x direction */
 
-  ierr = DMCreateMatrix(dm_stokes,pA);CHKERRQ(ierr);
-  A = *pA;
-  ierr = DMCreateGlobalVector(dm_stokes,pRhs);CHKERRQ(ierr);
-  rhs = *pRhs;
   ierr = DMStagGetCorners(dm_stokes,&startx,&starty,&startz,&nx,&ny,&nz,NULL,NULL,NULL);CHKERRQ(ierr);
 
   /* If using Boussinesq forcing from a temperature field, get access */
