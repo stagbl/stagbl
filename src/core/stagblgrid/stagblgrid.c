@@ -28,6 +28,7 @@ PetscErrorCode StagBLGridCreateCompatibleStagBLGrid(StagBLGrid grid,PetscInt dof
     StagBLError(MPI_COMM_SELF,"StagBLCreateCompatibleStagBLGrid not implemented for this type");
   }
   ierr = StagBLGridSetArrayType(*newgrid,grid->array_type);CHKERRQ(ierr);
+  ierr = StagBLGridSetSystemType(*newgrid,grid->system_type);CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
@@ -49,7 +50,7 @@ PetscErrorCode StagBLGridCreateStagBLSystem(StagBLGrid grid,StagBLSystem *system
   PetscErrorCode ierr;
 
   PetscFunctionBegin;
-  ierr = StagBLSystemCreate(grid,system);CHKERRQ(ierr);
+  ierr = StagBLSystemCreate(grid,system,grid->system_type);CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
@@ -72,5 +73,12 @@ PetscErrorCode StagBLGridSetArrayType(StagBLGrid grid, StagBLArrayType array_typ
 {
   PetscFunctionBegin;
   grid->array_type = array_type;
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode StagBLGridSetSystemType(StagBLGrid grid, StagBLArrayType system_type)
+{
+  PetscFunctionBegin;
+  grid->system_type = system_type;
   PetscFunctionReturn(0);
 }

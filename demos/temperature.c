@@ -65,6 +65,7 @@ PetscErrorCode PopulateTemperatureSystem(Ctx ctx)
   PetscScalar     ***arrStokes;
   PetscInt        slot_vx_left,slot_vy_down;
   Vec             stokes,stokesLocal;
+  StagBLArrayType stokes_array_type;
 
   PetscFunctionBeginUser;
   ierr = StagBLSystemPETScGetMatPointer(ctx->temperature_system,&pA);CHKERRQ(ierr);
@@ -77,8 +78,23 @@ PetscErrorCode PopulateTemperatureSystem(Ctx ctx)
   ierr = DMStagVecGetArrayRead(dmTemp,tempPrevLocal,&arr);CHKERRQ(ierr);
   ierr = DMStagGetLocationSlot(dmTemp,DMSTAG_DOWN_LEFT,0,&slot_temperature_downleft);CHKERRQ(ierr);
 
-  ierr = StagBLArrayPETScGetGlobalVec(ctx->stokes_array,&stokes);CHKERRQ(ierr);
   ierr = StagBLGridPETScGetDM(ctx->stokes_grid,&dmStokes);CHKERRQ(ierr);
+  // FIXME this a bit of a kludge
+  ierr = StagBLArrayGetType(ctx->stokes_array,&stokes_array_type);CHKERRQ(ierr);
+  if (StagBLCheckType(stokes_array_type,STAGBLGRIDPETSC)) {
+    ierr = StagBLArrayPETScGetGlobalVec(ctx->stokes_array,&stokes);CHKERRQ(ierr);
+  } else if (StagBLCheckType(stokes_array_type,STAGBLARRAYSIMPLE)) {
+    PetscScalar *stokes_arr,*global_raw;
+    PetscInt    n;
+
+    ierr = DMGetGlobalVector(dmStokes,&stokes);CHKERRQ(ierr);
+    ierr = StagBLArraySimpleGetGlobalRaw(ctx->stokes_array,&global_raw);CHKERRQ(ierr);
+    ierr = VecGetLocalSize(stokes,&n);CHKERRQ(ierr);
+    ierr = VecGetArray(stokes,&stokes_arr);CHKERRQ(ierr);
+    for (PetscInt i=0; i<n; ++i) stokes_arr[i] = global_raw[i];
+    ierr = VecRestoreArray(stokes,&stokes_arr);CHKERRQ(ierr);
+  } else StagBLError1(PetscObjectComm((PetscObject)dmStokes),"unsupported array type %s",stokes_array_type);
+
   ierr = DMStagGetLocationSlot(dmStokes,DMSTAG_LEFT,0,&slot_vx_left);CHKERRQ(ierr);
   ierr = DMStagGetLocationSlot(dmStokes,DMSTAG_DOWN,0,&slot_vy_down);CHKERRQ(ierr);
   ierr = DMGetLocalVector(dmStokes,&stokesLocal);CHKERRQ(ierr);
@@ -259,6 +275,11 @@ PetscErrorCode PopulateTemperatureSystem(Ctx ctx)
 
       ierr = DMStagVecSetValuesStencil(dmTemp,rhs,1,&row,&valRhs,INSERT_VALUES);CHKERRQ(ierr);
     }
+  }
+
+  // FIXME kludge?
+  if (StagBLCheckType(stokes_array_type,STAGBLARRAYSIMPLE)) {
+    ierr = DMRestoreGlobalVector(dmStokes,&stokes);CHKERRQ(ierr);
   }
 
   ierr = DMStagVecRestoreArrayRead(dmStokes,stokesLocal,&arrStokes);CHKERRQ(ierr);

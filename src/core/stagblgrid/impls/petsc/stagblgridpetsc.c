@@ -68,6 +68,7 @@ PetscErrorCode StagBLGridCreate_PETSc(StagBLGrid grid)
   StagBLGrid_PETSc *data;
   grid->data = (void*) malloc(sizeof(StagBLGrid_PETSc));
   grid->array_type = STAGBLARRAYPETSC;
+  grid->system_type = STAGBLSYSTEMPETSC;
   data = (StagBLGrid_PETSc*) grid->data;
   data->dm = NULL;
   grid->ops->createcompatiblestagblgrid = StagBLGridCreateCompatibleStagBLGrid_PETSc;

@@ -1,7 +1,7 @@
 #include "stagbl/private/stagblarrayimpl.h"
 #include <stdlib.h>
 
-PetscErrorCode StagBLArrayCreate(StagBLGrid grid, StagBLArray *array, StagBLArrayType array_type)
+PetscErrorCode StagBLArrayCreate(StagBLGrid grid, StagBLArray *array, StagBLArrayType type)
 {
   PetscErrorCode ierr;
 
@@ -9,17 +9,17 @@ PetscErrorCode StagBLArrayCreate(StagBLGrid grid, StagBLArray *array, StagBLArra
   ierr = PetscMalloc1(1,array);CHKERRQ(ierr);
   ierr = PetscCalloc1(1,&(*array)->ops);CHKERRQ(ierr);
 
-  (*array)->type = array_type;
+  (*array)->type = type;
   (*array)->grid = grid;
   (*array)->current_local = PETSC_FALSE;
   (*array)->current_global = PETSC_FALSE;
 
   /* Set the creation function and call it, which sets other ops */
-  if (StagBLCheckType(array_type,STAGBLARRAYPETSC)) {
+  if (StagBLCheckType(type,STAGBLARRAYPETSC)) {
       (*array)->ops->create = StagBLArrayCreate_PETSc;
-  } else if (StagBLCheckType(array_type,STAGBLARRAYSIMPLE)) {
+  } else if (StagBLCheckType(type,STAGBLARRAYSIMPLE)) {
       (*array)->ops->create = StagBLArrayCreate_Simple;
-  } else StagBLError1(PETSC_COMM_WORLD,"Array creation not implemented for type %s",array_type);
+  } else StagBLError1(PETSC_COMM_WORLD,"Array creation not implemented for type %s",type);
   ierr = ((*array)->ops->create)(*array);CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
@@ -39,10 +39,28 @@ PetscErrorCode StagBLArrayDestroy(StagBLArray *array)
   PetscFunctionReturn(0);
 }
 
+PetscErrorCode StagBLArrayGetLocalValuesStencil(StagBLArray array,PetscInt n,const DMStagStencil* pos,PetscScalar* values)
+{
+  PetscErrorCode ierr;
+
+  PetscFunctionBegin;
+  if (array->ops->getlocalvaluesstencil) {
+    ierr = (array->ops->getlocalvaluesstencil)(array,n,pos,values);CHKERRQ(ierr);
+  } else StagBLError2(PETSC_COMM_WORLD,"%s not implemented for StagBLArray object of type %s",__func__,array->type);
+  PetscFunctionReturn(0);
+}
+
 PetscErrorCode StagBLArrayGetStagBLGrid(StagBLArray stagblarray,StagBLGrid *grid)
 {
   PetscFunctionBegin;
   *grid = stagblarray->grid;
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode StagBLArrayGetType(StagBLArray array,StagBLArrayType *type)
+{
+  PetscFunctionBegin;
+  *type = array->type;
   PetscFunctionReturn(0);
 }
 
@@ -64,6 +82,31 @@ PetscErrorCode StagBLArrayLocalToGlobal(StagBLArray array)
   PetscFunctionBegin;
   if (array->ops->localtoglobal) {
     ierr = (array->ops->localtoglobal)(array);CHKERRQ(ierr);
+  } else StagBLError2(PETSC_COMM_WORLD,"%s not implemented for StagBLArray object of type %s",__func__,array->type);
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode StagBLArraySetGlobalCurrent(StagBLArray array,PetscBool current)
+{
+  PetscFunctionBegin;
+  array->current_global = current;
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode StagBLArraySetLocalCurrent(StagBLArray array,PetscBool current)
+{
+  PetscFunctionBegin;
+  array->current_local = current;
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode StagBLArraySetLocalValuesStencil(StagBLArray array,PetscInt n,const DMStagStencil* pos,const PetscScalar* values)
+{
+  PetscErrorCode ierr;
+
+  PetscFunctionBegin;
+  if (array->ops->setlocalvaluesstencil) {
+    ierr = (array->ops->setlocalvaluesstencil)(array,n,pos,values);CHKERRQ(ierr);
   } else StagBLError2(PETSC_COMM_WORLD,"%s not implemented for StagBLArray object of type %s",__func__,array->type);
   PetscFunctionReturn(0);
 }

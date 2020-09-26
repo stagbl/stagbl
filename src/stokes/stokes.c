@@ -104,17 +104,12 @@ PetscErrorCode StagBLCreateStokesSystem(StagBLStokesParameters parameters, StagB
 static PetscErrorCode CreateSystem_2D_FreeSlip(StagBLStokesParameters parameters,StagBLSystem system)
 {
   PetscErrorCode  ierr;
-  DM              dm_stokes,dm_coefficient;
+  DM              dm_stokes;
   PetscInt        N[2];
   PetscInt        ex,ey,startx,starty,nx,ny;
-  Mat             *pA;
-  Vec             *pRhs;
-  Mat             A;
-  Vec             rhs;
   PetscReal       hx,hy,dv,hxAvgInv,Kcont,Kbound;
   PetscInt        pinx,piny;
   const PetscBool pin_pressure = PETSC_TRUE;
-  Vec             coeff_local;
   StagBLGrid      coefficient_grid;
   DM              dm_temperature;
   Vec             temperature,temperature_local;
@@ -122,15 +117,9 @@ static PetscErrorCode CreateSystem_2D_FreeSlip(StagBLStokesParameters parameters
   PetscInt        slot_temperature_downleft,slot_temperature_downright;
 
   PetscFunctionBeginUser;
-  ierr = StagBLSystemPETScGetMatPointer(system,&pA);CHKERRQ(ierr);
-  A = *pA;
-  ierr = StagBLSystemPETScGetVecPointer(system,&pRhs);CHKERRQ(ierr);
-  rhs = *pRhs;
   if (!parameters->coefficient_array) StagBLError(PETSC_COMM_SELF,"coefficient_array field not set in StagBLStokesParameters argument");
   ierr = StagBLArrayGetStagBLGrid(parameters->coefficient_array,&coefficient_grid);CHKERRQ(ierr);
   ierr = StagBLGridPETScGetDM(parameters->stokes_grid,&dm_stokes);CHKERRQ(ierr);
-  ierr = StagBLGridPETScGetDM(coefficient_grid,&dm_coefficient);CHKERRQ(ierr);
-  ierr = StagBLArrayPETScGetLocalVec(parameters->coefficient_array,&coeff_local);CHKERRQ(ierr);
 
   /* Compute some parameters */
   ierr = DMStagGetGlobalSizes(dm_stokes,&N[0],&N[1],NULL);CHKERRQ(ierr);
@@ -158,6 +147,9 @@ static PetscErrorCode CreateSystem_2D_FreeSlip(StagBLStokesParameters parameters
     ierr = DMStagGetLocationSlot(dm_temperature,DMSTAG_DOWN_RIGHT, 0,&slot_temperature_downright);CHKERRQ(ierr);
   }
 
+  /* Initialize RHS to zero */
+  ierr = StagBLSystemRHSSetConstant(system,0.0);CHKERRQ(ierr);
+
   /* Loop over all local elements. */
   for (ey = starty; ey<starty+ny; ++ey) {
     for (ex = startx; ex<startx+nx; ++ex) {
@@ -169,9 +161,9 @@ static PetscErrorCode CreateSystem_2D_FreeSlip(StagBLStokesParameters parameters
         const PetscScalar val_A = Kbound;
 
         row.i = ex; row.j = ey; row.loc = DMSTAG_UP; row.c = 0;
-        ierr = DMStagMatSetValuesStencil(dm_stokes,A,1,&row,1,&row,&val_A,INSERT_VALUES);CHKERRQ(ierr);
+        ierr = StagBLSystemOperatorSetValuesStencil(system,1,&row,1,&row,&val_A);CHKERRQ(ierr);
         val_rhs = 0.0;
-        ierr = DMStagVecSetValuesStencil(dm_stokes,rhs,1,&row,&val_rhs,INSERT_VALUES);CHKERRQ(ierr);
+        ierr = StagBLSystemRHSSetValuesStencil(system,1,&row,&val_rhs);CHKERRQ(ierr);
       }
 
       if (ey == 0) {
@@ -181,9 +173,9 @@ static PetscErrorCode CreateSystem_2D_FreeSlip(StagBLStokesParameters parameters
         const PetscScalar val_A = Kbound;
 
         row.i = ex; row.j = ey; row.loc = DMSTAG_DOWN; row.c = 0;
-        ierr = DMStagMatSetValuesStencil(dm_stokes,A,1,&row,1,&row,&val_A,INSERT_VALUES);CHKERRQ(ierr);
+        ierr = StagBLSystemOperatorSetValuesStencil(system,1,&row,1,&row,&val_A);CHKERRQ(ierr);
         val_rhs = 0.0;
-        ierr = DMStagVecSetValuesStencil(dm_stokes,rhs,1,&row,&val_rhs,INSERT_VALUES);CHKERRQ(ierr);
+        ierr = StagBLSystemRHSSetValuesStencil(system,1,&row,&val_rhs);CHKERRQ(ierr);
       } else {
         /* Y-momentum equation : (u_xx + u_yy) - p_y = f^y : includes non-zero forcing */
         PetscInt      nEntries;
@@ -197,7 +189,7 @@ static PetscErrorCode CreateSystem_2D_FreeSlip(StagBLStokesParameters parameters
         /* get rho values  (note .c = 1) */
         rho_point[0].i = ex; rho_point[0].j = ey; rho_point[0].loc = DMSTAG_DOWN_LEFT;  rho_point[0].c = 1;
         rho_point[1].i = ex; rho_point[1].j = ey; rho_point[1].loc = DMSTAG_DOWN_RIGHT; rho_point[1].c = 1;
-        ierr = DMStagVecGetValuesStencil(dm_coefficient,coeff_local,2,rho_point,rho);CHKERRQ(ierr);
+        ierr = StagBLArrayGetLocalValuesStencil(parameters->coefficient_array,2,rho_point,rho);CHKERRQ(ierr);
 
         /* Compute forcing */
         {
@@ -217,7 +209,7 @@ static PetscErrorCode CreateSystem_2D_FreeSlip(StagBLStokesParameters parameters
         eta_point[1].i = ex; eta_point[1].j = ey;   eta_point[1].loc = DMSTAG_DOWN_RIGHT; eta_point[1].c = 0; /* Right */
         eta_point[2].i = ex; eta_point[2].j = ey-1; eta_point[2].loc = DMSTAG_ELEMENT;    eta_point[2].c = 0; /* Down  */
         eta_point[3].i = ex; eta_point[3].j = ey;   eta_point[3].loc = DMSTAG_ELEMENT;    eta_point[3].c = 0; /* Up    */
-        ierr = DMStagVecGetValuesStencil(dm_coefficient,coeff_local,4,eta_point,eta);CHKERRQ(ierr);
+        ierr = StagBLArrayGetLocalValuesStencil(parameters->coefficient_array,4,eta_point,eta);CHKERRQ(ierr);
         eta_left = eta[0]; eta_right = eta[1]; eta_down = eta[2]; eta_up = eta[3];
 
         if (ex == 0) {
@@ -268,8 +260,8 @@ static PetscErrorCode CreateSystem_2D_FreeSlip(StagBLStokesParameters parameters
         }
 
         /* Insert Y-momentum entries */
-        ierr = DMStagMatSetValuesStencil(dm_stokes,A,1,&row,nEntries,col,val_A,INSERT_VALUES);CHKERRQ(ierr);
-        ierr = DMStagVecSetValuesStencil(dm_stokes,rhs,1,&row,&val_rhs,INSERT_VALUES);CHKERRQ(ierr);
+        ierr = StagBLSystemOperatorSetValuesStencil(system,1,&row,nEntries,col,val_A);CHKERRQ(ierr);
+        ierr = StagBLSystemRHSSetValuesStencil(system,1,&row,&val_rhs);CHKERRQ(ierr);
       }
 
       if (ex == N[0]-1) {
@@ -279,8 +271,8 @@ static PetscErrorCode CreateSystem_2D_FreeSlip(StagBLStokesParameters parameters
         const PetscScalar val_A = Kbound;
 
         row.i = ex; row.j = ey; row.loc = DMSTAG_RIGHT; row.c = 0;
-        ierr = DMStagMatSetValuesStencil(dm_stokes,A,1,&row,1,&row,&val_A,INSERT_VALUES);CHKERRQ(ierr);
-        ierr = DMStagVecSetValuesStencil(dm_stokes,rhs,1,&row,&val_rhs,INSERT_VALUES);CHKERRQ(ierr);
+        ierr = StagBLSystemOperatorSetValuesStencil(system,1,&row,1,&row,&val_A);CHKERRQ(ierr);
+        ierr = StagBLSystemRHSSetValuesStencil(system,1,&row,&val_rhs);CHKERRQ(ierr);
       }
       if (ex == 0) {
         /* Left velocity Dirichlet */
@@ -288,9 +280,9 @@ static PetscErrorCode CreateSystem_2D_FreeSlip(StagBLStokesParameters parameters
         PetscScalar   val_rhs;
         const PetscScalar val_A = Kbound;
         row.i = ex; row.j = ey; row.loc = DMSTAG_LEFT; row.c = 0;
-        ierr = DMStagMatSetValuesStencil(dm_stokes,A,1,&row,1,&row,&val_A,INSERT_VALUES);CHKERRQ(ierr);
+        ierr = StagBLSystemOperatorSetValuesStencil(system,1,&row,1,&row,&val_A);CHKERRQ(ierr);
         val_rhs = 0.0;
-        ierr = DMStagVecSetValuesStencil(dm_stokes,rhs,1,&row,&val_rhs,INSERT_VALUES);CHKERRQ(ierr);
+        ierr = StagBLSystemRHSSetValuesStencil(system,1,&row,&val_rhs);CHKERRQ(ierr);
       } else {
         /* X-momentum equation : (u_xx + u_yy) - p_x = f^x */
         PetscInt nEntries;
@@ -304,7 +296,7 @@ static PetscErrorCode CreateSystem_2D_FreeSlip(StagBLStokesParameters parameters
         eta_point[1].i = ex;   eta_point[1].j = ey; eta_point[1].loc = DMSTAG_ELEMENT;   eta_point[1].c = 0; /* Right */
         eta_point[2].i = ex;   eta_point[2].j = ey; eta_point[2].loc = DMSTAG_DOWN_LEFT; eta_point[2].c = 0; /* Down  */
         eta_point[3].i = ex;   eta_point[3].j = ey; eta_point[3].loc = DMSTAG_UP_LEFT;   eta_point[3].c = 0; /* Up    */
-        ierr = DMStagVecGetValuesStencil(dm_coefficient,coeff_local,4,eta_point,eta);CHKERRQ(ierr);
+        ierr = StagBLArrayGetLocalValuesStencil(parameters->coefficient_array,4,eta_point,eta);CHKERRQ(ierr);
         eta_left = eta[0]; eta_right = eta[1]; eta_down = eta[2]; eta_up = eta[3];
 
         if (ey == 0) {
@@ -356,8 +348,8 @@ static PetscErrorCode CreateSystem_2D_FreeSlip(StagBLStokesParameters parameters
           col[10].i = ex  ; col[10].j = ey  ; col[10].loc = DMSTAG_ELEMENT; col[10].c  = 0; val_A[10] = -1.0 * Kcont * dv / hx;
           val_rhs = 0.0;
         }
-        ierr = DMStagMatSetValuesStencil(dm_stokes,A,1,&row,nEntries,col,val_A,INSERT_VALUES);CHKERRQ(ierr);
-        ierr = DMStagVecSetValuesStencil(dm_stokes,rhs,1,&row,&val_rhs,INSERT_VALUES);CHKERRQ(ierr);
+        ierr = StagBLSystemOperatorSetValuesStencil(system,1,&row,nEntries,col,val_A);CHKERRQ(ierr);
+        ierr = StagBLSystemRHSSetValuesStencil(system,1,&row,&val_rhs);CHKERRQ(ierr);
       }
 
       /* P equation : u_x + v_y = 0
@@ -370,9 +362,9 @@ static PetscErrorCode CreateSystem_2D_FreeSlip(StagBLStokesParameters parameters
         PetscScalar val_A,val_rhs;
         row.i = ex; row.j = ey; row.loc = DMSTAG_ELEMENT; row.c = 0;
         val_A = Kbound;
-        ierr = DMStagMatSetValuesStencil(dm_stokes,A,1,&row,1,&row,&val_A,INSERT_VALUES);CHKERRQ(ierr);
+        ierr = StagBLSystemOperatorSetValuesStencil(system,1,&row,1,&row,&val_A);CHKERRQ(ierr);
         val_rhs = 0.0;
-        ierr = DMStagVecSetValuesStencil(dm_stokes,rhs,1,&row,&val_rhs,INSERT_VALUES);CHKERRQ(ierr);
+        ierr = StagBLSystemRHSSetValuesStencil(system,1,&row,&val_rhs);CHKERRQ(ierr);
       } else {
         DMStagStencil row,col[5];
         PetscScalar   val_A[5],val_rhs;
@@ -383,9 +375,9 @@ static PetscErrorCode CreateSystem_2D_FreeSlip(StagBLStokesParameters parameters
         col[2].i = ex; col[2].j = ey; col[2].loc = DMSTAG_DOWN;    col[2].c = 0; val_A[2] = - 1.0 * Kcont * dv / hy;
         col[3].i = ex; col[3].j = ey; col[3].loc = DMSTAG_UP;      col[3].c = 0; val_A[3] =         Kcont * dv / hy;
         col[4] = row;                                                            val_A[4] = 0.0;
-        ierr = DMStagMatSetValuesStencil(dm_stokes,A,1,&row,5,col,val_A,INSERT_VALUES);CHKERRQ(ierr);
+        ierr = StagBLSystemOperatorSetValuesStencil(system,1,&row,5,col,val_A);CHKERRQ(ierr);
         val_rhs = 0.0;
-        ierr = DMStagVecSetValuesStencil(dm_stokes,rhs,1,&row,&val_rhs,INSERT_VALUES);CHKERRQ(ierr);
+        ierr = StagBLSystemRHSSetValuesStencil(system,1,&row,&val_rhs);CHKERRQ(ierr);
       }
     }
   }
@@ -395,41 +387,28 @@ static PetscErrorCode CreateSystem_2D_FreeSlip(StagBLStokesParameters parameters
     ierr = DMRestoreLocalVector(dm_temperature,&temperature_local);CHKERRQ(ierr);
   }
 
-  ierr = MatAssemblyBegin(A,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
-  ierr = VecAssemblyBegin(rhs);CHKERRQ(ierr);
-  ierr = MatAssemblyEnd(A,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
-  ierr = VecAssemblyEnd(rhs);CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
 static PetscErrorCode CreateSystem_3D_FreeSlip(StagBLStokesParameters parameters,StagBLSystem system)
 {
   PetscErrorCode  ierr;
-  DM              dm_stokes,dm_coefficient;
+  DM              dm_stokes;
   PetscInt        N[3];
   PetscInt        ex,ey,ez,startx,starty,startz,nx,ny,nz;
-  Mat             *pA;
-  Vec             *pRhs;
-  Mat             A;
   PetscReal       hx,hy,hz,dv,hxAvgInv,Kcont,Kbound;
   PetscInt        pinx,piny,pinz;
   const PetscBool pin_pressure = PETSC_TRUE;
   StagBLGrid      coefficient_grid;
   DM              dm_temperature;
-  Vec             coeff_local,rhs,temperature,temperature_local;
+  Vec             temperature,temperature_local;
   PetscScalar     ****arr_temperature;
   PetscInt        slot_temperature_backdownleft,slot_temperature_frontdownleft,slot_temperature_backdownright,slot_temperature_frontdownright;
 
   PetscFunctionBeginUser;
-  ierr = StagBLSystemPETScGetMatPointer(system,&pA);CHKERRQ(ierr);
-  ierr = StagBLSystemPETScGetVecPointer(system,&pRhs);CHKERRQ(ierr);
-  A = *pA;
-  rhs = *pRhs;
   if (!parameters->coefficient_array) StagBLError(PETSC_COMM_SELF,"coefficient_array field not set in StagBLStokesParameters argument");
   ierr = StagBLArrayGetStagBLGrid(parameters->coefficient_array,&coefficient_grid);CHKERRQ(ierr);
   ierr = StagBLGridPETScGetDM(parameters->stokes_grid,&dm_stokes);CHKERRQ(ierr);
-  ierr = StagBLGridPETScGetDM(coefficient_grid,&dm_coefficient);CHKERRQ(ierr);
-  ierr = StagBLArrayPETScGetLocalVec(parameters->coefficient_array,&coeff_local);CHKERRQ(ierr);
 
   /* Compute some parameters */
   ierr = DMStagGetGlobalSizes(dm_stokes,&N[0],&N[1],&N[2]);CHKERRQ(ierr);
@@ -459,6 +438,9 @@ static PetscErrorCode CreateSystem_3D_FreeSlip(StagBLStokesParameters parameters
     ierr = DMStagGetLocationSlot(dm_temperature,DMSTAG_FRONT_DOWN_LEFT, 0,&slot_temperature_frontdownleft);CHKERRQ(ierr);
     ierr = DMStagGetLocationSlot(dm_temperature,DMSTAG_FRONT_DOWN_RIGHT,0,&slot_temperature_frontdownright);CHKERRQ(ierr);
   }
+
+  /* Initialize RHS to zero */
+  ierr = StagBLSystemRHSSetConstant(system,0.0);CHKERRQ(ierr);
 
   /* Loop over all local elements.
 
@@ -490,8 +472,8 @@ static PetscErrorCode CreateSystem_3D_FreeSlip(StagBLStokesParameters parameters
           const PetscScalar val_A = Kbound;
 
           row.i = ex; row.j = ey; row.k = ez; row.loc = DMSTAG_RIGHT; row.c = 0;
-          ierr = DMStagMatSetValuesStencil(dm_stokes,A,1,&row,1,&row,&val_A,INSERT_VALUES);CHKERRQ(ierr);
-          ierr = DMStagVecSetValuesStencil(dm_stokes,rhs,1,&row,&val_rhs,INSERT_VALUES);CHKERRQ(ierr);
+          ierr = StagBLSystemOperatorSetValuesStencil(system,1,&row,1,&row,&val_A);CHKERRQ(ierr);
+          ierr = StagBLSystemRHSSetValuesStencil(system,1,&row,&val_rhs);CHKERRQ(ierr);
         }
 
         /* X faces - left*/
@@ -505,8 +487,8 @@ static PetscErrorCode CreateSystem_3D_FreeSlip(StagBLStokesParameters parameters
             const PetscScalar val_rhs = 0.0;
             const PetscScalar val_A = Kbound;
 
-            ierr = DMStagMatSetValuesStencil(dm_stokes,A,1,&row,1,&row,&val_A,INSERT_VALUES);CHKERRQ(ierr);
-            ierr = DMStagVecSetValuesStencil(dm_stokes,rhs,1,&row,&val_rhs,INSERT_VALUES);CHKERRQ(ierr);
+            ierr = StagBLSystemOperatorSetValuesStencil(system,1,&row,1,&row,&val_A);CHKERRQ(ierr);
+            ierr = StagBLSystemRHSSetValuesStencil(system,1,&row,&val_rhs);CHKERRQ(ierr);
           } else {
             /* X-momentum equation */
             PetscInt      count;
@@ -522,7 +504,7 @@ static PetscErrorCode CreateSystem_3D_FreeSlip(StagBLStokesParameters parameters
             eta_point[3].i = ex;   eta_point[3].j = ey; eta_point[3].k = ez; eta_point[3].loc = DMSTAG_UP_LEFT;    eta_point[3].c = 0; /* Up    */
             eta_point[4].i = ex;   eta_point[4].j = ey; eta_point[4].k = ez; eta_point[4].loc = DMSTAG_BACK_LEFT;  eta_point[4].c = 0; /* Back  */
             eta_point[5].i = ex;   eta_point[5].j = ey; eta_point[5].k = ez; eta_point[5].loc = DMSTAG_FRONT_LEFT; eta_point[5].c = 0; /* Front  */
-            ierr = DMStagVecGetValuesStencil(dm_coefficient,coeff_local,6,eta_point,eta);CHKERRQ(ierr);
+            ierr = StagBLArrayGetLocalValuesStencil(parameters->coefficient_array,6,eta_point,eta);CHKERRQ(ierr);
             eta_left = eta[0]; eta_right = eta[1]; eta_down = eta[2]; eta_up = eta[3]; eta_back = eta[4]; eta_front = eta[5];
 
             count = 0;
@@ -581,9 +563,9 @@ static PetscErrorCode CreateSystem_3D_FreeSlip(StagBLStokesParameters parameters
             col[count].i = ex;   col[count].j = ey; col[count].k = ez; col[count].loc = DMSTAG_ELEMENT; col[count].c  = 0;
             val_A[count] = -1.0 * Kcont * dv / hx; ++count;
 
-            ierr = DMStagMatSetValuesStencil(dm_stokes,A,1,&row,count,col,val_A,INSERT_VALUES);CHKERRQ(ierr);
+            ierr = StagBLSystemOperatorSetValuesStencil(system,1,&row,count,col,val_A);CHKERRQ(ierr);
             val_rhs = 0.0; /* No forcing */
-            ierr = DMStagVecSetValuesStencil(dm_stokes,rhs,1,&row,&val_rhs,INSERT_VALUES);CHKERRQ(ierr);
+            ierr = StagBLSystemRHSSetValuesStencil(system,1,&row,&val_rhs);CHKERRQ(ierr);
           }
         }
 
@@ -595,8 +577,8 @@ static PetscErrorCode CreateSystem_3D_FreeSlip(StagBLStokesParameters parameters
           const PetscScalar val_A = Kbound;
 
           row.i = ex; row.j = ey; row.k = ez; row.loc = DMSTAG_UP; row.c = 0;
-          ierr = DMStagMatSetValuesStencil(dm_stokes,A,1,&row,1,&row,&val_A,INSERT_VALUES);CHKERRQ(ierr);
-          ierr = DMStagVecSetValuesStencil(dm_stokes,rhs,1,&row,&val_rhs,INSERT_VALUES);CHKERRQ(ierr);
+          ierr = StagBLSystemOperatorSetValuesStencil(system,1,&row,1,&row,&val_A);CHKERRQ(ierr);
+          ierr = StagBLSystemRHSSetValuesStencil(system,1,&row,&val_rhs);CHKERRQ(ierr);
         }
 
         /* Y faces - down */
@@ -610,8 +592,8 @@ static PetscErrorCode CreateSystem_3D_FreeSlip(StagBLStokesParameters parameters
             const PetscScalar val_rhs = 0.0;
             const PetscScalar val_A = Kbound;
 
-            ierr = DMStagMatSetValuesStencil(dm_stokes,A,1,&row,1,&row,&val_A,INSERT_VALUES);CHKERRQ(ierr);
-            ierr = DMStagVecSetValuesStencil(dm_stokes,rhs,1,&row,&val_rhs,INSERT_VALUES);CHKERRQ(ierr);
+            ierr = StagBLSystemOperatorSetValuesStencil(system,1,&row,1,&row,&val_A);CHKERRQ(ierr);
+            ierr = StagBLSystemRHSSetValuesStencil(system,1,&row,&val_rhs);CHKERRQ(ierr);
           } else {
             /* Y-momentum equation (including non-zero forcing) */
             PetscInt      count;
@@ -626,7 +608,7 @@ static PetscErrorCode CreateSystem_3D_FreeSlip(StagBLStokesParameters parameters
             rho_point[1].i = ex; rho_point[1].j = ey; rho_point[1].k = ez; rho_point[1].loc = DMSTAG_DOWN_RIGHT; rho_point[1].c = 1;
             rho_point[2].i = ex; rho_point[2].j = ey; rho_point[2].k = ez; rho_point[2].loc = DMSTAG_BACK_DOWN;  rho_point[2].c = 1;
             rho_point[3].i = ex; rho_point[3].j = ey; rho_point[3].k = ez; rho_point[3].loc = DMSTAG_FRONT_DOWN; rho_point[3].c = 1;
-            ierr = DMStagVecGetValuesStencil(dm_coefficient,coeff_local,4,rho_point,rho);CHKERRQ(ierr);
+            ierr = StagBLArrayGetLocalValuesStencil(parameters->coefficient_array,4,rho_point,rho);CHKERRQ(ierr);
 
             /* Compute forcing */
             {
@@ -653,7 +635,7 @@ static PetscErrorCode CreateSystem_3D_FreeSlip(StagBLStokesParameters parameters
             eta_point[3].i = ex; eta_point[3].j = ey;   eta_point[3].k = ez; eta_point[3].loc = DMSTAG_ELEMENT;    eta_point[3].c = 0; /* Up    */
             eta_point[4].i = ex; eta_point[4].j = ey;   eta_point[4].k = ez; eta_point[4].loc = DMSTAG_BACK_DOWN;  eta_point[4].c = 0; /* Back  */
             eta_point[5].i = ex; eta_point[5].j = ey;   eta_point[5].k = ez; eta_point[5].loc = DMSTAG_FRONT_DOWN; eta_point[5].c = 0; /* Front  */
-            ierr = DMStagVecGetValuesStencil(dm_coefficient,coeff_local,6,eta_point,eta);CHKERRQ(ierr);
+            ierr = StagBLArrayGetLocalValuesStencil(parameters->coefficient_array,6,eta_point,eta);CHKERRQ(ierr);
             eta_left = eta[0]; eta_right = eta[1]; eta_down = eta[2]; eta_up = eta[3]; eta_back = eta[4]; eta_front = eta[5];
 
             count = 0;
@@ -713,8 +695,8 @@ static PetscErrorCode CreateSystem_3D_FreeSlip(StagBLStokesParameters parameters
             col[count].i = ex; col[count].j = ey;   col[count].k = ez; col[count].loc = DMSTAG_ELEMENT; col[count].c  = 0;
             val_A[count] = -1.0 * Kcont * dv / hy; ++count;
 
-            ierr = DMStagMatSetValuesStencil(dm_stokes,A,1,&row,count,col,val_A,INSERT_VALUES);CHKERRQ(ierr);
-            ierr = DMStagVecSetValuesStencil(dm_stokes,rhs,1,&row,&val_rhs,INSERT_VALUES);CHKERRQ(ierr);
+            ierr = StagBLSystemOperatorSetValuesStencil(system,1,&row,count,col,val_A);CHKERRQ(ierr);
+            ierr = StagBLSystemRHSSetValuesStencil(system,1,&row,&val_rhs);CHKERRQ(ierr);
           }
         }
 
@@ -725,8 +707,8 @@ static PetscErrorCode CreateSystem_3D_FreeSlip(StagBLStokesParameters parameters
           const PetscScalar val_A = Kbound;
 
           row.i = ex; row.j = ey; row.k = ez; row.loc = DMSTAG_FRONT; row.c = 0;
-          ierr = DMStagMatSetValuesStencil(dm_stokes,A,1,&row,1,&row,&val_A,INSERT_VALUES);CHKERRQ(ierr);
-          ierr = DMStagVecSetValuesStencil(dm_stokes,rhs,1,&row,&val_rhs,INSERT_VALUES);CHKERRQ(ierr);
+          ierr = StagBLSystemOperatorSetValuesStencil(system,1,&row,1,&row,&val_A);CHKERRQ(ierr);
+          ierr = StagBLSystemRHSSetValuesStencil(system,1,&row,&val_rhs);CHKERRQ(ierr);
         }
 
         /* Z faces - back */
@@ -740,8 +722,8 @@ static PetscErrorCode CreateSystem_3D_FreeSlip(StagBLStokesParameters parameters
             const PetscScalar val_rhs = 0.0;
             const PetscScalar val_A = Kbound;
 
-            ierr = DMStagMatSetValuesStencil(dm_stokes,A,1,&row,1,&row,&val_A,INSERT_VALUES);CHKERRQ(ierr);
-            ierr = DMStagVecSetValuesStencil(dm_stokes,rhs,1,&row,&val_rhs,INSERT_VALUES);CHKERRQ(ierr);
+            ierr = StagBLSystemOperatorSetValuesStencil(system,1,&row,1,&row,&val_A);CHKERRQ(ierr);
+            ierr = StagBLSystemRHSSetValuesStencil(system,1,&row,&val_rhs);CHKERRQ(ierr);
           } else {
             /* Z-momentum equation */
             PetscInt      count;
@@ -757,7 +739,7 @@ static PetscErrorCode CreateSystem_3D_FreeSlip(StagBLStokesParameters parameters
             eta_point[3].i = ex; eta_point[3].j = ey; eta_point[3].k = ez;   eta_point[3].loc = DMSTAG_BACK_UP;    eta_point[3].c = 0; /* Up    */
             eta_point[4].i = ex; eta_point[4].j = ey; eta_point[4].k = ez-1; eta_point[4].loc = DMSTAG_ELEMENT;    eta_point[4].c = 0; /* Back  */
             eta_point[5].i = ex; eta_point[5].j = ey; eta_point[5].k = ez;   eta_point[5].loc = DMSTAG_ELEMENT;    eta_point[5].c = 0; /* Front  */
-            ierr = DMStagVecGetValuesStencil(dm_coefficient,coeff_local,6,eta_point,eta);CHKERRQ(ierr);
+            ierr = StagBLArrayGetLocalValuesStencil(parameters->coefficient_array,6,eta_point,eta);CHKERRQ(ierr);
             eta_left = eta[0]; eta_right = eta[1]; eta_down = eta[2]; eta_up = eta[3]; eta_back = eta[4]; eta_front = eta[5];
 
             count = 0;
@@ -817,9 +799,9 @@ static PetscErrorCode CreateSystem_3D_FreeSlip(StagBLStokesParameters parameters
             col[count].i = ex; col[count].j = ey;   col[count].k = ez; col[count].loc = DMSTAG_ELEMENT; col[count].c  = 0;
             val_A[count] = -1.0 * Kcont * dv / hz; ++count;
 
-            ierr = DMStagMatSetValuesStencil(dm_stokes,A,1,&row,count,col,val_A,INSERT_VALUES);CHKERRQ(ierr);
+            ierr = StagBLSystemOperatorSetValuesStencil(system,1,&row,count,col,val_A);CHKERRQ(ierr);
             val_rhs = 0.0; /* No forcing */
-            ierr = DMStagVecSetValuesStencil(dm_stokes,rhs,1,&row,&val_rhs,INSERT_VALUES);CHKERRQ(ierr);
+            ierr = StagBLSystemRHSSetValuesStencil(system,1,&row,&val_rhs);CHKERRQ(ierr);
           }
         }
 
@@ -834,8 +816,8 @@ static PetscErrorCode CreateSystem_3D_FreeSlip(StagBLStokesParameters parameters
             const PetscScalar val_A = Kbound;
             const PetscScalar val_rhs = 0.0;
 
-            ierr = DMStagMatSetValuesStencil(dm_stokes,A,1,&row,1,&row,&val_A,INSERT_VALUES);CHKERRQ(ierr);
-            ierr = DMStagVecSetValuesStencil(dm_stokes,rhs,1,&row,&val_rhs,INSERT_VALUES);CHKERRQ(ierr);
+            ierr = StagBLSystemOperatorSetValuesStencil(system,1,&row,1,&row,&val_A);CHKERRQ(ierr);
+            ierr = StagBLSystemRHSSetValuesStencil(system,1,&row,&val_rhs);CHKERRQ(ierr);
           } else {
             /* Continuity equation */
             /* Note that this includes an explicit zero on the diagonal. This is only needed for
@@ -852,8 +834,8 @@ static PetscErrorCode CreateSystem_3D_FreeSlip(StagBLStokesParameters parameters
             col[4].i = ex; col[4].j = ey; col[4].k = ez; col[4].loc = DMSTAG_BACK;    col[4].c = 0; val_A[4] = - 1.0 * Kcont * dv / hz;
             col[5].i = ex; col[5].j = ey; col[5].k = ez; col[5].loc = DMSTAG_FRONT;   col[5].c = 0; val_A[5] =         Kcont * dv / hz;
             col[6] = row;                                                                           val_A[6] = 0.0;
-            ierr = DMStagMatSetValuesStencil(dm_stokes,A,1,&row,7,col,val_A,INSERT_VALUES);CHKERRQ(ierr);
-            ierr = DMStagVecSetValuesStencil(dm_stokes,rhs,1,&row,&val_rhs,INSERT_VALUES);CHKERRQ(ierr);
+            ierr = StagBLSystemOperatorSetValuesStencil(system,1,&row,7,col,val_A);CHKERRQ(ierr);
+            ierr = StagBLSystemRHSSetValuesStencil(system,1,&row,&val_rhs);CHKERRQ(ierr);
           }
         }
       }
@@ -864,10 +846,5 @@ static PetscErrorCode CreateSystem_3D_FreeSlip(StagBLStokesParameters parameters
     ierr = DMStagVecRestoreArrayRead(dm_temperature,temperature_local,&arr_temperature);CHKERRQ(ierr);
     ierr = DMRestoreLocalVector(dm_temperature,&temperature_local);CHKERRQ(ierr);
   }
-
-  ierr = MatAssemblyBegin(A,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
-  ierr = VecAssemblyBegin(rhs);CHKERRQ(ierr);
-  ierr = MatAssemblyEnd(A,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
-  ierr = VecAssemblyEnd(rhs);CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }

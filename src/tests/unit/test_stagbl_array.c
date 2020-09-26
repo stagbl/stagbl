@@ -8,6 +8,7 @@ int main(int argc, char** argv)
   StagBLArrayType array_type;
   PetscInt        N[3];
   PetscReal       xmin,xmax,ymin,ymax,zmin,zmax;
+  PetscBool       use_simple;
 
   ierr = StagBLInitialize(argc,argv,NULL,MPI_COMM_NULL);CHKERRQ(ierr);
 
@@ -19,12 +20,17 @@ int main(int argc, char** argv)
   N[2] = 2;
   ierr = StagBLGridCreateStokes3DBox(PETSC_COMM_WORLD,N[0],N[1],N[2],xmin,xmax,ymin,ymax,zmin,zmax,&grid);CHKERRQ(ierr);
 
-  array_type = "simple";
-  //array_type = "petsc"; // TODO control with flag
+  use_simple = PETSC_FALSE;
+  ierr = PetscOptionsGetBool(NULL,NULL,"-simple",&use_simple,NULL);CHKERRQ(ierr);
+  if (use_simple) {
+    array_type = STAGBLARRAYSIMPLE;
+  } else {
+    array_type = STAGBLARRAYPETSC;
+  }
   ierr = StagBLGridSetArrayType(grid,array_type);CHKERRQ(ierr);
   ierr = StagBLGridCreateStagBLArray(grid,&array);CHKERRQ(ierr);
 
-  ierr = StagBLArrayPrint(array);CHKERRQ(ierr);  // Should print nothing
+  ierr = StagBLArrayPrint(array);CHKERRQ(ierr);
 
   ierr = StagBLArraySetLocalConstant(array, 3.0);CHKERRQ(ierr);
 
@@ -33,7 +39,6 @@ int main(int argc, char** argv)
   ierr = StagBLArrayGlobalToLocal(array);CHKERRQ(ierr);
 
   ierr = StagBLArrayPrint(array);CHKERRQ(ierr);
-
 
   ierr = StagBLArrayDestroy(&array);CHKERRQ(ierr);
   ierr = StagBLGridDestroy(&grid);CHKERRQ(ierr);

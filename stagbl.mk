@@ -60,26 +60,30 @@ $(srcs.d) : ;
 # intended as standalone example of using the library, we use a phony target
 # to clean and rebuild them with their own makefiles, clumsily moving the resulting
 # binary.
-demos : library $(BINDIR)/.DIR
+demo : library $(BINDIR)/.DIR
 	$(MAKE) -C $(STAGBL_DIR)/demos clean
 	$(MAKE) -C $(STAGBL_DIR)/demos all
 	mv $(STAGBL_DIR)/demos/stagbldemo2d $(BINDIR)
 	mv $(STAGBL_DIR)/demos/stagbldemo3d $(BINDIR)
 
-.PHONY: demos
+.PHONY: demo
 
 # Additional Test Executables
 # This is currently done manually, and would be more maintainable with an automated process
 tests : \
+	$(BINDIR)/test_array_stencil \
 	$(BINDIR)/test_dmstag_vs_dmda \
 	$(BINDIR)/test_dmstag_vs_dmda_mf_op \
 	$(BINDIR)/test_dmstag_vs_dmda_matstencil \
 	$(BINDIR)/test_dmstag_vec_stencil_vs_array \
 	$(BINDIR)/test_dmstag_preallocate \
 	$(BINDIR)/test_stagbl_array \
+	$(BINDIR)/test_stagblsystem_stencil \
 	$(BINDIR)/test_stokes_operator \
 	$(BINDIR)/test_stokes_assembly_and_solve \
 
+$(BINDIR)/test_array_stencil : $(OBJDIR)/src/tests/test_array_stencil.o library | $$(@D)/.DIR
+	$(STAGBL_LINK) $< $(STAGBL_LIB)
 $(BINDIR)/test_dmstag_vs_dmda : $(OBJDIR)/src/tests/performance/test_dmstag_vs_dmda.o library | $$(@D)/.DIR
 	$(STAGBL_LINK) $< $(STAGBL_LIB)
 $(BINDIR)/test_dmstag_vs_dmda_mf_op : $(OBJDIR)/src/tests/performance/test_dmstag_vs_dmda_mf_op.o library | $$(@D)/.DIR
@@ -92,6 +96,8 @@ $(BINDIR)/test_dmstag_preallocate : $(OBJDIR)/src/tests/performance/test_dmstag_
 	$(STAGBL_LINK) $< $(STAGBL_LIB)
 $(BINDIR)/test_stagbl_array : $(OBJDIR)/src/tests/unit/test_stagbl_array.o library | $$(@D)/.DIR
 	$(STAGBL_LINK) $< $(STAGBL_LIB)
+$(BINDIR)/test_stagblsystem_stencil : $(OBJDIR)/src/tests/test_stagblsystem_stencil.o library | $$(@D)/.DIR
+	$(STAGBL_LINK) $< $(STAGBL_LIB)
 $(BINDIR)/test_stokes_operator : $(OBJDIR)/src/tests/unit/test_stokes_operator.o library | $$(@D)/.DIR
 	$(STAGBL_LINK) $< $(STAGBL_LIB)
 $(BINDIR)/test_stokes_assembly_and_solve : $(OBJDIR)/src/tests/integration/test_stokes_assembly_and_solve.o library | $$(@D)/.DIR
@@ -102,10 +108,10 @@ $(BINDIR)/test_stokes_assembly_and_solve : $(OBJDIR)/src/tests/integration/test_
 # Run tests
 STAGBL_SCIATH_COMMAND= cd ${TEST_DIR} && STAGBL_DIR=$(STAGBL_DIR) STAGBL_ARCH=$(STAGBL_ARCH) python -m sciath $(STAGBL_DIR)/tests/tests.yml -w sciath.conf
 
-test : tests demos $(TESTDIR)/.DIR
+test : tests demo $(TESTDIR)/.DIR
 	${STAGBL_SCIATH_COMMAND}
 
-test_check : tests demos $(TESTDIR)/.DIR
+test_check : tests demo $(TESTDIR)/.DIR
 	${STAGBL_SCIATH_COMMAND} -v
 
 test_clean : $(TESTDIR)/.DIR

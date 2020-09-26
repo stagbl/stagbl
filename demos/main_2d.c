@@ -30,6 +30,7 @@ int main(int argc, char** argv)
   StagBLStokesParameters parameters;
   PetscInt               timestep;
   PetscReal              t;
+  PetscBool              use_simple;
 
   /* Initialize MPI and print a message
 
@@ -72,6 +73,14 @@ int main(int argc, char** argv)
      factorization-based solvers. */
   ierr = StagBLGridCreateStokes2DBox(comm,30,20,0.0,ctx->xmax,0.0,ctx->ymax,&ctx->stokes_grid);CHKERRQ(ierr);
 
+  use_simple = PETSC_FALSE;
+  ierr = PetscOptionsGetBool(NULL,NULL,"-simple",&use_simple,NULL);CHKERRQ(ierr);
+  if (use_simple) {
+    ierr = PetscPrintf(PETSC_COMM_WORLD,"Using simple impls for some operations\n",mode);CHKERRQ(ierr);
+    ierr = StagBLGridSetSystemType(ctx->stokes_grid,STAGBLSYSTEMSIMPLE);CHKERRQ(ierr);
+    ierr = StagBLGridSetArrayType(ctx->stokes_grid,STAGBLARRAYSIMPLE);CHKERRQ(ierr);
+  }
+
   /* Create another, compatible grid to represent coefficients */
   {
     const PetscInt dofPerVertex  = 2;
@@ -81,6 +90,10 @@ int main(int argc, char** argv)
 
   /* Create another, compatible grid for the temperature field */
   ierr = StagBLGridCreateCompatibleStagBLGrid(ctx->stokes_grid,1,0,0,0,&ctx->temperature_grid);CHKERRQ(ierr);
+
+  // FIXME kludge - always use PETSc for the temperature grid
+  ierr = StagBLGridSetArrayType(ctx->temperature_grid,STAGBLARRAYPETSC);CHKERRQ(ierr);
+  ierr = StagBLGridSetSystemType(ctx->temperature_grid,STAGBLSYSTEMPETSC);CHKERRQ(ierr);
 
   /* Coefficient data in an application-determined way */
   ierr = PopulateCoefficientData(ctx,mode);CHKERRQ(ierr);
@@ -173,10 +186,33 @@ int main(int argc, char** argv)
 
     /* Advect and Migrate */
     {
-      Vec x;
+      Vec             x; // FIXME: not supposed to have Vec in here!
+      DM              dm;
+      StagBLArrayType array_type;
 
-      ierr = StagBLArrayPETScGetGlobalVec(ctx->stokes_array,&x);CHKERRQ(ierr);
+      // FIXME this is all a bit of a kludge and ruins the "no PETSc in the main file" invariant
+      ierr = StagBLGridPETScGetDM(ctx->stokes_grid,&dm);CHKERRQ(ierr);
+      ierr = StagBLArrayGetType(ctx->stokes_array,&array_type);CHKERRQ(ierr);
+      if (StagBLCheckType(array_type,STAGBLARRAYPETSC)) {
+        ierr = StagBLArrayPETScGetGlobalVec(ctx->stokes_array,&x);CHKERRQ(ierr);
+      } else if (StagBLCheckType(array_type,STAGBLARRAYSIMPLE)) {
+        PetscInt    n;
+        PetscScalar *x_array,*global_raw;
+
+        ierr = StagBLArraySimpleGetGlobalRaw(ctx->stokes_array,&global_raw);CHKERRQ(ierr);
+        ierr = DMGetGlobalVector(dm,&x);CHKERRQ(ierr);
+        ierr = VecGetLocalSize(x,&n);CHKERRQ(ierr);
+        ierr = VecGetArray(x,&x_array);CHKERRQ(ierr);
+        for (PetscInt i=0; i<n; ++i) x_array[i] = global_raw[i];
+        ierr = VecRestoreArray(x,&x_array);CHKERRQ(ierr);
+      } else StagBLError1(PetscObjectComm((PetscObject)dm),"Unsupported array type %s",array_type);
+
       ierr = MaterialPoint_AdvectRK1(ctx,x,ctx->dt);CHKERRQ(ierr);
+
+      if (StagBLCheckType(array_type,STAGBLARRAYSIMPLE)) {
+        ierr = DMRestoreGlobalVector(dm,&x);CHKERRQ(ierr);
+      }
+
       ierr = DMSwarmMigrate(ctx->dm_particles,PETSC_TRUE);CHKERRQ(ierr);
     }
 

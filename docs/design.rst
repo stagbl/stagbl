@@ -78,13 +78,8 @@ The default implmentation uses a Petsc ``Vec`` object.
 
 StagBLSystem
 ------------
-Information on how to compute a residual on a grid.
+Information on how to compute a residual on a grid,
+and how to "solve" to compute a zero/minimum of this residual.
+The default implementation uses a Petsc ``SNES`` object.
 
 Contains an immutable reference to a StagBLGrid.
-
-StagBLSolver
-------------
-A nonlinear solver, which, given an initial guess, attempts to reduce the magnitude
-of a particular residual, defined by an immutable reference to a StagBLSystem.
-
-The default implementation uses a Petsc ``SNES`` object.

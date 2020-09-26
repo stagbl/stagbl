@@ -4,6 +4,7 @@
 #include <petsc.h>
 
 PetscBool StagBLCheckType(const char*,const char*);
+PetscErrorCode StagBLEnforceType(const char*,const char*);
 PetscErrorCode StagBLInitialize(int,char**,const char*,MPI_Comm);
 PetscErrorCode StagBLFinalize();
 
@@ -43,6 +44,7 @@ PetscErrorCode StagBLGridCreateStagBLArray(StagBLGrid,StagBLArray*);
 PetscErrorCode StagBLGridCreateStagBLSystem(StagBLGrid,StagBLSystem*);
 PetscErrorCode StagBLGridDestroy(StagBLGrid*);
 PetscErrorCode StagBLGridSetArrayType(StagBLGrid,StagBLArrayType);
+PetscErrorCode StagBLGridSetSystemType(StagBLGrid,StagBLSystemType);
 
 PetscErrorCode StagBLGridPETScGetDM(StagBLGrid,DM*);
 PetscErrorCode StagBLGridPETScGetDMPointer(StagBLGrid,DM**);
@@ -50,10 +52,15 @@ PetscErrorCode StagBLGridPETScGetDMPointer(StagBLGrid,DM**);
 /* StagBLArray Functions */
 PetscErrorCode StagBLArrayCreate(StagBLGrid,StagBLArray*,StagBLArrayType);
 PetscErrorCode StagBLArrayDestroy(StagBLArray*);
+PetscErrorCode StagBLArrayGetLocalValuesStencil(StagBLArray,PetscInt,const DMStagStencil*,PetscScalar*);
 PetscErrorCode StagBLArrayGetStagBLGrid(StagBLArray,StagBLGrid*);
+PetscErrorCode StagBLArrayGetType(StagBLArray,StagBLArrayType*);
+PetscErrorCode StagBLArraySetGlobalCurrent(StagBLArray,PetscBool);
+PetscErrorCode StagBLArraySetLocalCurrent(StagBLArray,PetscBool);
 PetscErrorCode StagBLArrayGlobalToLocal(StagBLArray);
 PetscErrorCode StagBLArrayLocalToGlobal(StagBLArray);
 PetscErrorCode StagBLArraySetLocalConstant(StagBLArray,PetscScalar);
+PetscErrorCode StagBLArraySetLocalValuesStencil(StagBLArray,PetscInt,const DMStagStencil*,const PetscScalar*);
 PetscErrorCode StagBLArrayPrint(StagBLArray);
 
 /* StagBLArray impls */
@@ -66,16 +73,22 @@ PetscErrorCode StagBLArrayPETScGetGlobalVecPointer(StagBLArray,Vec**);
 
 #define STAGBLARRAYSIMPLE "simple"
 PetscErrorCode StagBLArrayCreate_Simple(StagBLArray);
+PetscErrorCode StagBLArraySimpleGetGlobalRaw(StagBLArray,PetscScalar**);
+PetscErrorCode StagBLArraySimpleGetLocalRaw(StagBLArray,PetscScalar**);
 
 /* StagBLSystem Functions */
-PetscErrorCode StagBLSystemCreate(StagBLGrid,StagBLSystem*);
+PetscErrorCode StagBLSystemCreate(StagBLGrid,StagBLSystem*,StagBLSystemType);
 PetscErrorCode StagBLSystemCreateStagBLSolver(StagBLSystem,StagBLSolver*);
 PetscErrorCode StagBLSystemDestroy(StagBLSystem*);
+PetscErrorCode StagBLSystemGetGrid(StagBLSystem,StagBLGrid*);
+
+PetscErrorCode StagBLSystemOperatorSetValuesStencil(StagBLSystem,PetscInt,const DMStagStencil*,PetscInt,const DMStagStencil*,const PetscScalar*);
+PetscErrorCode StagBLSystemRHSSetConstant(StagBLSystem,PetscScalar);
+PetscErrorCode StagBLSystemRHSSetValuesStencil(StagBLSystem,PetscInt,const DMStagStencil*,const PetscScalar*);
 
 /* StagBLSystem impls */
 #define STAGBLSYSTEMPETSC "petsc"
 PetscErrorCode StagBLSystemCreate_PETSc(StagBLSystem);
-PetscErrorCode StagBLSystemGetGrid(StagBLSystem,StagBLGrid*);
 PetscErrorCode StagBLSystemPETScGetMat(StagBLSystem,Mat*);
 PetscErrorCode StagBLSystemPETScGetMatPointer(StagBLSystem,Mat**);
 PetscErrorCode StagBLSystemPETScGetVec(StagBLSystem,Vec*);
@@ -83,8 +96,12 @@ PetscErrorCode StagBLSystemPETScGetVecPointer(StagBLSystem,Vec**);
 PetscErrorCode StagBLSystemPETScGetResidualFunction(StagBLSystem,PetscErrorCode (**f)(SNES,Vec,Vec,void*));
 PetscErrorCode StagBLSystemPETScGetJacobianFunction(StagBLSystem,PetscErrorCode (**f)(SNES,Vec,Mat,Mat,void*));
 
+#define STAGBLSYSTEMSIMPLE "simple"
+PetscErrorCode StagBLSystemCreate_Simple(StagBLSystem);
+PetscErrorCode StagBLSystemSolve_Simple(StagBLSystem,StagBLArray);
+
 /* StagBLSolver Functions */
-PetscErrorCode StagBLSolverCreate(StagBLSystem,StagBLSolver*);
+PetscErrorCode StagBLSolverCreate(StagBLSystem,StagBLSolver*,StagBLSolverType);
 PetscErrorCode StagBLSolverDestroy(StagBLSolver*);
 PetscErrorCode StagBLSolverGetSystem(StagBLSolver,StagBLSystem*);
 PetscErrorCode StagBLSolverSolve(StagBLSolver,StagBLArray);
@@ -92,6 +109,10 @@ PetscErrorCode StagBLSolverSolve(StagBLSolver,StagBLArray);
 /* StagBLSolver impls */
 #define STAGBLSOLVERPETSC "petsc"
 PetscErrorCode StagBLSolverCreate_PETSc(StagBLSolver);
+
+#define STAGBLSOLVERSIMPLE "simple"
+PetscErrorCode StagBLSolverCreate_Simple(StagBLSolver);
+
 
 /* Stokes */
 struct data_StagBLStokesParameters {

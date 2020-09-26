@@ -11,7 +11,11 @@ static PetscErrorCode StagBLSystemPetscResidual_Default(SNES snes,Vec x, Vec f, 
 
   PetscFunctionBegin;
   STAGBL_UNUSED(snes);
+  ierr = MatAssemblyBegin(data->mat,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
+  ierr = VecAssemblyBegin(data->rhs);CHKERRQ(ierr);
+  ierr = MatAssemblyEnd(data->mat,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
   ierr = MatMult(data->mat,x,f);CHKERRQ(ierr);
+  ierr = VecAssemblyEnd(data->rhs);CHKERRQ(ierr);
   ierr = VecAXPY(f,-1.0,data->rhs);CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
@@ -25,7 +29,6 @@ static PetscErrorCode StagBLSystemPetscJacobian_Default(SNES snes,Vec x, Mat Ama
   PetscFunctionBegin;
   STAGBL_UNUSED(snes);
   STAGBL_UNUSED(x);
-  // TODO this seems bogus, but we'll soon enough replace this with routines that actually compute the function/jacobian
   ierr = MatAssemblyBegin(Amat,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
   ierr = MatAssemblyEnd(Amat,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
   ierr = MatCopy(data->mat,Amat,DIFFERENT_NONZERO_PATTERN);CHKERRQ(ierr);
@@ -54,8 +57,40 @@ PetscErrorCode StagBLSystemDestroy_PETSc(StagBLSystem stagblsystem)
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode StagBLSystemCreate_PETSc(StagBLSystem stagblsystem)
+static PetscErrorCode StagBLSystemOperatorSetValuesStencil_PETSc(StagBLSystem system,PetscInt nrows,const DMStagStencil *rows,PetscInt ncols,const DMStagStencil *cols, const PetscScalar *values)
 {
+  PetscErrorCode     ierr;
+  StagBLSystem_PETSc *data = (StagBLSystem_PETSc*) system->data;
+  DM                 dm;
+
+  PetscFunctionBegin;
+  ierr = StagBLGridPETScGetDM(system->grid,&dm);CHKERRQ(ierr);
+  ierr = DMStagMatSetValuesStencil(dm,data->mat,nrows,rows,ncols,cols,values,INSERT_VALUES);CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
+static PetscErrorCode StagBLSystemRHSSetConstant_PETSc(StagBLSystem system,PetscScalar value)
+{
+  PetscErrorCode      ierr;
+  StagBLSystem_PETSc *data = (StagBLSystem_PETSc*) system->data;
+
+  PetscFunctionBegin;
+  ierr = VecSet(data->rhs,value);CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
+static PetscErrorCode StagBLSystemRHSSetValuesStencil_PETSc(StagBLSystem system,PetscInt nrows,const DMStagStencil *rows, const PetscScalar *values)
+{
+  PetscErrorCode     ierr;
+  StagBLSystem_PETSc *data = (StagBLSystem_PETSc*) system->data;
+  DM                 dm;
+
+  PetscFunctionBegin;
+  ierr = StagBLGridPETScGetDM(system->grid,&dm);CHKERRQ(ierr);
+  ierr = DMStagVecSetValuesStencil(dm,data->rhs,nrows,rows,values,INSERT_VALUES);CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
 PetscErrorCode StagBLSystemCreate_PETSc(StagBLSystem system)
 {
   PetscErrorCode     ierr;
@@ -66,7 +101,10 @@ PetscErrorCode StagBLSystemCreate_PETSc(StagBLSystem system)
   system->data = (void*) malloc(sizeof(StagBLSystem_PETSc));
   system->ops->destroy = StagBLSystemDestroy_PETSc;
   system->ops->operatorsetvaluesstencil = StagBLSystemOperatorSetValuesStencil_PETSc;
+  system->ops->rhssetconstant = StagBLSystemRHSSetConstant_PETSc;
   system->ops->rhssetvaluesstencil = StagBLSystemRHSSetValuesStencil_PETSc;
+
+  system->solver_type = STAGBLSOLVERPETSC;
 
   data = (StagBLSystem_PETSc*) system->data;
   data->residual_function = StagBLSystemPetscResidual_Default;

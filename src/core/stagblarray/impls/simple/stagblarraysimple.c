@@ -2,10 +2,13 @@
 #include "stagblarraysimpleimpl.h"
 #include <stdlib.h>
 
+/* For DMStagStencilToIndexLocal(), which should be made public */
+#include <petsc/private/dmstagimpl.h>
+
 static PetscErrorCode StagBLArraySimpleCreateGlobalVector_Private(StagBLArray);
 static PetscErrorCode StagBLArraySimpleCreateLocalVector_Private(StagBLArray);
 
-PetscErrorCode StagBLArrayDestroy_Simple(StagBLArray stagblarray)
+static PetscErrorCode StagBLArrayDestroy_Simple(StagBLArray stagblarray)
 {
   StagBLArray_Simple *data= (StagBLArray_Simple*) stagblarray->data;
 
@@ -18,6 +21,26 @@ PetscErrorCode StagBLArrayDestroy_Simple(StagBLArray stagblarray)
   free(stagblarray->data);
   stagblarray->data = NULL;
   return 0;
+}
+
+static PetscErrorCode StagBLArrayGetLocalValuesStencil_Simple(StagBLArray array,PetscInt n,const DMStagStencil *pos,PetscScalar *values)
+{
+  PetscErrorCode    ierr;
+  StagBLArray_Simple *data = (StagBLArray_Simple*) array->data;
+  DM                dm;
+  PetscInt          *indices_local;
+  PetscInt           dim;
+
+  PetscFunctionBegin;
+  ierr = StagBLGridPETScGetDM(array->grid,&dm);CHKERRQ(ierr);
+  if (!data->local) StagBLError(PetscObjectComm((PetscObject)dm),"Local array data not defined");
+  if (!array->current_local) StagBLError(PetscObjectComm((PetscObject)dm),"Local array data not current");
+  indices_local = (PetscInt*) malloc(n * sizeof(PetscInt));
+  ierr = DMGetDimension(dm,&dim);CHKERRQ(ierr);
+  ierr = DMStagStencilToIndexLocal(dm,dim,n,pos,indices_local);CHKERRQ(ierr);
+  for (PetscInt i=0; i<n; ++i) values[i] = data->local[indices_local[i]];
+  free(indices_local);
+  PetscFunctionReturn(0);
 }
 
 static PetscErrorCode StagBLArraySimpleCreateLocalVector_Private(StagBLArray array)
@@ -34,6 +57,26 @@ static PetscErrorCode StagBLArraySimpleCreateLocalVector_Private(StagBLArray arr
     ierr = DMStagGetEntriesLocal(dm,&local_size);CHKERRQ(ierr);
     data->local = (PetscScalar*) malloc(local_size * sizeof(PetscScalar));
   }
+  PetscFunctionReturn(0);
+}
+
+static PetscErrorCode StagBLArraySetLocalValuesStencil_Simple(StagBLArray array,PetscInt n,const DMStagStencil *pos,const PetscScalar *values)
+{
+  PetscErrorCode    ierr;
+  StagBLArray_Simple *data = (StagBLArray_Simple*) array->data;
+  DM                dm;
+  PetscInt          *indices_local;
+  PetscInt           dim;
+
+  PetscFunctionBegin;
+  ierr = StagBLGridPETScGetDM(array->grid,&dm);CHKERRQ(ierr);
+  if (!data->local) StagBLError(PetscObjectComm((PetscObject)dm),"Local array data not defined");
+  if (!array->current_local) StagBLError(PetscObjectComm((PetscObject)dm),"Local array data not current");
+  indices_local = (PetscInt*) malloc(n * sizeof(PetscInt));
+  ierr = DMGetDimension(dm,&dim);CHKERRQ(ierr);
+  ierr = DMStagStencilToIndexLocal(dm,dim,n,pos,indices_local);CHKERRQ(ierr);
+  for (PetscInt i=0; i<n; ++i) data->local[indices_local[i]] = values[i];
+  free(indices_local);
   PetscFunctionReturn(0);
 }
 
@@ -140,7 +183,7 @@ static PetscErrorCode StagBLArrayLocalToGlobal_Simple(StagBLArray array)
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode StagBLArrayPrint_Simple(StagBLArray array)
+static PetscErrorCode StagBLArrayPrint_Simple(StagBLArray array)
 {
   PetscErrorCode    ierr;
   StagBLArray_Simple *data = (StagBLArray_Simple*) array->data;
@@ -177,7 +220,7 @@ PetscErrorCode StagBLArrayPrint_Simple(StagBLArray array)
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode StagBLArraySetLocalConstant_Simple(StagBLArray array, PetscScalar value)
+static PetscErrorCode StagBLArraySetLocalConstant_Simple(StagBLArray array, PetscScalar value)
 {
   PetscErrorCode    ierr;
   StagBLArray_Simple *data = (StagBLArray_Simple*) array->data;
@@ -208,9 +251,41 @@ PetscErrorCode StagBLArrayCreate_Simple(StagBLArray stagblarray)
   data->local = NULL;
   data->global = NULL;
   stagblarray->ops->destroy = StagBLArrayDestroy_Simple;
+  stagblarray->ops->getlocalvaluesstencil = StagBLArrayGetLocalValuesStencil_Simple;
   stagblarray->ops->globaltolocal = StagBLArrayGlobalToLocal_Simple;
   stagblarray->ops->localtoglobal = StagBLArrayLocalToGlobal_Simple;
   stagblarray->ops->print = StagBLArrayPrint_Simple;
+  stagblarray->ops->setlocalvaluesstencil = StagBLArraySetLocalValuesStencil_Simple;
   stagblarray->ops->setlocalconstant = StagBLArraySetLocalConstant_Simple;
   return 0;
+}
+
+PetscErrorCode StagBLArraySimpleGetGlobalRaw(StagBLArray array,PetscScalar **raw)
+{
+  PetscErrorCode     ierr;
+  StagBLArray_Simple *data = (StagBLArray_Simple*) array->data;
+
+  PetscFunctionBegin;
+  // FIXME definitely need type check here!
+  if (!data->global) {
+    ierr = StagBLArraySimpleCreateGlobalVector_Private(array);CHKERRQ(ierr);
+  }
+  *raw = data->global;
+  array->current_local = PETSC_FALSE;
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode StagBLArraySimpleGetLocalRaw(StagBLArray array,PetscScalar **raw)
+{
+  PetscErrorCode     ierr;
+  StagBLArray_Simple *data = (StagBLArray_Simple*) array->data;
+
+  PetscFunctionBegin;
+  // FIXME definitely need type check here!
+  if (!data->local) {
+    ierr = StagBLArraySimpleCreateLocalVector_Private(array);CHKERRQ(ierr);
+  }
+  *raw = data->local;
+  array->current_global = PETSC_FALSE;
+  PetscFunctionReturn(0);
 }

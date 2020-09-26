@@ -2,6 +2,9 @@
 #include "stagblarraypetscimpl.h"
 #include <stdlib.h>
 
+/* For DMStagStencilToIndexLocal(), which should be made public */
+#include <petsc/private/dmstagimpl.h>
+
 static PetscErrorCode StagBLArrayPETScCreateGlobalVector_Private(StagBLArray);
 static PetscErrorCode StagBLArrayPETScCreateLocalVector_Private(StagBLArray);
 
@@ -17,6 +20,20 @@ PetscErrorCode StagBLArrayDestroy_PETSc(StagBLArray stagblarray)
   free(stagblarray->data);
   stagblarray->data = NULL;
   return 0;
+}
+
+static PetscErrorCode StagBLArrayGetLocalValuesStencil_PETSc(StagBLArray array,PetscInt n,const DMStagStencil *pos,PetscScalar *values)
+{
+  PetscErrorCode    ierr;
+  StagBLArray_PETSc *data = (StagBLArray_PETSc*) array->data;
+  DM                dm;
+
+  PetscFunctionBegin;
+  ierr = StagBLGridPETScGetDM(array->grid,&dm);CHKERRQ(ierr);
+  if (!data->local) StagBLError(PetscObjectComm((PetscObject)dm),"Local array data not defined");
+  if (!array->current_local) StagBLError(PetscObjectComm((PetscObject)dm),"Local array data not current");
+  ierr = DMStagVecGetValuesStencil(dm,data->local,n,pos,values);CHKERRQ(ierr);
+  PetscFunctionReturn(0);
 }
 
 static PetscErrorCode StagBLArrayGlobalToLocal_PETSc(StagBLArray array)
@@ -102,8 +119,29 @@ static PetscErrorCode StagBLArrayPETScCreateLocalVector_Private(StagBLArray arra
   PetscFunctionReturn(0);
 }
 
+static PetscErrorCode StagBLArraySetLocalValuesStencil_PETSc(StagBLArray array,PetscInt n,const DMStagStencil *pos,const PetscScalar *values)
+{
+  PetscErrorCode    ierr;
+  StagBLArray_PETSc *data = (StagBLArray_PETSc*) array->data;
+  DM                dm;
+  PetscInt          *indices_local;
+  PetscInt          dim;
+  PetscScalar       *local_raw;
 
-PetscErrorCode StagBLArraySetLocalConstant_PETSc(StagBLArray array, PetscScalar value)
+  PetscFunctionBegin;
+  ierr = StagBLGridPETScGetDM(array->grid,&dm);CHKERRQ(ierr);
+  ierr = DMGetDimension(dm,&dim);CHKERRQ(ierr);
+  indices_local = (PetscInt*) malloc(n * sizeof(PetscInt));
+  ierr = DMStagStencilToIndexLocal(dm,dim,n,pos,indices_local);CHKERRQ(ierr);
+  ierr = VecGetArray(data->local,&local_raw);CHKERRQ(ierr);
+  for (PetscInt i=0; i<n; ++i) local_raw[indices_local[i]] = values[i];
+  ierr = VecRestoreArray(data->local,&local_raw);CHKERRQ(ierr);
+  free(indices_local);
+  PetscFunctionReturn(0);
+}
+
+
+static PetscErrorCode StagBLArraySetLocalConstant_PETSc(StagBLArray array, PetscScalar value)
 {
   PetscErrorCode    ierr;
   StagBLArray_PETSc *data = (StagBLArray_PETSc*) array->data;
@@ -126,9 +164,11 @@ PetscErrorCode StagBLArrayCreate_PETSc(StagBLArray stagblarray)
   data->local  = NULL;
   data->global = NULL;
   stagblarray->ops->destroy = StagBLArrayDestroy_PETSc;
+  stagblarray->ops->getlocalvaluesstencil = StagBLArrayGetLocalValuesStencil_PETSc;
   stagblarray->ops->globaltolocal = StagBLArrayGlobalToLocal_PETSc;
   stagblarray->ops->localtoglobal = StagBLArrayLocalToGlobal_PETSc;
   stagblarray->ops->print = StagBLArrayPrint_PETSc;
+  stagblarray->ops->setlocalvaluesstencil = StagBLArraySetLocalValuesStencil_PETSc;
   stagblarray->ops->setlocalconstant = StagBLArraySetLocalConstant_PETSc;
   return 0;
 }
