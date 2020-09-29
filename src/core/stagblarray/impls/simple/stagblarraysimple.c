@@ -70,7 +70,10 @@ static PetscErrorCode StagBLArraySetLocalValuesStencil_Simple(StagBLArray array,
 
   PetscFunctionBegin;
   ierr = StagBLGridPETScGetDM(array->grid,&dm);CHKERRQ(ierr);
-  if (!data->local) StagBLError(PetscObjectComm((PetscObject)dm),"Local array data not defined");
+  if (!data->local) {
+    ierr = StagBLArraySimpleCreateLocalVector_Private(array);CHKERRQ(ierr);
+    array->current_local = PETSC_TRUE;
+  }
   if (!array->current_local) StagBLError(PetscObjectComm((PetscObject)dm),"Local array data not current");
   indices_local = (PetscInt*) malloc(n * sizeof(PetscInt));
   ierr = DMGetDimension(dm,&dim);CHKERRQ(ierr);

@@ -129,6 +129,10 @@ static PetscErrorCode StagBLArraySetLocalValuesStencil_PETSc(StagBLArray array,P
   PetscScalar       *local_raw;
 
   PetscFunctionBegin;
+  if (!data->local) {
+    ierr = StagBLArrayPETScCreateLocalVector_Private(array);CHKERRQ(ierr);
+    array->current_local = PETSC_TRUE;
+  }
   ierr = StagBLGridPETScGetDM(array->grid,&dm);CHKERRQ(ierr);
   ierr = DMGetDimension(dm,&dim);CHKERRQ(ierr);
   indices_local = (PetscInt*) malloc(n * sizeof(PetscInt));
