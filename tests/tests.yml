@@ -117,11 +117,11 @@ tests:
     type: exit_code
 
   - name:array
-    command: $STAGBL_DIR/$STAGBL_ARCH/bin/test_stagbl_array
+    command: $STAGBL_DIR/$STAGBL_ARCH/bin/test_array
     type: exit_code
 
   - name:array_simple
-    command: $STAGBL_DIR/$STAGBL_ARCH/bin/test_stagbl_array -simple
+    command: $STAGBL_DIR/$STAGBL_ARCH/bin/test_array -simple
     type: exit_code
 
   - name:stokes_assembly_and_solve

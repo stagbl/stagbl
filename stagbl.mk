@@ -77,8 +77,8 @@ tests : \
 	$(BINDIR)/test_dmstag_vs_dmda_matstencil \
 	$(BINDIR)/test_dmstag_vec_stencil_vs_array \
 	$(BINDIR)/test_dmstag_preallocate \
-	$(BINDIR)/test_stagbl_array \
-	$(BINDIR)/test_stagblsystem_stencil \
+	$(BINDIR)/test_array \
+	$(BINDIR)/test_system_stencil \
 	$(BINDIR)/test_stokes_operator \
 	$(BINDIR)/test_stokes_assembly_and_solve \
 
@@ -94,9 +94,9 @@ $(BINDIR)/test_dmstag_vec_stencil_vs_array : $(OBJDIR)/src/tests/performance/tes
 	$(STAGBL_LINK) $< $(STAGBL_LIB)
 $(BINDIR)/test_dmstag_preallocate : $(OBJDIR)/src/tests/performance/test_dmstag_preallocate.o library | $$(@D)/.DIR
 	$(STAGBL_LINK) $< $(STAGBL_LIB)
-$(BINDIR)/test_stagbl_array : $(OBJDIR)/src/tests/test_stagbl_array.o library | $$(@D)/.DIR
+$(BINDIR)/test_array : $(OBJDIR)/src/tests/test_array.o library | $$(@D)/.DIR
 	$(STAGBL_LINK) $< $(STAGBL_LIB)
-$(BINDIR)/test_stagblsystem_stencil : $(OBJDIR)/src/tests/test_stagblsystem_stencil.o library | $$(@D)/.DIR
+$(BINDIR)/test_system_stencil : $(OBJDIR)/src/tests/test_system_stencil.o library | $$(@D)/.DIR
 	$(STAGBL_LINK) $< $(STAGBL_LIB)
 $(BINDIR)/test_stokes_operator : $(OBJDIR)/src/tests/test_stokes_operator.o library | $$(@D)/.DIR
 	$(STAGBL_LINK) $< $(STAGBL_LIB)
