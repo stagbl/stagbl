@@ -26,9 +26,9 @@ include $(SRCDIR)/local.mk
 # Build libstagbl from sources here
 libstagbl = $(LIBDIR)/libstagbl.$(AR_LIB_SUFFIX)
 libstagbl : $(libstagbl)
-$(libstagbl) : $(call srctoobj,$(libstagbl-y.c))
+$(libstagbl) : $(call srctoobj,$(libstagbl-y.c)) $(INCDIR)/.DIR
 
-library : $(libstagbl) includes
+library : $(libstagbl)
 
 .PHONY : library
 
@@ -37,11 +37,6 @@ $(OBJDIR)/%.o: $(OBJDIR)/%.c
 
 $(OBJDIR)/%.o: $(SRCDIR)/%.c | $$(@D)/.DIR
 	$(STAGBL_COMPILE.c) $< -o $@
-
-# Configuration-specific includes
-includes : $(INCDIR)/.DIR
-
-.PHONY: includes
 
 clean:
 	rm -rf $(BINDIR) $(INCDIR) $(LIBDIR) $(OBJDIR) $(TESTDIR)
@@ -61,7 +56,7 @@ $(srcs.d) : ;
 # intended as standalone example of using the library, we use a phony target
 # to clean and rebuild them with their own makefiles, clumsily moving the resulting
 # binary.
-demos : library $(BINDIR)/.DIR
+demos : $(libstagbl) $(BINDIR)/.DIR
 	$(MAKE) -C $(STAGBL_DIR)/demos clean
 	$(MAKE) -C $(STAGBL_DIR)/demos all
 	mv $(STAGBL_DIR)/demos/stagbldemo2d $(BINDIR)
@@ -70,7 +65,7 @@ demos : library $(BINDIR)/.DIR
 .PHONY: demos
 
 # Additional Test Executables
-$(BINDIR)/test_% : $(OBJDIR)/src/tests/test_%.o library | $$(@D)/.DIR
+$(BINDIR)/test_% : $(OBJDIR)/src/tests/test_%.o $(libstagbl) | $$(@D)/.DIR
 	$(STAGBL_LINK) $< $(STAGBL_LIB)
 
 tests : $(patsubst $(SRCDIR)/src/tests/%.c,$(BINDIR)/%,$(stagbltests-y.c))
