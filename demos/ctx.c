@@ -32,9 +32,7 @@ PetscErrorCode CtxCreate(MPI_Comm comm,const char* mode,Ctx *pctx)
   ctx->coefficient_array  = NULL;
   ctx->temperature_array  = NULL;
   ctx->stokes_system      = NULL;
-  ctx->stokes_solver      = NULL;
   ctx->temperature_system = NULL;
-  ctx->temperature_solver = NULL;
 
   /* Additional, mode-dependent settings */
   flg = PETSC_FALSE;
@@ -113,14 +111,12 @@ PetscErrorCode CtxDestroy(Ctx *pctx)
   PetscFunctionBeginUser;
   ierr = StagBLArrayDestroy(&(*pctx)->stokes_array);CHKERRQ(ierr);
   ierr = StagBLSystemDestroy(&(*pctx)->stokes_system);CHKERRQ(ierr);
-  ierr = StagBLSolverDestroy(&(*pctx)->stokes_solver);CHKERRQ(ierr);
   ierr = StagBLGridDestroy(&(*pctx)->stokes_grid);CHKERRQ(ierr);
   ierr = StagBLGridDestroy(&(*pctx)->coefficient_grid);CHKERRQ(ierr);
   ierr = StagBLArrayDestroy(&(*pctx)->coefficient_array);CHKERRQ(ierr);
   ierr = StagBLGridDestroy(&(*pctx)->temperature_grid);CHKERRQ(ierr);
   ierr = StagBLArrayDestroy(&(*pctx)->temperature_array);CHKERRQ(ierr);
   ierr = StagBLSystemDestroy(&(*pctx)->temperature_system);CHKERRQ(ierr);
-  ierr = StagBLSolverDestroy(&(*pctx)->temperature_solver);CHKERRQ(ierr);
   ierr = DMDestroy(&(*pctx)->dm_particles);CHKERRQ(ierr);
   ierr = PetscFree(*pctx);CHKERRQ(ierr);
   *pctx = NULL;

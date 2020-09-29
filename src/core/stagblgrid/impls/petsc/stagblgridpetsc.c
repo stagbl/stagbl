@@ -21,7 +21,7 @@ PetscErrorCode StagBLGridCreateCompatibleStagBLGrid_PETSc(StagBLGrid grid,PetscI
   PetscInt         dof0_from, dof1_from, dof2_from, dof3_from;
 
   data = (StagBLGrid_PETSc*) grid->data;
-  StagBLGridCreate(newgrid);
+  StagBLGridCreate(newgrid,STAGBLGRIDPETSC);
   dataNew = (StagBLGrid_PETSc*) (*newgrid)->data;
   ierr = DMStagCreateCompatibleDMStag(data->dm,dof0,dof1,dof2,dof3,&(dataNew->dm));CHKERRQ(ierr);
   ierr = DMSetUp(dataNew->dm);CHKERRQ(ierr);
@@ -32,7 +32,7 @@ PetscErrorCode StagBLGridCreateCompatibleStagBLGrid_PETSc(StagBLGrid grid,PetscI
       ((dof0 == 0) == (dof0_from ==0)) ||
       ((dof1 == 0) == (dof1_from ==0)) ||
       ((dof2 == 0) == (dof2_from ==0)) ||
-      ((dof3 == 0) == (dof3_from ==0)) 
+      ((dof3 == 0) == (dof3_from ==0))
      ) {
     ierr = DMGetCoordinateDM(data->dm,&coordinateDM);CHKERRQ(ierr);
     ierr = DMSetCoordinateDM(dataNew->dm,coordinateDM);CHKERRQ(ierr);
@@ -45,8 +45,7 @@ PetscErrorCode StagBLGridCreateCompatibleStagBLGrid_PETSc(StagBLGrid grid,PetscI
 PetscErrorCode StagBLGridCreateStagBLArray_PETSc(StagBLGrid grid,StagBLArray *array)
 {
   PetscErrorCode  ierr;
-
-  ierr = StagBLArrayCreate(grid,array);CHKERRQ(ierr); // The default type is PETSc, so we do nothing special for now
+  ierr = StagBLArrayCreate(grid,array,grid->array_type);CHKERRQ(ierr);
   return 0;
 }
 
@@ -64,14 +63,16 @@ PetscErrorCode StagBLGridPETScGetDMPointer(StagBLGrid stagblgrid,DM **dm)
   return 0;
 }
 
-PetscErrorCode StagBLGridCreate_PETSc(StagBLGrid stagblgrid)
+PetscErrorCode StagBLGridCreate_PETSc(StagBLGrid grid)
 {
   StagBLGrid_PETSc *data;
-  stagblgrid->data = (void*) malloc(sizeof(StagBLGrid_PETSc));
-  data = (StagBLGrid_PETSc*) stagblgrid->data;
+  grid->data = (void*) malloc(sizeof(StagBLGrid_PETSc));
+  grid->array_type = STAGBLARRAYPETSC;
+  grid->system_type = STAGBLSYSTEMPETSC;
+  data = (StagBLGrid_PETSc*) grid->data;
   data->dm = NULL;
-  stagblgrid->ops->createcompatiblestagblgrid = StagBLGridCreateCompatibleStagBLGrid_PETSc;
-  stagblgrid->ops->createstagblarray          = StagBLGridCreateStagBLArray_PETSc;
-  stagblgrid->ops->destroy                    = StagBLGridDestroy_PETSc;
+  grid->ops->createcompatiblestagblgrid = StagBLGridCreateCompatibleStagBLGrid_PETSc;
+  grid->ops->createstagblarray          = StagBLGridCreateStagBLArray_PETSc;
+  grid->ops->destroy                    = StagBLGridDestroy_PETSc;
   return 0;
 }

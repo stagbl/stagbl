@@ -130,17 +130,18 @@ static PetscScalar getEta_gerya72(void *ptr,PetscScalar x,PetscScalar y, PetscSc
 
 PetscErrorCode PopulateCoefficientData(Ctx ctx,const char* mode)
 {
-  PetscErrorCode ierr;
-  PetscInt       dim;
-  PetscInt       N[3];
-  PetscInt       ex,ey,ez,startx,starty,startz,nx,ny,nz;
-  PetscInt       slot_prev,slot_center;
-  PetscInt       slot_rho_downleft,slot_rho_backleft,slot_rho_backdown,slot_eta_element,slot_eta_downleft,slot_eta_backleft,slot_eta_backdown;
-  DM             dm_coefficients;
-  Vec            *p_coeff_local;
-  Vec            coeff_local;
-  PetscReal      **arr_coordinates_x,**arr_coordinates_y,**arr_coordinates_z;
-  PetscBool      flg;
+  PetscErrorCode  ierr;
+  PetscInt        dim;
+  PetscInt        N[3];
+  PetscInt        ex,ey,ez,startx,starty,startz,nx,ny,nz;
+  PetscInt        slot_prev,slot_center;
+  PetscInt        slot_rho_downleft,slot_rho_backleft,slot_rho_backdown,slot_eta_element,slot_eta_downleft,slot_eta_backleft,slot_eta_backdown;
+  DM              dm_coefficients;
+  Vec             *p_coeff_local;
+  Vec             coeff_local;
+  PetscReal       **arr_coordinates_x,**arr_coordinates_y,**arr_coordinates_z;
+  PetscBool       flg;
+  StagBLArrayType array_type;
 
   PetscFunctionBeginUser;
 
@@ -198,16 +199,25 @@ PetscErrorCode PopulateCoefficientData(Ctx ctx,const char* mode)
     SETERRQ1(ctx->comm,PETSC_ERR_ARG_OUTOFRANGE,"Unrecognized mode %s",mode);
   }
 
-  /* If array doesnt exist, create it and pull out a local Vec. Otherwise, get the local Vec */
+  /* If array doesn't exist, create it and pull out a local Vec. Otherwise, get the local Vec */
+  /* Note the use of a hack to copy "simple" vectors to PETSc Vec */
   if (!ctx->coefficient_array) {
     ierr = StagBLGridCreateStagBLArray(ctx->coefficient_grid,&ctx->coefficient_array);CHKERRQ(ierr);
-    ierr = StagBLArrayPETScGetLocalVecPointer(ctx->coefficient_array,&p_coeff_local);CHKERRQ(ierr);
-
-    ierr = DMCreateLocalVector(dm_coefficients,p_coeff_local);CHKERRQ(ierr);
-    coeff_local = *p_coeff_local;
+    ierr = StagBLArrayGetType(ctx->coefficient_array,&array_type);CHKERRQ(ierr);
+    if (StagBLCheckType(array_type,STAGBLARRAYPETSC)) {
+      ierr = StagBLArrayPETScGetLocalVecPointer(ctx->coefficient_array,&p_coeff_local);CHKERRQ(ierr);
+      ierr = DMCreateLocalVector(dm_coefficients,p_coeff_local);CHKERRQ(ierr);
+    }
   } else {
-    ierr = StagBLArrayPETScGetLocalVec(ctx->coefficient_array,&coeff_local);CHKERRQ(ierr);
+    ierr = StagBLArrayGetType(ctx->coefficient_array,&array_type);CHKERRQ(ierr);
   }
+
+
+  if (StagBLCheckType(array_type,STAGBLARRAYPETSC)) {
+    ierr = StagBLArrayPETScGetLocalVec(ctx->coefficient_array,&coeff_local);CHKERRQ(ierr);
+  } else if (StagBLCheckType(array_type,STAGBLARRAYSIMPLE)) {
+    ierr = DMGetLocalVector(dm_coefficients,&coeff_local);
+  } else StagBLError1(PetscObjectComm((PetscObject)dm_coefficients),"Unsupported array type %s",array_type);
 
   ierr = DMStagGetGhostCorners(dm_coefficients,&startx,&starty,&startz,&nx,&ny,&nz);CHKERRQ(ierr); /* Iterate over all local elements */
   ierr = DMStagGetGlobalSizes(dm_coefficients,&N[0],&N[1],&N[2]);CHKERRQ(ierr);
@@ -260,5 +270,24 @@ PetscErrorCode PopulateCoefficientData(Ctx ctx,const char* mode)
     ierr = DMStagVecRestoreArray(dm_coefficients,coeff_local,&arr_coefficients);CHKERRQ(ierr);
   } else SETERRQ1(PetscObjectComm((PetscObject)dm_coefficients),PETSC_ERR_SUP,"Unsupported dimension %d",dim);
   ierr = DMStagRestoreProductCoordinateArraysRead(dm_coefficients,&arr_coordinates_x,&arr_coordinates_y,&arr_coordinates_z);CHKERRQ(ierr);
+
+  /* Note the use of a hack to copy "simple" vectors to PETSc Vec */
+  if (StagBLCheckType(array_type,STAGBLARRAYSIMPLE)) {
+    PetscScalar       *local_raw;
+    const PetscScalar *coeff_local_array;
+    PetscInt          n;
+
+    ierr = StagBLArraySimpleGetLocalRaw(ctx->coefficient_array,&local_raw);CHKERRQ(ierr);
+    ierr = VecGetLocalSize(coeff_local,&n);CHKERRQ(ierr);
+    ierr = VecGetArrayRead(coeff_local,&coeff_local_array);CHKERRQ(ierr);
+    for (PetscInt i=0; i<n; ++i) local_raw[i] = coeff_local_array[i];
+    ierr = VecRestoreArrayRead(coeff_local,&coeff_local_array);CHKERRQ(ierr);
+    ierr = DMRestoreLocalVector(dm_coefficients,&coeff_local);
+  }
+
+  /* Declare that, through our custom operations, the local representation is now current and global is not */
+  ierr = StagBLArraySetLocalCurrent(ctx->coefficient_array,PETSC_TRUE);CHKERRQ(ierr);
+  ierr = StagBLArraySetGlobalCurrent(ctx->coefficient_array,PETSC_FALSE);CHKERRQ(ierr);
+
   PetscFunctionReturn(0);
 }

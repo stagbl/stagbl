@@ -15,8 +15,10 @@ typedef struct data_StagBLGridOps *StagBLGridOps;
 struct data_StagBLGrid
 {
   StagBLGridOps ops;
-  const char    *type;
-  void          *data;
+  const char       *type;
+  StagBLArrayType  array_type;
+  StagBLSystemType system_type;
+  void             *data;
 };
 
 #define STAGBLGRIDPETSC "petsc"

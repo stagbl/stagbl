@@ -5,7 +5,7 @@
 #include <petsc.h>
 
 typedef struct {
-  Vec vecLocal,vecGlobal;
+  Vec local, global;
 } StagBLArray_PETSc;
 
 #endif

@@ -1,1 +1,1 @@
-include $(call incsubdirs,petsc)
+include $(call incsubdirs,petsc simple)

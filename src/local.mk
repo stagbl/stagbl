@@ -1,1 +1,5 @@
-include $(call incsubdirs,control core stokes)
+libstagbl-y.c += $(call thisdir,\
+  stagbl.c\
+)
+
+include $(call incsubdirs,core stokes tests)

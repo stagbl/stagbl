@@ -2,27 +2,59 @@
 
 PetscErrorCode StagBLDumpStokes(StagBLStokesParameters parameters,StagBLArray stokes_array,PetscInt timestep)
 {
-  PetscErrorCode ierr;
-  PetscInt       dim;
-  StagBLGrid     coefficient_grid;
-  DM             dm_stokes,dm_coefficients;
-  DM             dm_velocity_average;
-  Vec            vec_stokes, vec_velocity_averaged;
-  DM             da_velocity_averaged,da_P,da_eta_element,da_eta_corner,da_rho;
-  Vec            vec_velocity_averaged_da,vec_P,vec_eta_element,vec_eta_corner,vec_rho;
-  Vec            vec_coefficients,vec_coefficients_local;
-  PetscInt       ex,ey,ez,startx,starty,startz,nx,ny,nz;
-  Vec            vec_stokes_local,vec_velocity_averaged_da_local;
-  PetscInt       slot_vx_left,slot_vx_right,slot_vy_down,slot_vy_up,slot_vx_center,slot_vy_center,slot_vz_center,slot_vz_back,slot_vz_front;
+  PetscErrorCode  ierr;
+  PetscInt        dim;
+  StagBLGrid      coefficient_grid;
+  DM              dm_stokes,dm_coefficients;
+  DM              dm_velocity_average;
+  Vec             vec_stokes, vec_velocity_averaged;
+  DM              da_velocity_averaged,da_P,da_eta_element,da_eta_corner,da_rho;
+  Vec             vec_velocity_averaged_da,vec_P,vec_eta_element,vec_eta_corner,vec_rho;
+  Vec             vec_coefficients,vec_coefficients_local;
+  PetscInt        ex,ey,ez,startx,starty,startz,nx,ny,nz;
+  Vec             vec_stokes_local,vec_velocity_averaged_da_local;
+  PetscInt        slot_vx_left,slot_vx_right,slot_vy_down,slot_vy_up,slot_vx_center,slot_vy_center,slot_vz_center,slot_vz_back,slot_vz_front;
+  StagBLArrayType stokes_array_type,coefficients_array_type;
 
   PetscFunctionBeginUser;
-  ierr = StagBLArrayPETScGetGlobalVec(stokes_array,&vec_stokes);CHKERRQ(ierr);
-  ierr = PetscObjectSetName((PetscObject)vec_stokes,"solution");CHKERRQ(ierr);
   ierr = StagBLGridPETScGetDM(parameters->stokes_grid,&dm_stokes);CHKERRQ(ierr);
+  ierr = StagBLArrayGetType(stokes_array,&stokes_array_type);CHKERRQ(ierr);
+
+  /* If using the "simple" array type, copy to a PETSc Vec */
+  if (StagBLCheckType(stokes_array_type,STAGBLARRAYPETSC)) {
+    ierr = StagBLArrayPETScGetGlobalVec(stokes_array,&vec_stokes);CHKERRQ(ierr);
+  } else if (StagBLCheckType(stokes_array_type,STAGBLARRAYSIMPLE)){
+    PetscScalar *stokes_global_raw,*vec_stokes_array;
+    PetscInt    n;
+
+    ierr = StagBLArraySimpleGetGlobalRaw(stokes_array,&stokes_global_raw);CHKERRQ(ierr);
+    ierr = DMGetGlobalVector(dm_stokes,&vec_stokes);CHKERRQ(ierr);
+    ierr = VecGetArray(vec_stokes,&vec_stokes_array);CHKERRQ(ierr);
+    ierr = VecGetLocalSize(vec_stokes,&n);CHKERRQ(ierr);
+    for (PetscInt i=0; i<n; ++i) vec_stokes_array[i] = stokes_global_raw[i];
+    ierr = VecRestoreArray(vec_stokes,&vec_stokes_array);CHKERRQ(ierr);
+  } else StagBLError1(PetscObjectComm((PetscObject)dm_stokes),"%s not implemented for this array type",__func__);
+
+  ierr = PetscObjectSetName((PetscObject)vec_stokes,"solution");CHKERRQ(ierr);
   ierr = DMGetDimension(dm_stokes,&dim);CHKERRQ(ierr);
   ierr = StagBLArrayGetStagBLGrid(parameters->coefficient_array,&coefficient_grid);CHKERRQ(ierr);
   ierr = StagBLGridPETScGetDM(coefficient_grid,&dm_coefficients);CHKERRQ(ierr);
-  ierr = StagBLArrayPETScGetLocalVec(parameters->coefficient_array,&vec_coefficients_local);CHKERRQ(ierr);
+  ierr = StagBLArrayGetType(parameters->coefficient_array,&coefficients_array_type);CHKERRQ(ierr);
+
+  /* If using the "simple" array type, copy to a PETSc Vec */
+  if (StagBLCheckType(coefficients_array_type,STAGBLARRAYPETSC)) {
+    ierr = StagBLArrayPETScGetLocalVec(parameters->coefficient_array,&vec_coefficients_local);CHKERRQ(ierr);
+  } else if (StagBLCheckType(coefficients_array_type,STAGBLARRAYSIMPLE)) {
+    PetscScalar *coefficients_local_raw,*vec_coefficients_local_array;
+    PetscInt    n;
+
+    ierr = StagBLArraySimpleGetLocalRaw(parameters->coefficient_array,&coefficients_local_raw);CHKERRQ(ierr);
+    ierr = DMGetLocalVector(dm_coefficients,&vec_coefficients_local);CHKERRQ(ierr);
+    ierr = VecGetLocalSize(vec_coefficients_local,&n);CHKERRQ(ierr);
+    ierr = VecGetArray(vec_coefficients_local,&vec_coefficients_local_array);CHKERRQ(ierr);
+    for (PetscInt i=0; i<n; ++i) vec_coefficients_local_array[i] = coefficients_local_raw[i];
+    ierr = VecRestoreArray(vec_coefficients_local,&vec_coefficients_local_array);CHKERRQ(ierr);
+  } else StagBLError1(PetscObjectComm((PetscObject)dm_coefficients),"%s not implemented for this array type",__func__);
 
   switch (dim) {
     case 2:
@@ -163,5 +195,12 @@ PetscErrorCode StagBLDumpStokes(StagBLStokesParameters parameters,StagBLArray st
     ierr = DMDestroy(&da_rho);CHKERRQ(ierr);
   }
   ierr = DMDestroy(&dm_velocity_average);CHKERRQ(ierr);
+
+  if (StagBLCheckType(stokes_array_type,STAGBLARRAYSIMPLE)){
+    ierr = DMRestoreGlobalVector(dm_stokes,&vec_stokes);CHKERRQ(ierr);
+  }
+  if (StagBLCheckType(coefficients_array_type,STAGBLARRAYSIMPLE)) {
+    ierr = DMRestoreLocalVector(dm_coefficients,&vec_coefficients_local);CHKERRQ(ierr);
+  }
   PetscFunctionReturn(0);
 }

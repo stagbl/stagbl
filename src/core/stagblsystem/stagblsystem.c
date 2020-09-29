@@ -1,7 +1,7 @@
 #include "stagbl/private/stagblsystemimpl.h"
 #include <stdlib.h>
 
-PetscErrorCode StagBLSystemCreate(StagBLGrid grid,StagBLSystem *system)
+PetscErrorCode StagBLSystemCreate(StagBLGrid grid,StagBLSystem *system,StagBLSystemType type)
 {
   PetscErrorCode ierr;
 
@@ -9,21 +9,27 @@ PetscErrorCode StagBLSystemCreate(StagBLGrid grid,StagBLSystem *system)
   ierr = PetscMalloc1(1,system);CHKERRQ(ierr);
   ierr = PetscCalloc1(1,&(*system)->ops);CHKERRQ(ierr);
 
+  (*system)->type = type;
   (*system)->grid = grid;
 
-  // Setting Type and calling creation routine hard-coded for now
-  (*system)->type = STAGBLSYSTEMPETSC;
-  (*system)->ops->create = StagBLSystemCreate_PETSc; // Sets other ops
+  /* Set the creation function and call it, which sets other ops */
+  if (StagBLCheckType(type,STAGBLSYSTEMPETSC)) {
+      (*system)->ops->create = StagBLSystemCreate_PETSc;
+  } else if (StagBLCheckType(type,STAGBLSYSTEMSIMPLE)) {
+      (*system)->ops->create = StagBLSystemCreate_Simple;
+  } else StagBLError1(PETSC_COMM_WORLD,"System creation not implemented for type %s",type);
   ierr = ((*system)->ops->create)(*system);CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode StagBLSystemCreateStagBLSolver(StagBLSystem system,StagBLSolver *solver)
+PetscErrorCode StagBLSystemSolve(StagBLSystem system,StagBLArray solution)
 {
   PetscErrorCode ierr;
 
   PetscFunctionBegin;
-  ierr = StagBLSolverCreate(system,solver);CHKERRQ(ierr);
+  if (system->ops->solve) {
+    ierr = (system->ops->solve)(system,solution);CHKERRQ(ierr);
+  } else StagBLError1(MPI_COMM_SELF,"%s not implemented for this type",__func__);
   PetscFunctionReturn(0);
 }
 
@@ -46,5 +52,38 @@ PetscErrorCode StagBLSystemGetGrid(StagBLSystem system,StagBLGrid *grid)
 {
   PetscFunctionBegin;
   *grid = system->grid;
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode StagBLSystemOperatorSetValuesStencil(StagBLSystem system,PetscInt nrows,const DMStagStencil *rows,PetscInt ncols,const DMStagStencil *cols, const PetscScalar *values)
+{
+  PetscErrorCode ierr;
+
+  PetscFunctionBegin;
+  if (system->ops->operatorsetvaluesstencil) {
+    ierr = (system->ops->operatorsetvaluesstencil)(system,nrows,rows,ncols,cols,values);CHKERRQ(ierr);
+  } else StagBLError2(PETSC_COMM_WORLD,"%s not implemented for StagBLSystem object of type %s",__func__,system->type);
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode StagBLSystemRHSSetConstant(StagBLSystem system,PetscScalar value)
+{
+  PetscErrorCode ierr;
+
+  PetscFunctionBegin;
+  if (system->ops->rhssetconstant) {
+    ierr = (system->ops->rhssetconstant)(system,value);CHKERRQ(ierr);
+  } else StagBLError2(PETSC_COMM_WORLD,"%s not implemented for StagBLSystem object of type %s",__func__,system->type);
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode StagBLSystemRHSSetValuesStencil(StagBLSystem system,PetscInt nrows,const DMStagStencil *rows,const PetscScalar *values)
+{
+  PetscErrorCode ierr;
+
+  PetscFunctionBegin;
+  if (system->ops->operatorsetvaluesstencil) {
+    ierr = (system->ops->rhssetvaluesstencil)(system,nrows,rows,values);CHKERRQ(ierr);
+  } else StagBLError2(PETSC_COMM_WORLD,"%s not implemented for StagBLSystem object of type %s",__func__,system->type);
   PetscFunctionReturn(0);
 }

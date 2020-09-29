@@ -1,0 +1,149 @@
+environment:
+  - STAGBL_DIR
+  - STAGBL_ARCH
+
+tests:
+
+  - name: quickstart1
+    command: $STAGBL_DIR/$STAGBL_ARCH/bin/stagbldemo2d
+    type: exit_code
+
+  - name: quickstart2
+    command: $STAGBL_DIR/$STAGBL_ARCH/bin/stagbldemo2d -mode sinker -stag_grid_x 30 -stag_grid_y 50
+    ranks: 4
+    type: exit_code
+
+  - name: blankenbach
+    command: $STAGBL_DIR/$STAGBL_ARCH/bin/stagbldemo2d -mode blankenbach -nsteps 7 -dt 1e17 -stag_grid_x 39 -stag_grid_y 37
+    type: float_lines
+    rules:
+      - key: Nusselt number:
+        rtol: 1e-5
+      - key: Rayleigh number:
+        rtol: 1e-5
+    expected: test_data/blankenbach.expected
+
+  - name: blankenbach_parallel
+    command: $STAGBL_DIR/$STAGBL_ARCH/bin/stagbldemo2d -mode blankenbach -nsteps 7 -dt 1e17 -stag_grid_x 39 -stag_grid_y 37
+    ranks: 4
+    type: float_lines
+    rules:
+      - key: Nusselt number:
+        rtol: 1e-5
+      - key: Rayleigh number:
+        rtol: 1e-5
+    expected: test_data/blankenbach_parallel.expected
+
+    #  - name: dmstag_vs_dmda
+    #    command: $STAGBL_DIR/$STAGBL_ARCH/bin/test_dmstag_preallocate -preallocate 1 -log_view -pc_type lu -pc_factor_mat_solver_type umfpack
+    #    type: float_lines
+    #    rules:
+    #      - key: 1:        Creation:
+    #        rtol: 1e-1
+    #    expected: test_data/dmstag_vs_dmda.expected
+    #
+    #  - name: dmstag_preallocate
+    #    command: $STAGBL_DIR/$STAGBL_ARCH/bin/test_dmstag_vs_dmda -log_view -test 1
+    #    type: float_lines
+    #    rules:
+    #      - key: 1:        Creation:
+    #        rtol: 1e-1
+    #    expected: test_data/dmstag_vs_dmda.expected
+
+  - name:smoke_2d
+    command: $STAGBL_DIR/$STAGBL_ARCH/bin/stagbldemo2d
+    type: exit_code
+
+  - name:smoke_2d_parallel
+    command: $STAGBL_DIR/$STAGBL_ARCH/bin/stagbldemo2d
+    ranks: 2
+    type: exit_code
+
+  - name:smoke_2d_simple
+    command: $STAGBL_DIR/$STAGBL_ARCH/bin/stagbldemo2d -simple
+    type: exit_code
+
+  - name:smoke_3d
+    command: $STAGBL_DIR/$STAGBL_ARCH/bin/stagbldemo3d -stag_grid_x 5 -stag_grid_y 5 -stag_grid_z 5 -pc_type lu -pc_factor_mat_solver_package umfpack
+    type: exit_code
+
+  - name:smoke_3d_parallel
+    command: $STAGBL_DIR/$STAGBL_ARCH/bin/stagbldemo3d -stag_grid_x 5 -stag_grid_y 5 -stag_grid_z 5 -pc_type lu -pc_factor_mat_solver_package superlu_dist
+    type: exit_code
+
+    #  - name: sinker_parallel
+    #    command: $STAGBL_DIR/$STAGBL_ARCH/stagbldemo2d -mode sinker -debug_ascii_dump -pc_type lu -pc_factor_mat_solver_type mumps -mat_mumps_icntl_23 100
+    #    ranks: 9
+    #    type: float_lines
+    #    rules:
+    #      - key: # match anything
+    #        rtol: 1e-8
+    #        atol: 1e-10
+    #    expected: test_data/sinker_parallel.expected
+    #
+    #  - name: gerya_7_2
+    #    command: $STAGBL_DIR/$STAGBL_ARCH/bin/stagbldemo2d -debug_ascii_dump
+    #    type: float_lines
+    #    rules:
+    #      - key: # match anything
+    #        rtol: 1e-8
+    #        atol: 1e-10
+    #    expected: test_data/gerya_7_2.expected
+    #
+    #  - name: gerya_7_2_parallel4
+    #    command: $STAGBL_DIR/$STAGBL_ARCH/bin/stagbldemo2d -debug_ascii_dump -pc_type lu -pc_factor_mat_solver_type mumps -mat_mumps_icntl_23 100
+    #    type: float_lines
+    #    rules:
+    #      - key: # match anything
+    #        rtol: 1e-8
+    #        atol: 1e-10
+    #    expected: test_data/gerya_7_2_parallel9.expected
+    #
+    #  - name: gerya_7_2_parallel9
+    #    command: $STAGBL_DIR/$STAGBL_ARCH/bin/stagbldemo2d -debug_ascii_dump -pc_type lu -pc_factor_mat_solver_type mumps -mat_mumps_icntl_23 100
+    #    type: float_lines
+    #    rules:
+    #      - key: # match anything
+    #        rtol: 1e-8
+    #        atol: 1e-10
+    #    expected: test_data/gerya_7_2_parallel9.expected
+
+  - name:array_stencil
+    command: $STAGBL_DIR/$STAGBL_ARCH/bin/test_array_stencil
+    type: exit_code
+
+  - name:array_stencil_simple
+    command: $STAGBL_DIR/$STAGBL_ARCH/bin/test_array_stencil -simple
+    type: exit_code
+
+  - name:array
+    command: $STAGBL_DIR/$STAGBL_ARCH/bin/test_array
+    type: exit_code
+
+  - name:array_simple
+    command: $STAGBL_DIR/$STAGBL_ARCH/bin/test_array -simple
+    type: exit_code
+
+  - name:system_stencil
+    command: $STAGBL_DIR/$STAGBL_ARCH/bin/test_system_stencil
+    type: exit_code
+
+  - name:system_stencil_simple
+    command: $STAGBL_DIR/$STAGBL_ARCH/bin/test_system_stencil -simple
+    type: exit_code
+
+  - name:stokes_assembly_and_solve
+    command: $STAGBL_DIR/$STAGBL_ARCH/bin/test_stokes_assembly_and_solve
+    type: exit_code
+
+  - name:stokes_assembly_and_solve_simple
+    command: $STAGBL_DIR/$STAGBL_ARCH/bin/test_stokes_assembly_and_solve -simple
+    type: exit_code
+
+  - name:stokes_assembly_and_solve_3d
+    command: $STAGBL_DIR/$STAGBL_ARCH/bin/test_stokes_assembly_and_solve -dim 3
+    type: exit_code
+
+  - name:stokes_assembly_and_solve_simple_3d
+    command: $STAGBL_DIR/$STAGBL_ARCH/bin/test_stokes_assembly_and_solve -simple -dim 3
+    type: exit_code
