@@ -20,6 +20,7 @@ include $(STAGBL_DIR)/rules.mk
 
 # Initialize set of targets and recursively include files for all targets
 libstagbl-y.c :=
+stagbltests-y.c :=
 include $(SRCDIR)/local.mk
 
 # Build libstagbl from sources here
@@ -47,7 +48,7 @@ clean:
 
 .PHONY: all clean print
 
-srcs.c := $(libstagbl-y.c)
+srcs.c := $(libstagbl-y.c) $(stagbltests-y.c)
 srcs.o := $(call srctoobj,$(srcs.c))
 srcs.d := $(srcs.o:%.o=%.d)
 # Tell make that srcs.d are all up to date.  Without this, the include
@@ -68,6 +69,9 @@ demo : library $(BINDIR)/.DIR
 
 .PHONY: demo
 
+$(BINDIR)/test_% : $(OBJDIR)/src/tests/test_%.o library | $$(@D)/.DIR
+	$(STAGBL_LINK) $< $(STAGBL_LIB)
+
 # Additional Test Executables
 # This is currently done manually, and would be more maintainable with an automated process
 tests : \
@@ -81,27 +85,6 @@ tests : \
 	$(BINDIR)/test_system_stencil \
 	$(BINDIR)/test_stokes_operator \
 	$(BINDIR)/test_stokes_assembly_and_solve \
-
-$(BINDIR)/test_array_stencil : $(OBJDIR)/src/tests/test_array_stencil.o library | $$(@D)/.DIR
-	$(STAGBL_LINK) $< $(STAGBL_LIB)
-$(BINDIR)/test_dmstag_vs_dmda : $(OBJDIR)/src/tests/performance/test_dmstag_vs_dmda.o library | $$(@D)/.DIR
-	$(STAGBL_LINK) $< $(STAGBL_LIB)
-$(BINDIR)/test_dmstag_vs_dmda_mf_op : $(OBJDIR)/src/tests/performance/test_dmstag_vs_dmda_mf_op.o library | $$(@D)/.DIR
-	$(STAGBL_LINK) $< $(STAGBL_LIB)
-$(BINDIR)/test_dmstag_vs_dmda_matstencil : $(OBJDIR)/src/tests/performance/test_dmstag_vs_dmda_matstencil.o library | $$(@D)/.DIR
-	$(STAGBL_LINK) $< $(STAGBL_LIB)
-$(BINDIR)/test_dmstag_vec_stencil_vs_array : $(OBJDIR)/src/tests/performance/test_dmstag_vec_stencil_vs_array.o library | $$(@D)/.DIR
-	$(STAGBL_LINK) $< $(STAGBL_LIB)
-$(BINDIR)/test_dmstag_preallocate : $(OBJDIR)/src/tests/performance/test_dmstag_preallocate.o library | $$(@D)/.DIR
-	$(STAGBL_LINK) $< $(STAGBL_LIB)
-$(BINDIR)/test_array : $(OBJDIR)/src/tests/test_array.o library | $$(@D)/.DIR
-	$(STAGBL_LINK) $< $(STAGBL_LIB)
-$(BINDIR)/test_system_stencil : $(OBJDIR)/src/tests/test_system_stencil.o library | $$(@D)/.DIR
-	$(STAGBL_LINK) $< $(STAGBL_LIB)
-$(BINDIR)/test_stokes_operator : $(OBJDIR)/src/tests/test_stokes_operator.o library | $$(@D)/.DIR
-	$(STAGBL_LINK) $< $(STAGBL_LIB)
-$(BINDIR)/test_stokes_assembly_and_solve : $(OBJDIR)/src/tests/test_stokes_assembly_and_solve.o library | $$(@D)/.DIR
-	$(STAGBL_LINK) $< $(STAGBL_LIB)
 
 .PHONY : tests
 
