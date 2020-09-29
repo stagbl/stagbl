@@ -124,6 +124,14 @@ tests:
     command: $STAGBL_DIR/$STAGBL_ARCH/bin/test_array -simple
     type: exit_code
 
+  - name:system_stencil
+    command: $STAGBL_DIR/$STAGBL_ARCH/bin/test_system_stencil
+    type: exit_code
+
+  - name:system_stencil_simple
+    command: $STAGBL_DIR/$STAGBL_ARCH/bin/test_system_stencil -simple
+    type: exit_code
+
   - name:stokes_assembly_and_solve
     command: $STAGBL_DIR/$STAGBL_ARCH/bin/test_stokes_assembly_and_solve
     type: exit_code
