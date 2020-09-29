@@ -173,30 +173,46 @@ PetscErrorCode StagBLArrayCreate_PETSc(StagBLArray stagblarray)
   return 0;
 }
 
-PetscErrorCode StagBLArrayPETScGetGlobalVec(StagBLArray stagblarray,Vec *vec)
+PetscErrorCode StagBLArrayPETScGetGlobalVec(StagBLArray array,Vec *vec)
 {
-  StagBLArray_PETSc * const data = (StagBLArray_PETSc*) stagblarray->data;
+  PetscErrorCode            ierr;
+  StagBLArray_PETSc * const data = (StagBLArray_PETSc*) array->data;
+
+  PetscFunctionBeginHot;
+  ierr = StagBLEnforceType(array->type,STAGBLARRAYPETSC);CHKERRQ(ierr);
   *vec = data->global;
-  return 0;
+  PetscFunctionReturn(0);
 }
 
-PetscErrorCode StagBLArrayPETScGetLocalVec(StagBLArray stagblarray,Vec *vec)
+PetscErrorCode StagBLArrayPETScGetLocalVec(StagBLArray array,Vec *vec)
 {
-  StagBLArray_PETSc * const data = (StagBLArray_PETSc*) stagblarray->data;
+  PetscErrorCode            ierr;
+  StagBLArray_PETSc * const data = (StagBLArray_PETSc*) array->data;
+
+  PetscFunctionBeginHot;
+  ierr = StagBLEnforceType(array->type,STAGBLARRAYPETSC);CHKERRQ(ierr);
   *vec = data->local;
-  return 0;
+  PetscFunctionReturn(0);
 }
 
-PetscErrorCode StagBLArrayPETScGetLocalVecPointer(StagBLArray stagblarray,Vec **vec)
+PetscErrorCode StagBLArrayPETScGetLocalVecPointer(StagBLArray array,Vec **vec)
 {
-  StagBLArray_PETSc * const data = (StagBLArray_PETSc*) stagblarray->data;
+  PetscErrorCode            ierr;
+  StagBLArray_PETSc * const data = (StagBLArray_PETSc*) array->data;
+
+  PetscFunctionBegin;
+  ierr = StagBLEnforceType(array->type,STAGBLARRAYPETSC);CHKERRQ(ierr);
   *vec = &(data->local);
-  return 0;
+  PetscFunctionReturn(0);
 }
 
-PetscErrorCode StagBLArrayPETScGetGlobalVecPointer(StagBLArray stagblarray,Vec **vec)
+PetscErrorCode StagBLArrayPETScGetGlobalVecPointer(StagBLArray array,Vec **vec)
 {
-  StagBLArray_PETSc * const data = (StagBLArray_PETSc*) stagblarray->data;
+  PetscErrorCode            ierr;
+  StagBLArray_PETSc * const data = (StagBLArray_PETSc*) array->data;
+
+  PetscFunctionBegin;
+  ierr = StagBLEnforceType(array->type,STAGBLARRAYPETSC);CHKERRQ(ierr);
   *vec = &(data->global);
-  return 0;
+  PetscFunctionReturn(0);
 }

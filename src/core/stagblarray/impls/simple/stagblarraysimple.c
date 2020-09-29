@@ -266,7 +266,7 @@ PetscErrorCode StagBLArraySimpleGetGlobalRaw(StagBLArray array,PetscScalar **raw
   StagBLArray_Simple *data = (StagBLArray_Simple*) array->data;
 
   PetscFunctionBegin;
-  // FIXME definitely need type check here!
+  ierr = StagBLEnforceType(array->type,STAGBLARRAYSIMPLE);CHKERRQ(ierr);
   if (!data->global) {
     ierr = StagBLArraySimpleCreateGlobalVector_Private(array);CHKERRQ(ierr);
   }
@@ -281,7 +281,7 @@ PetscErrorCode StagBLArraySimpleGetLocalRaw(StagBLArray array,PetscScalar **raw)
   StagBLArray_Simple *data = (StagBLArray_Simple*) array->data;
 
   PetscFunctionBegin;
-  // FIXME definitely need type check here!
+  ierr = StagBLEnforceType(array->type,STAGBLARRAYSIMPLE);CHKERRQ(ierr);
   if (!data->local) {
     ierr = StagBLArraySimpleCreateLocalVector_Private(array);CHKERRQ(ierr);
   }
