@@ -106,12 +106,10 @@ int main(int argc, char** argv)
   /* Create the Stokes system */
   ierr = StagBLGridCreateStagBLArray(ctx->stokes_grid,&ctx->stokes_array);CHKERRQ(ierr);
   ierr = StagBLCreateStokesSystem(parameters,&ctx->stokes_system);CHKERRQ(ierr);
-  ierr = StagBLSystemCreateStagBLSolver(ctx->stokes_system,&ctx->stokes_solver);CHKERRQ(ierr);
 
   /* Solve the system  */
-  ierr = StagBLSolverSolve(ctx->stokes_solver,ctx->stokes_array);CHKERRQ(ierr);
+  ierr = StagBLSystemSolve(ctx->stokes_system,ctx->stokes_array);CHKERRQ(ierr);
   ierr = StagBLSystemDestroy(&ctx->stokes_system);CHKERRQ(ierr);
-  ierr = StagBLSolverDestroy(&ctx->stokes_solver);CHKERRQ(ierr);
 
   /* Output Stokes data to file */
   ierr = StagBLDumpStokes(parameters,ctx->stokes_array,/* timestep */ 0);CHKERRQ(ierr);

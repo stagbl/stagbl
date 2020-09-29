@@ -22,12 +22,14 @@ PetscErrorCode StagBLSystemCreate(StagBLGrid grid,StagBLSystem *system,StagBLSys
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode StagBLSystemCreateStagBLSolver(StagBLSystem system,StagBLSolver *p_solver)
+PetscErrorCode StagBLSystemSolve(StagBLSystem system,StagBLArray solution)
 {
   PetscErrorCode ierr;
 
   PetscFunctionBegin;
-  ierr = StagBLSolverCreate(system,p_solver,system->solver_type);CHKERRQ(ierr);
+  if (system->ops->solve) {
+    ierr = (system->ops->solve)(system,solution);CHKERRQ(ierr);
+  } else StagBLError1(MPI_COMM_SELF,"%s not implemented for this type",__func__);
   PetscFunctionReturn(0);
 }
 

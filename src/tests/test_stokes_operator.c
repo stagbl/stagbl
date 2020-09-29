@@ -8,7 +8,6 @@ int main(int argc, char** argv)
   StagBLArrayType        array_type;
   StagBLStokesParameters parameters;
   StagBLSystem           stokes_system;
-  StagBLSolver           stokes_solver;
   PetscReal              xmin,xmax,ymin,ymax,zmin,zmax;
 
   ierr = StagBLInitialize(argc,argv,NULL,MPI_COMM_NULL);CHKERRQ(ierr);
@@ -51,7 +50,6 @@ int main(int argc, char** argv)
 
   ierr = StagBLGridCreateStagBLArray(stokes_grid,&stokes_array);CHKERRQ(ierr);
   ierr = StagBLCreateStokesSystem(parameters,&stokes_system);CHKERRQ(ierr);
-  ierr = StagBLSystemCreateStagBLSolver(stokes_system,&stokes_solver);CHKERRQ(ierr);
 
   {
     Mat *p_A;
@@ -74,7 +72,6 @@ int main(int argc, char** argv)
 
   ierr = StagBLArrayDestroy(&stokes_array);CHKERRQ(ierr);
   ierr = StagBLSystemDestroy(&stokes_system);CHKERRQ(ierr);
-  ierr = StagBLSolverDestroy(&stokes_solver);CHKERRQ(ierr);
   ierr = StagBLStokesParametersDestroy(&parameters);CHKERRQ(ierr);
   ierr = StagBLFinalize();
   return ierr;

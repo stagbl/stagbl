@@ -299,6 +299,6 @@ PetscErrorCode UpdateTemperature(Ctx ctx)
   PetscErrorCode ierr;
 
   PetscFunctionBeginUser;
-  ierr = StagBLSolverSolve(ctx->temperature_solver,ctx->temperature_array);CHKERRQ(ierr);
+  ierr = StagBLSystemSolve(ctx->temperature_system,ctx->temperature_array);CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }

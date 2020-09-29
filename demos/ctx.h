@@ -39,7 +39,6 @@ typedef struct {
   StagBLGrid   stokes_grid,coefficient_grid,temperature_grid;
   StagBLArray  coefficient_array,stokes_array,temperature_array;
   StagBLSystem temperature_system,stokes_system;
-  StagBLSolver temperature_solver,stokes_solver;
   DM           dm_particles;
 } data_Ctx;
 typedef data_Ctx* Ctx;

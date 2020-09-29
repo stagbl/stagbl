@@ -52,6 +52,9 @@ PetscErrorCode StagBLSystemDestroy_PETSc(StagBLSystem stagblsystem)
   if (data->mat) {
     ierr = MatDestroy(&data->mat);CHKERRQ(ierr);
   }
+  if (data->snes) {
+    ierr = SNESDestroy(&data->snes);CHKERRQ(ierr);
+  }
   free(stagblsystem->data);
   stagblsystem->data = NULL;
   PetscFunctionReturn(0);
@@ -91,6 +94,75 @@ static PetscErrorCode StagBLSystemRHSSetValuesStencil_PETSc(StagBLSystem system,
   PetscFunctionReturn(0);
 }
 
+static PetscErrorCode StagBLSystemSolve_PETSc(StagBLSystem system,StagBLArray sol)
+{
+  StagBLSystem_PETSc * const data = (StagBLSystem_PETSc*) system->data;
+  StagBLGrid                 grid;
+  PetscErrorCode             ierr;
+  Vec                        vec_sol;
+  DM                         dm;
+
+  PetscFunctionBegin;
+  ierr = StagBLArrayGetStagBLGrid(sol,&grid);CHKERRQ(ierr);
+  ierr = StagBLGridPETScGetDM(grid,&dm);CHKERRQ(ierr);
+
+  ierr = StagBLArrayPETScGetGlobalVec(sol,&vec_sol);CHKERRQ(ierr);
+
+  /* Create the solution Vec, if needbe */
+  if (!vec_sol)
+  {
+    Vec *p_vec_sol;
+
+    ierr = StagBLArrayPETScGetGlobalVecPointer(sol,&p_vec_sol);CHKERRQ(ierr);
+    ierr = DMCreateGlobalVector(dm,p_vec_sol);CHKERRQ(ierr);
+    vec_sol = *p_vec_sol;
+  }
+
+  /* Create the SNES object from the system, if needbe */
+  if (!data->snes) {
+
+    ierr = SNESCreate(PetscObjectComm((PetscObject)dm),&data->snes);CHKERRQ(ierr);
+    ierr = SNESSetFunction(data->snes,NULL,data->residual_function,(void*)system);CHKERRQ(ierr);
+    ierr = SNESSetJacobian(data->snes,NULL,NULL,data->jacobian_function,(void*)system);CHKERRQ(ierr);
+    {
+      PetscMPIInt size;
+      KSP         ksp;
+      PC          pc;
+
+      ierr = SNESSetType(data->snes,SNESKSPONLY);CHKERRQ(ierr);
+      ierr = SNESGetKSP(data->snes,&ksp);CHKERRQ(ierr);
+      ierr = KSPSetType(ksp,KSPFGMRES);CHKERRQ(ierr);
+      ierr = KSPGetPC(ksp,&pc);CHKERRQ(ierr);
+
+      ierr = MPI_Comm_size(PetscObjectComm((PetscObject)dm),&size);CHKERRQ(ierr);
+      if (size == 1) {
+        // FIXME use PetscDefined()
+#ifdef PETSC_HAVE_SUITESPARSE
+        ierr = PCSetType(pc,PCLU);CHKERRQ(ierr);
+        ierr = PCFactorSetMatSolverType(pc,MATSOLVERUMFPACK);CHKERRQ(ierr);
+#endif
+      } else {
+        // FIXME use PetscDefined()
+#ifdef PETSC_HAVE_SUPERLU_DIST
+        ierr = PCSetType(pc,PCLU);CHKERRQ(ierr);
+        ierr = PCFactorSetMatSolverType(pc,MATSOLVERSUPERLU_DIST);CHKERRQ(ierr);
+#endif
+      }
+    }
+    ierr = SNESSetFromOptions(data->snes);CHKERRQ(ierr);
+  }
+
+  ierr = SNESSolve(data->snes,NULL,vec_sol);CHKERRQ(ierr);
+  {
+    SNESConvergedReason reason;
+
+    ierr = SNESGetConvergedReason(data->snes,&reason);CHKERRQ(ierr);
+    if (reason < 0) SETERRQ1(PetscObjectComm((PetscObject)dm),PETSC_ERR_CONV_FAILED,"Solve failed: %s",SNESConvergedReasons[reason]);
+  }
+
+  PetscFunctionReturn(0);
+}
+
 PetscErrorCode StagBLSystemCreate_PETSc(StagBLSystem system)
 {
   PetscErrorCode     ierr;
@@ -103,12 +175,12 @@ PetscErrorCode StagBLSystemCreate_PETSc(StagBLSystem system)
   system->ops->operatorsetvaluesstencil = StagBLSystemOperatorSetValuesStencil_PETSc;
   system->ops->rhssetconstant = StagBLSystemRHSSetConstant_PETSc;
   system->ops->rhssetvaluesstencil = StagBLSystemRHSSetValuesStencil_PETSc;
-
-  system->solver_type = STAGBLSOLVERPETSC;
+  system->ops->solve = StagBLSystemSolve_PETSc;
 
   data = (StagBLSystem_PETSc*) system->data;
   data->residual_function = StagBLSystemPetscResidual_Default;
   data->jacobian_function = StagBLSystemPetscJacobian_Default;
+  data->snes = NULL;
 
   ierr = StagBLGridPETScGetDM(system->grid,&dm);CHKERRQ(ierr);
   ierr = DMCreateMatrix(dm,&data->mat);CHKERRQ(ierr);

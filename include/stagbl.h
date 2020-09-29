@@ -29,11 +29,6 @@ struct data_StagBLSystem;
 typedef struct data_StagBLSystem *StagBLSystem;
 typedef const char * StagBLSystemType;
 
-/* StagBLSolver Data */
-struct data_StagBLSolver;
-typedef struct data_StagBLSolver *StagBLSolver;
-typedef const char * StagBLSolverType;
-
 /* StagBLGrid impls */
 #define STAGBLGRIDPETSC "petsc"
 
@@ -78,9 +73,9 @@ PetscErrorCode StagBLArraySimpleGetLocalRaw(StagBLArray,PetscScalar**);
 
 /* StagBLSystem Functions */
 PetscErrorCode StagBLSystemCreate(StagBLGrid,StagBLSystem*,StagBLSystemType);
-PetscErrorCode StagBLSystemCreateStagBLSolver(StagBLSystem,StagBLSolver*);
 PetscErrorCode StagBLSystemDestroy(StagBLSystem*);
 PetscErrorCode StagBLSystemGetGrid(StagBLSystem,StagBLGrid*);
+PetscErrorCode StagBLSystemSolve(StagBLSystem,StagBLArray);
 
 PetscErrorCode StagBLSystemOperatorSetValuesStencil(StagBLSystem,PetscInt,const DMStagStencil*,PetscInt,const DMStagStencil*,const PetscScalar*);
 PetscErrorCode StagBLSystemRHSSetConstant(StagBLSystem,PetscScalar);
@@ -98,21 +93,6 @@ PetscErrorCode StagBLSystemPETScGetJacobianFunction(StagBLSystem,PetscErrorCode 
 
 #define STAGBLSYSTEMSIMPLE "simple"
 PetscErrorCode StagBLSystemCreate_Simple(StagBLSystem);
-PetscErrorCode StagBLSystemSolve_Simple(StagBLSystem,StagBLArray);
-
-/* StagBLSolver Functions */
-PetscErrorCode StagBLSolverCreate(StagBLSystem,StagBLSolver*,StagBLSolverType);
-PetscErrorCode StagBLSolverDestroy(StagBLSolver*);
-PetscErrorCode StagBLSolverGetSystem(StagBLSolver,StagBLSystem*);
-PetscErrorCode StagBLSolverSolve(StagBLSolver,StagBLArray);
-
-/* StagBLSolver impls */
-#define STAGBLSOLVERPETSC "petsc"
-PetscErrorCode StagBLSolverCreate_PETSc(StagBLSolver);
-
-#define STAGBLSOLVERSIMPLE "simple"
-PetscErrorCode StagBLSolverCreate_Simple(StagBLSolver);
-
 
 /* Stokes */
 struct data_StagBLStokesParameters {

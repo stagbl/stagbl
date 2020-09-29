@@ -100,7 +100,6 @@ int main(int argc, char** argv)
 
   /* Create a Temperature system */
   ierr = StagBLGridCreateStagBLSystem(ctx->temperature_grid,&ctx->temperature_system);CHKERRQ(ierr);
-  ierr = StagBLSystemCreateStagBLSolver(ctx->temperature_system,&ctx->temperature_solver);CHKERRQ(ierr);
   ierr = StagBLGridCreateStagBLArray(ctx->temperature_grid,&ctx->temperature_array);CHKERRQ(ierr);
 
   /* Create a System of Particles using PETSc DMSwarm object
@@ -167,10 +166,8 @@ int main(int argc, char** argv)
       ierr = StagBLGridCreateStagBLArray(ctx->stokes_grid,&ctx->stokes_array);CHKERRQ(ierr);
     }
     ierr = StagBLCreateStokesSystem(parameters,&ctx->stokes_system);CHKERRQ(ierr);
-    ierr = StagBLSystemCreateStagBLSolver(ctx->stokes_system,&ctx->stokes_solver);CHKERRQ(ierr);
-    ierr = StagBLSolverSolve(ctx->stokes_solver,ctx->stokes_array);CHKERRQ(ierr);
+    ierr = StagBLSystemSolve(ctx->stokes_system,ctx->stokes_array);CHKERRQ(ierr);
     ierr = StagBLSystemDestroy(&ctx->stokes_system);CHKERRQ(ierr);
-    ierr = StagBLSolverDestroy(&ctx->stokes_solver);CHKERRQ(ierr);
 
     /* Analyze temperature field */
     if (ctx->compute_nusselt_number) {

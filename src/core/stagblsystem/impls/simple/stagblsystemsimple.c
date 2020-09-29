@@ -83,8 +83,7 @@ static PetscErrorCode StagBLSystemRHSSetValuesStencil_Simple(StagBLSystem system
   PetscFunctionReturn(0);
 }
 
-// FIXME make this static and a class function (and get rid of StagBLSolver)
-PetscErrorCode StagBLSystemSolve_Simple(StagBLSystem system,StagBLArray sol)
+static PetscErrorCode StagBLSystemSolve_Simple(StagBLSystem system,StagBLArray sol)
 {
   PetscErrorCode      ierr;
   StagBLSystem_Simple *data = (StagBLSystem_Simple*) system->data;
@@ -133,8 +132,7 @@ PetscErrorCode StagBLSystemCreate_Simple(StagBLSystem system)
   system->ops->operatorsetvaluesstencil = StagBLSystemOperatorSetValuesStencil_Simple;
   system->ops->rhssetconstant = StagBLSystemRHSSetConstant_Simple;
   system->ops->rhssetvaluesstencil = StagBLSystemRHSSetValuesStencil_Simple;
-
-  system->solver_type = STAGBLSOLVERSIMPLE;
+  system->ops->solve = StagBLSystemSolve_Simple;
 
   ierr = StagBLGridPETScGetDM(system->grid,&dm);CHKERRQ(ierr);
   ierr = MPI_Comm_size(PetscObjectComm((PetscObject)dm),&size);CHKERRQ(ierr);

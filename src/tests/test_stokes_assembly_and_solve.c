@@ -7,7 +7,6 @@ int main(int argc, char** argv)
   StagBLArray            stokes_array,coefficient_array;
   StagBLStokesParameters parameters;
   StagBLSystem           stokes_system;
-  StagBLSolver           stokes_solver;
   PetscReal              xmin,xmax,ymin,ymax,zmin,zmax;
   PetscInt               dim,Nx,Ny,Nz;
   PetscBool              use_simple;
@@ -63,15 +62,13 @@ int main(int argc, char** argv)
   ierr = StagBLGridCreateStagBLArray(stokes_grid,&stokes_array);CHKERRQ(ierr);
 
   ierr = StagBLCreateStokesSystem(parameters,&stokes_system);CHKERRQ(ierr);
-  ierr = StagBLSystemCreateStagBLSolver(stokes_system,&stokes_solver);CHKERRQ(ierr);
 
-  ierr = StagBLSolverSolve(stokes_solver,stokes_array);CHKERRQ(ierr);
+  ierr = StagBLSystemSolve(stokes_system,stokes_array);CHKERRQ(ierr);
 
   ierr = StagBLDumpStokes(parameters,stokes_array,0);CHKERRQ(ierr);
 
   ierr = StagBLArrayDestroy(&stokes_array);CHKERRQ(ierr);
   ierr = StagBLSystemDestroy(&stokes_system);CHKERRQ(ierr);
-  ierr = StagBLSolverDestroy(&stokes_solver);CHKERRQ(ierr);
   ierr = StagBLGridDestroy(&stokes_grid);CHKERRQ(ierr);
   ierr = StagBLArrayDestroy(&coefficient_array);CHKERRQ(ierr);
   ierr = StagBLGridDestroy(&coefficient_grid);CHKERRQ(ierr);

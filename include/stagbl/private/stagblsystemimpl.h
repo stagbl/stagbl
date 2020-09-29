@@ -9,6 +9,7 @@ struct data_StagBLSystemOps {
   PetscErrorCode (*operatorsetvaluesstencil)(StagBLSystem,PetscInt,const DMStagStencil*,PetscInt,const DMStagStencil*,const PetscScalar*);
   PetscErrorCode (*rhssetconstant)(StagBLSystem,PetscScalar);
   PetscErrorCode (*rhssetvaluesstencil)(StagBLSystem,PetscInt,const DMStagStencil*,const PetscScalar*);
+  PetscErrorCode (*solve)(StagBLSystem,StagBLArray);
 };
 
 typedef struct data_StagBLSystemOps *StagBLSystemOps;
@@ -19,7 +20,6 @@ struct data_StagBLSystem
   const char       *type;
   void             *data;
   StagBLGrid       grid;
-  StagBLSolverType solver_type;
 };
 
 #endif
