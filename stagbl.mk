@@ -69,22 +69,11 @@ demo : library $(BINDIR)/.DIR
 
 .PHONY: demo
 
+# Additional Test Executables
 $(BINDIR)/test_% : $(OBJDIR)/src/tests/test_%.o library | $$(@D)/.DIR
 	$(STAGBL_LINK) $< $(STAGBL_LIB)
 
-# Additional Test Executables
-# This is currently done manually, and would be more maintainable with an automated process
-tests : \
-	$(BINDIR)/test_array_stencil \
-	$(BINDIR)/test_dmstag_vs_dmda \
-	$(BINDIR)/test_dmstag_vs_dmda_mf_op \
-	$(BINDIR)/test_dmstag_vs_dmda_matstencil \
-	$(BINDIR)/test_dmstag_vec_stencil_vs_array \
-	$(BINDIR)/test_dmstag_preallocate \
-	$(BINDIR)/test_array \
-	$(BINDIR)/test_system_stencil \
-	$(BINDIR)/test_stokes_operator \
-	$(BINDIR)/test_stokes_assembly_and_solve \
+tests : $(patsubst $(SRCDIR)/src/tests/%.c,$(BINDIR)/%,$(stagbltests-y.c))
 
 .PHONY : tests
 
