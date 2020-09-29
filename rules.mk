@@ -25,8 +25,6 @@ C99FLAGS := $(if $(findstring c99,$(PCC_FLAGS) $(STAGBL_CFLAGS) $(CFLAGS)),,$(if
 # Public headers for the library
 STAGBL_INCLUDE = -I$(STAGBL_DIR)/include
 
-# FIXME: consider putting info about libstagbl itself in here, so that it can be more easily linked to. stagbl.mk picks up this info and uses it to actually build the library.
-
 # Compile and Link
 STAGBL_COMPILE.c = $(call quiet,CC) -c $(C99FLAGS) $(STAGBL_CPPFLAGS) $(CPPFLAGS) $(STAGBL_CFLAGS) $(CFLAGS) $(C_DEPFLAGS) $(STAGBL_INCLUDE)
 STAGBL_LINK = $(call quiet,CCLD) $(STAGBL_CFLAGS) $(CFLAGS) $(STAGBL_LDFLAGS) $(LDFLAGS) -o $@
