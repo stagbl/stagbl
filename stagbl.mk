@@ -94,13 +94,13 @@ $(BINDIR)/test_dmstag_vec_stencil_vs_array : $(OBJDIR)/src/tests/performance/tes
 	$(STAGBL_LINK) $< $(STAGBL_LIB)
 $(BINDIR)/test_dmstag_preallocate : $(OBJDIR)/src/tests/performance/test_dmstag_preallocate.o library | $$(@D)/.DIR
 	$(STAGBL_LINK) $< $(STAGBL_LIB)
-$(BINDIR)/test_stagbl_array : $(OBJDIR)/src/tests/unit/test_stagbl_array.o library | $$(@D)/.DIR
+$(BINDIR)/test_stagbl_array : $(OBJDIR)/src/tests/test_stagbl_array.o library | $$(@D)/.DIR
 	$(STAGBL_LINK) $< $(STAGBL_LIB)
 $(BINDIR)/test_stagblsystem_stencil : $(OBJDIR)/src/tests/test_stagblsystem_stencil.o library | $$(@D)/.DIR
 	$(STAGBL_LINK) $< $(STAGBL_LIB)
-$(BINDIR)/test_stokes_operator : $(OBJDIR)/src/tests/unit/test_stokes_operator.o library | $$(@D)/.DIR
+$(BINDIR)/test_stokes_operator : $(OBJDIR)/src/tests/test_stokes_operator.o library | $$(@D)/.DIR
 	$(STAGBL_LINK) $< $(STAGBL_LIB)
-$(BINDIR)/test_stokes_assembly_and_solve : $(OBJDIR)/src/tests/integration/test_stokes_assembly_and_solve.o library | $$(@D)/.DIR
+$(BINDIR)/test_stokes_assembly_and_solve : $(OBJDIR)/src/tests/test_stokes_assembly_and_solve.o library | $$(@D)/.DIR
 	$(STAGBL_LINK) $< $(STAGBL_LIB)
 
 .PHONY : tests
