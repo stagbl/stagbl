@@ -136,17 +136,15 @@ static PetscErrorCode StagBLSystemSolve_PETSc(StagBLSystem system,StagBLArray so
 
       ierr = MPI_Comm_size(PetscObjectComm((PetscObject)dm),&size);CHKERRQ(ierr);
       if (size == 1) {
-        // FIXME use PetscDefined()
-#ifdef PETSC_HAVE_SUITESPARSE
-        ierr = PCSetType(pc,PCLU);CHKERRQ(ierr);
-        ierr = PCFactorSetMatSolverType(pc,MATSOLVERUMFPACK);CHKERRQ(ierr);
-#endif
+        if (PetscDefined(HAVE_SUITESPARSE)) {
+          ierr = PCSetType(pc,PCLU);CHKERRQ(ierr);
+          ierr = PCFactorSetMatSolverType(pc,MATSOLVERUMFPACK);CHKERRQ(ierr);
+        }
       } else {
-        // FIXME use PetscDefined()
-#ifdef PETSC_HAVE_SUPERLU_DIST
-        ierr = PCSetType(pc,PCLU);CHKERRQ(ierr);
-        ierr = PCFactorSetMatSolverType(pc,MATSOLVERSUPERLU_DIST);CHKERRQ(ierr);
-#endif
+        if (PetscDefined(HAVE_SUPERLU_DIST)) {
+          ierr = PCSetType(pc,PCLU);CHKERRQ(ierr);
+          ierr = PCFactorSetMatSolverType(pc,MATSOLVERSUPERLU_DIST);CHKERRQ(ierr);
+        }
       }
     }
     ierr = SNESSetFromOptions(data->snes);CHKERRQ(ierr);

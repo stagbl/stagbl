@@ -9,7 +9,6 @@ PetscBool StagBLCheckType(const char *type1, const char *type2)
 
 PetscErrorCode StagBLEnforceType(const char *type, const char *type_required)
 {
-  // FIXME - after rebase to PETSc master, use PetscDefined(USE_DEBUG)
 #if defined(PETSC_USE_DEBUG)
   PetscFunctionBegin;
   if (!StagBLCheckType(type,type_required)) StagBLError2(PETSC_COMM_WORLD,"Type %s is required, but %s used",type_required,type);
