@@ -90,10 +90,9 @@ static PetscErrorCode StagBLSystemSolve_Simple(StagBLSystem system,StagBLArray s
   PetscScalar         *rhs_raw,*sol_raw,*mat_copy;
 
   PetscFunctionBegin;
-  // FIXME only do l2g if needed:
-  ierr = StagBLArrayLocalToGlobal(data->rhs);CHKERRQ(ierr);
+  ierr = StagBLArrayLocalToGlobal(data->rhs);CHKERRQ(ierr); // This is likely not always required
   ierr = StagBLArraySimpleGetGlobalRaw(data->rhs,&rhs_raw);CHKERRQ(ierr);
-  ierr = StagBLArraySimpleGetGlobalRaw(sol,&sol_raw);CHKERRQ(ierr); // FIXME this definitely should do a type check
+  ierr = StagBLArraySimpleGetGlobalRaw(sol,&sol_raw);CHKERRQ(ierr);
 
   /* Use LAPACK to do the solve */
   mat_copy = (PetscScalar*) malloc(data->system_size * data->system_size * sizeof(PetscScalar));
