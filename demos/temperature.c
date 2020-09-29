@@ -79,7 +79,7 @@ PetscErrorCode PopulateTemperatureSystem(Ctx ctx)
   ierr = DMStagGetLocationSlot(dmTemp,DMSTAG_DOWN_LEFT,0,&slot_temperature_downleft);CHKERRQ(ierr);
 
   ierr = StagBLGridPETScGetDM(ctx->stokes_grid,&dmStokes);CHKERRQ(ierr);
-  // FIXME this a bit of a kludge
+  /* Note the use of a hack to copy "simple" vectors to PETSc Vec */
   ierr = StagBLArrayGetType(ctx->stokes_array,&stokes_array_type);CHKERRQ(ierr);
   if (StagBLCheckType(stokes_array_type,STAGBLGRIDPETSC)) {
     ierr = StagBLArrayPETScGetGlobalVec(ctx->stokes_array,&stokes);CHKERRQ(ierr);
@@ -277,7 +277,6 @@ PetscErrorCode PopulateTemperatureSystem(Ctx ctx)
     }
   }
 
-  // FIXME kludge?
   if (StagBLCheckType(stokes_array_type,STAGBLARRAYSIMPLE)) {
     ierr = DMRestoreGlobalVector(dmStokes,&stokes);CHKERRQ(ierr);
   }

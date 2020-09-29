@@ -199,8 +199,8 @@ PetscErrorCode PopulateCoefficientData(Ctx ctx,const char* mode)
     SETERRQ1(ctx->comm,PETSC_ERR_ARG_OUTOFRANGE,"Unrecognized mode %s",mode);
   }
 
-  // FIXME: this logic is a kludge which may need to be improved.
   /* If array doesn't exist, create it and pull out a local Vec. Otherwise, get the local Vec */
+  /* Note the use of a hack to copy "simple" vectors to PETSc Vec */
   if (!ctx->coefficient_array) {
     ierr = StagBLGridCreateStagBLArray(ctx->coefficient_grid,&ctx->coefficient_array);CHKERRQ(ierr);
     ierr = StagBLArrayGetType(ctx->coefficient_array,&array_type);CHKERRQ(ierr);
@@ -271,7 +271,7 @@ PetscErrorCode PopulateCoefficientData(Ctx ctx,const char* mode)
   } else SETERRQ1(PetscObjectComm((PetscObject)dm_coefficients),PETSC_ERR_SUP,"Unsupported dimension %d",dim);
   ierr = DMStagRestoreProductCoordinateArraysRead(dm_coefficients,&arr_coordinates_x,&arr_coordinates_y,&arr_coordinates_z);CHKERRQ(ierr);
 
-  // FIXME kludge for simple case
+  /* Note the use of a hack to copy "simple" vectors to PETSc Vec */
   if (StagBLCheckType(array_type,STAGBLARRAYSIMPLE)) {
     PetscScalar       *local_raw;
     const PetscScalar *coeff_local_array;

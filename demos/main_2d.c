@@ -91,7 +91,7 @@ int main(int argc, char** argv)
   /* Create another, compatible grid for the temperature field */
   ierr = StagBLGridCreateCompatibleStagBLGrid(ctx->stokes_grid,1,0,0,0,&ctx->temperature_grid);CHKERRQ(ierr);
 
-  // FIXME kludge - always use PETSc for the temperature grid
+  /* Note that we always use "petsc" types for the temperature system */
   ierr = StagBLGridSetArrayType(ctx->temperature_grid,STAGBLARRAYPETSC);CHKERRQ(ierr);
   ierr = StagBLGridSetSystemType(ctx->temperature_grid,STAGBLSYSTEMPETSC);CHKERRQ(ierr);
 
@@ -182,12 +182,14 @@ int main(int argc, char** argv)
     ierr = DumpParticles(ctx,timestep);CHKERRQ(ierr);
 
     /* Advect and Migrate */
+    /* Note that this portion of the code uses more PETSc machinary than the rest */
     {
-      Vec             x; // FIXME: not supposed to have Vec in here!
+      Vec             x;
       DM              dm;
       StagBLArrayType array_type;
 
-      // FIXME this is all a bit of a kludge and ruins the "no PETSc in the main file" invariant
+      /* Note that this uses some suboptimal placeholder logic to convert
+         "simple" arrays to PETSc Vecs */
       ierr = StagBLGridPETScGetDM(ctx->stokes_grid,&dm);CHKERRQ(ierr);
       ierr = StagBLArrayGetType(ctx->stokes_array,&array_type);CHKERRQ(ierr);
       if (StagBLCheckType(array_type,STAGBLARRAYPETSC)) {
