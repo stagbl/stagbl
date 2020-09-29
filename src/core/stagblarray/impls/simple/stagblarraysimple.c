@@ -120,7 +120,7 @@ static PetscErrorCode StagBLArraySimpleCreateShellLocalVec_Private(StagBLArray a
 
   PetscFunctionBegin;
   ierr = StagBLGridPETScGetDM(array->grid,&dm);CHKERRQ(ierr);
-  ierr = DMStagGetEntries(dm,&local_size);CHKERRQ(ierr);
+  ierr = DMStagGetEntriesLocal(dm,&local_size);CHKERRQ(ierr);
   ierr = VecCreateSeqWithArray(PETSC_COMM_SELF,1,local_size,data->local,p_vec);CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
