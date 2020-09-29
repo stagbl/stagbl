@@ -61,13 +61,13 @@ $(srcs.d) : ;
 # intended as standalone example of using the library, we use a phony target
 # to clean and rebuild them with their own makefiles, clumsily moving the resulting
 # binary.
-demo : library $(BINDIR)/.DIR
+demos : library $(BINDIR)/.DIR
 	$(MAKE) -C $(STAGBL_DIR)/demos clean
 	$(MAKE) -C $(STAGBL_DIR)/demos all
 	mv $(STAGBL_DIR)/demos/stagbldemo2d $(BINDIR)
 	mv $(STAGBL_DIR)/demos/stagbldemo3d $(BINDIR)
 
-.PHONY: demo
+.PHONY: demos
 
 # Additional Test Executables
 $(BINDIR)/test_% : $(OBJDIR)/src/tests/test_%.o library | $$(@D)/.DIR
@@ -80,10 +80,10 @@ tests : $(patsubst $(SRCDIR)/src/tests/%.c,$(BINDIR)/%,$(stagbltests-y.c))
 # Run tests
 STAGBL_SCIATH_COMMAND= cd ${TEST_DIR} && STAGBL_DIR=$(STAGBL_DIR) STAGBL_ARCH=$(STAGBL_ARCH) python -m sciath $(STAGBL_DIR)/tests/tests.yml -w sciath.conf
 
-test : tests demo $(TESTDIR)/.DIR
+test : tests demos $(TESTDIR)/.DIR
 	${STAGBL_SCIATH_COMMAND}
 
-test_check : tests demo $(TESTDIR)/.DIR
+test_check : tests demos $(TESTDIR)/.DIR
 	${STAGBL_SCIATH_COMMAND} -v
 
 test_clean : $(TESTDIR)/.DIR
