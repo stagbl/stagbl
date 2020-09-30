@@ -23,20 +23,14 @@ static PetscErrorCode StagBLSystemPetscResidual_Default(SNES snes,Vec x, Vec f, 
 static PetscErrorCode StagBLSystemPetscJacobian_Default(SNES snes,Vec x, Mat Amat, Mat Pmat,void *ctx)
 {
   PetscErrorCode             ierr;
-  StagBLSystem               stagblsystem = (StagBLSystem) ctx;
-  StagBLSystem_PETSc * const data = (StagBLSystem_PETSc*) stagblsystem->data;
 
   PetscFunctionBegin;
   STAGBL_UNUSED(snes);
   STAGBL_UNUSED(x);
+  STAGBL_UNUSED(ctx);
   ierr = MatAssemblyBegin(Amat,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
   ierr = MatAssemblyEnd(Amat,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
-  ierr = MatCopy(data->mat,Amat,DIFFERENT_NONZERO_PATTERN);CHKERRQ(ierr);
-  if (Pmat != Amat) {
-    ierr = MatAssemblyBegin(Pmat,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
-    ierr = MatAssemblyEnd(Pmat,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
-    ierr = MatCopy(data->mat,Pmat,DIFFERENT_NONZERO_PATTERN);CHKERRQ(ierr);
-  }
+  if (Pmat != Amat) StagBLError(PetscObjectComm((PetscObject)snes),"Was not expecting different Amat and Pmat");
   PetscFunctionReturn(0);
 }
 
@@ -123,7 +117,7 @@ static PetscErrorCode StagBLSystemSolve_PETSc(StagBLSystem system,StagBLArray so
 
     ierr = SNESCreate(PetscObjectComm((PetscObject)dm),&data->snes);CHKERRQ(ierr);
     ierr = SNESSetFunction(data->snes,NULL,data->residual_function,(void*)system);CHKERRQ(ierr);
-    ierr = SNESSetJacobian(data->snes,NULL,NULL,data->jacobian_function,(void*)system);CHKERRQ(ierr);
+    ierr = SNESSetJacobian(data->snes,data->mat,data->mat,data->jacobian_function,(void*)system);CHKERRQ(ierr);
     {
       PetscMPIInt size;
       KSP         ksp;
